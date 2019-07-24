@@ -1,0 +1,2 @@
+<%= File.read("#{File.dirname(__FILE__)}/../../environments/all/Brewfile") %>
+<%= File.read("#{File.dirname(__FILE__)}/../../environments/#{ENV.fetch('DOTFILES_HOMEBREW_CONFIG_ENV', 'default')}/Brewfile") %>

@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+# Might at some point be silenced unless an environment variable is set
+debug () {
+  echo "$@"
+}
+
+error () {
+  echo "$@" >&2
+}
+
+log () {
+  echo "$@"
+}

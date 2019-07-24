@@ -28,6 +28,34 @@ TODO
 
 TODO
 
+## Environments
+
+- `all` - config in here will always be applied
+- `default` - if no environment is set, this environment will be used
+- any other name - if the current environment matches the folder name, that
+  folder's config will be applied _instead of `default`_. Specify an environment
+  using `DOTFILES_HOMEBREW_CONFIG_ENV=<environment name>` where
+  `<environment name>` matches the folder
+
+## Plugins
+
+### Lifecycle Hooks
+
+- `$DOTFILES_*_CONFIG` - an array containing the unprefixed names of the
+  plugin's config variables
+- (future) `dotfiles_*_prompt` - declares the strings needed to prompt the user
+  for any missing config values
+- `$DOTFILES_*_DEPS` - an array of plugin names that must execute before this
+  plugin can be applied
+- `dotfiles_*_apply ()` - does the plugin's work
+
+## Conventions
+
+- Scripts are extensionless and rely on their shebang for interpreter.
+- Environment variables and globals are all caps, with underscores as
+  separaters.
+- Functions and local variables are snake case.
+
 ## Contributing
 
 TODO
