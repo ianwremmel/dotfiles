@@ -5,7 +5,10 @@
 
 set -euo pipefail
 
-source ./framework/logging
+pushd framework
+source ./logging
+source ./util
+popd
 
 PLUGINS=()
 ENVIRONMENTS=()
@@ -98,6 +101,12 @@ run_plugin () {
     error "$usage_string"
     exit 1
   fi
+
+  if array_contains APPLIED_PLUGINS "$plugin_name"; then
+    return 0
+  fi
+
+  APPLIED_PLUGINS+=("$plugin_name")
 
   load_plugin_config "$plugin_name"
   # TODO run deps
