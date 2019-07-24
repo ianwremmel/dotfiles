@@ -55,6 +55,11 @@ TODO
 - Environment variables and globals are all caps, with underscores as
   separaters.
 - Functions and local variables are snake case.
+- Shell scripts (including plugins, though technically only the plugin
+  _entrypoint_ need be bash) are written for bash > 3. At time of writing, this
+  means bash 5. While you may choose any shell you wish as your default, the
+  majority of the script files are loading by sourcing them into the current
+  process. Moreover shellcheck supports bash, but not zsh.
 
 ## Contributing
 

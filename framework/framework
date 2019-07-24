@@ -121,6 +121,8 @@ run_plugins () {
 
 main () {
   load_plugins
+
+  run_plugins
 }
 
 main

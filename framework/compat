@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+# This file does all the work necessary to get us to a modern shell, then hands
+# off to framework as the real entrypoint
+
+compat_ensure_homebrew () {
+  if ! command -v brew >/dev/null 2>&1; then
+    echo "Homebrew not found. Installing"
+
+    /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+    brew analytics off
+
+    echo "Homebrew installed"
+  fi
+}
+
+compat_ensure_modern_bash () {
+  if [ "$(bash -c 'echo ${BASH_VERSINFO[0]}')" -lt 4 ]; then
+    compat_ensure_homebrew
+    brew install bash
+  fi
+}
+
+compat_ensure_modern_bash
