@@ -14,4 +14,5 @@ action "ianwremmel/prevent-fixup-commits@v1.0.0" {
 
 action "actions/bin/shellcheck@master" {
   uses = "actions/bin/shellcheck@master"
+  args = "-ax $(grep -lr '#!/usr/bin/env bash' . | grep -v main.workflow)"
 }
