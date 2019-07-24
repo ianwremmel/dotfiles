@@ -104,6 +104,12 @@ run_plugin () {
   run_hook $plugin_name apply
 }
 
+run_plugins () {
+  for plugin in $(list_plugins); do
+    run_plugin "$plugin"
+  done
+}
+
 main () {
   load_plugins
 }
