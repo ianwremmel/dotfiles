@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 
-# Reminder: this file is used during first run and therefore must be bash 3
-# compatible
+# Note: framework and compat are the only files that should do stuff
+# automatically. Since everything else gets sourced into this process, weird
+# things can happen.
 
 set -euo pipefail
 

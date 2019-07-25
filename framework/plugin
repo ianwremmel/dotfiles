@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-set -euo pipefail
-
 PLUGINS=${PLUGINS:-()}
 CONFIGURED_PLUGINS=${CONFIGURED_PLUGINS:-()}
 APPLIED_PLUGINS=${APPLIED_PLUGINS:-()}

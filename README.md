@@ -39,6 +39,17 @@ TODO
 
 ## Plugins
 
+Plugins do the bulk of the work here. Plugins are just bash scripts that
+implement wone or more [lifecycle hooks](#lifecycle-hooks). They're executued
+automatically and by `./apply`.
+
+When authoring plugins, keep in mind that they're sourced into the framework
+process, so there's no need to e.g. `set -euo pipefail`.
+
+> Though unnecessary, it's fine to put `export` in from of e.g.
+> `$DOTFILES_*_CONFIG` in order to prevent shellcheck from complaining about
+> unused vars.
+
 ### Lifecycle Hooks
 
 - `$DOTFILES_*_CONFIG` - an array containing the unprefixed names of the

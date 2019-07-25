@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-set -euo pipefail
-
 _dotfiles_homebrew_ensure () {
   if ! command -v brew >/dev/null 2>&1; then
     log "Homebrew not found. Installing"
@@ -35,4 +33,4 @@ dotfiles_homebrew_apply () {
   brew cleanup
 }
 
-DOTFILES_HOMEBREW_CONFIG=('env')
+export DOTFILES_HOMEBREW_CONFIG=('env')

@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-set -euo pipefail
-
 DOTFILES_CONFIG_FILE=${DOTFILES_CONFIG_FILE:-$HOME/.dotfilesrc}
 
 _config_ensure_file () {

@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-set -euo pipefail
-
 # Might at some point be silenced unless an environment variable is set
 debug () {
   set +u
