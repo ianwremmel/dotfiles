@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+
+export DOTFILES_NODE_DEPS=('nvm')
+
+dotfiles_node_apply () {
+  if ! command -v node >/dev/null 2>&1; then
+    nvm install lts/*
+    nvm alias default lts/*
+  fi
+}
