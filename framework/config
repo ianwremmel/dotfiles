@@ -10,6 +10,8 @@ _config_ensure_file () {
 config_load () {
   _config_ensure_file
 
+  debug 'loading config'
+
   # TODO can we set IFS to ensure we only word split on X=? rather than spaces
   # and every new line?
   # shellcheck disable=SC2046
@@ -52,6 +54,8 @@ config_write () {
 
   local config
   config=$(grep -v "$key_name" "$DOTFILES_CONFIG_FILE" || true)
-  config+="$key_name=$value"
+  # Yes, opening the file twice is *technically* less efficient, but it greatly
+  # simplifies ensuring newlines are in the right places
   echo "$config" > "$DOTFILES_CONFIG_FILE"
+  echo "$key_name=$value" >>  "$DOTFILES_CONFIG_FILE"
 }

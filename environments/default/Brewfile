@@ -1,0 +1,21 @@
+# Install zsh
+brew 'zsh'
+brew 'zsh-completions'
+
+##
+## Work
+##
+## Put packages needed for your current job here. This will make it easier to
+## remember what you need for your personal work and what you can remove if your
+## job changes.
+##
+
+brew 'caddy'
+brew 'imagemagick@6'
+brew 'imagemagick'
+brew 'postgres'
+brew 'rbenv'
+brew 'yarn', args: ['ignore-dependencies']
+cask 'zeplin'
+tap 'buildpack/tap'
+brew 'pack'

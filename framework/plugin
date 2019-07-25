@@ -49,16 +49,74 @@ plugin_config_ensure () {
     return 0
   fi
 
-  local config_list="${!plugin_config_list_var}"
+  env | grep DOTFILES
 
+  local config_list="${!plugin_config_list_var}"
   for config_name in "${config_list[@]}"; do
     local env_name="DOTFILES_${plugin_name^^}_CONFIG_${config_name^^}"
+    debug "Checking for '$env_name'"
     set +u
     if ! is_set "$env_name"; then
-      prompt_plugin_config "$plugin_name" "$config_name"
+      debug "'$env_name' not found, prompting user"
+      plugin_config_prompt "$plugin_name" "$config_name"
     fi
     set -u
   done
+}
+
+plugin_config_get () {
+  local plugin_name=$1
+  local config_name=$2
+
+  local usage_string='usage: plugin_config_get <plugin_name> <config_name>'
+
+  if [ "$plugin_name" == "" ]; then
+    error "$usage_string"
+    exit 1
+  fi
+
+  if [ "$config_name" == "" ]; then
+    error "$usage_string"
+    exit 1
+  fi
+
+  config_read "DOTFILES_${plugin_name^^}_CONFIG_${config_name^^}"
+}
+
+plugin_config_prompt () {
+  local plugin_name=$1
+  local config_name=$2
+
+  local usage_string='usage: plugin_config_prompt <plugin_name> <config_name>'
+
+  if [ "$plugin_name" == "" ]; then
+    error "$usage_string"
+    exit 1
+  fi
+
+  if [ "$config_name" == "" ]; then
+    error "$usage_string"
+    exit 1
+  fi
+
+  if ! function_exists "dotfiles_${plugin_name}_prompt_string"; then
+    echo "$plugin_name expects config '$config_name' but did not provide a corresponding prompt string"
+    return 1
+  fi
+
+  local prompt_string
+  prompt_string=$("dotfiles_${plugin_name}_prompt_string" "$config_name")
+
+  local var_name
+  var_name="DOTFILES_${plugin_name^^}_CONFIG_${config_name^^}"
+
+  local value
+  read -rp "$prompt_string: " value
+
+  config_write "$var_name" "$value"
+  # not the most efficient, but probably the easiest way to avoid messing up the
+  # var name during assignment
+  config_load
 }
 
 plugin_list_plugins () {
@@ -75,37 +133,6 @@ plugin_load_all () {
     source "./plugins/$plugin/$plugin"
     PLUGINS+=("$plugin")
   done
-}
-
-plugin_config_prompt () {
-  local plugin_name=$1
-  local config_name=$2
-
-  local usage_string='usage: prompt_plugin_config <plugin_name> <config_name>'
-
-  if [ "$plugin_name" == "" ]; then
-    error "$usage_string"
-    exit 1
-  fi
-
-  if [ "$config_name" == "" ]; then
-    error "$usage_string"
-    exit 1
-  fi
-
-  local prompt_string
-  prompt_string=$("dotfiles_${plugin_name}_prompt_string" "$config_name")
-
-  local var_name
-  var_name="DOTFILES_${plugin_name^^}_CONFIG_${config_name^^}"
-
-  local value
-  read -rp "$prompt_string: " value
-
-  config_set "$var_name" "$value"
-  # not the most efficient, but probably the easiest way to avoid messing up the
-  # var name during assignment
-  config_load
 }
 
 plugin_run_hook () {

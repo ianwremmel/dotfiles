@@ -32,5 +32,3 @@ dotfiles_homebrew_apply () {
   log 'Removing outdated homebrew packages'
   brew cleanup
 }
-
-export DOTFILES_HOMEBREW_CONFIG=('env')

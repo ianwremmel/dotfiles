@@ -14,6 +14,10 @@ source ./util
 source ./plugin
 popd
 
+# this'll be improved later, but for now, hardcoding solves some early issues
+export DOTFILES_ENV=default
+
+config_load
 plugin_load_all
 plugin_configure_all
 
