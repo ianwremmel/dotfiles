@@ -14,21 +14,23 @@ _dotfiles_homebrew_ensure () {
 dotfiles_homebrew_apply () {
   _dotfiles_homebrew_ensure
 
-  local brewfile
-  brewfile="$(mktemp)"
+  if [ "${DOTFILES_HOMEBREW_SKIP:-''}" == '' ]; then
+    local brewfile
+    brewfile="$(mktemp)"
 
-  # Generate brewfile according to local environment config
-  erb Brewfile > "$brewfile"
+    # Generate brewfile according to local environment config
+    erb Brewfile > "$brewfile"
 
-  log 'Installing packages with homebrew'
-  brew bundle --file="$brewfile"
+    log 'Installing packages with homebrew'
+    brew bundle --file="$brewfile"
 
-  log 'Removing no-longer specified homebrew packages'
-  brew bundle cleanup --force --file="$brewfile"
+    log 'Removing no-longer specified homebrew packages'
+    brew bundle cleanup --force --file="$brewfile"
 
-  log 'Upgrading all installed homebrew packages'
-  brew upgrade
+    log 'Upgrading all installed homebrew packages'
+    brew upgrade
 
-  log 'Removing outdated homebrew packages'
-  brew cleanup
+    log 'Removing outdated homebrew packages'
+    brew cleanup
+  fi
 }

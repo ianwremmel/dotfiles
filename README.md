@@ -73,6 +73,7 @@ process, so there's no need to e.g. `set -euo pipefail`.
   means bash 5. While you may choose any shell you wish as your default, the
   majority of the script files are loading by sourcing them into the current
   process. Moreover shellcheck supports bash, but not zsh.
+- All framework files should support being source multiple times.
 
 ## Contributing
 

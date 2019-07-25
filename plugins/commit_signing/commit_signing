@@ -21,6 +21,7 @@ dotfiles_commit_signing_apply () {
   local key_id
   key_id=$(gpg --list-secret-keys --keyid-format LONG | awk '/sec/ { print $2 }' | awk -F'/' '{ print $2 }')
 
+  # TODO fail if key is not trusted?
   if [ "$key_id" != '' ]; then
     touch "$HOME/gpg-agent.conf"
 

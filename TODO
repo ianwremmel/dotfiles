@@ -1,0 +1,10 @@
+Detect environments and make user pick one
+Renames DOTFILES_HOMEBREW_CONFIG_ENV to DOTFILES_ENV
+Optional plugins
+Remind once
+Skip homebrew
+
+# plugins
+
+homedir
+vim modules
