@@ -1,0 +1,160 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+PLUGINS=${PLUGINS:-()}
+CONFIGURED_PLUGINS=${CONFIGURED_PLUGINS:-()}
+APPLIED_PLUGINS=${APPLIED_PLUGINS:-()}
+
+plugin_configure_all () {
+  for plugin in $(plugin_list_plugins); do
+    plugin_config_ensure "$plugin"
+  done
+}
+
+_plugin_call_in_dep_order () {
+  local func_name=$1
+  local -n dep_array=$2
+
+  for plugin in "${dep_array[@]}"; do
+    $func_name "$plugin"
+  done
+}
+
+_plugin_deps_array () {
+  local plugin_name=$1
+  echo "DOTFILES_${plugin_name^^}_DEPS"
+}
+
+plugin_config_ensure () {
+  local plugin_name=$1
+
+  local usage_string='usage: plugin_config_ensure <plugin_name>'
+
+  if [ "$plugin_name" == "" ]; then
+    error "$usage_string"
+    exit 1
+  fi
+
+  if array_contains CONFIGURED_PLUGINS "$plugin_name"; then
+    debug "$plugin_name is already configured"
+    return 0
+  fi
+
+  CONFIGURED_PLUGINS+=("$plugin_name")
+
+  _plugin_call_in_dep_order plugin_config_ensure "$(_plugin_deps_array "$plugin_name")"
+
+  local plugin_config_list_var="DOTFILES_${plugin_name^^}_CONFIG"
+  if ! is_set "$plugin_config_list_var"; then
+    debug "$plugin_name has no config"
+    return 0
+  fi
+
+  local config_list="${!plugin_config_list_var}"
+
+  for config_name in "${config_list[@]}"; do
+    local env_name="DOTFILES_${plugin_name^^}_CONFIG_${config_name^^}"
+    set +u
+    if ! is_set "$env_name"; then
+      prompt_plugin_config "$plugin_name" "$config_name"
+    fi
+    set -u
+  done
+}
+
+plugin_list_plugins () {
+  for plugin in plugins/*; do
+    echo "${plugin/plugins\//}"
+  done
+}
+
+plugin_load_all () {
+  for plugin in $(plugin_list_plugins); do
+    plugin="${plugin/plugins\//}"
+    log "Loading plugin $plugin"
+    # shellcheck disable=SC1090
+    source "./plugins/$plugin/$plugin"
+    PLUGINS+=("$plugin")
+  done
+}
+
+plugin_config_prompt () {
+  local plugin_name=$1
+  local config_name=$2
+
+  local usage_string='usage: prompt_plugin_config <plugin_name> <config_name>'
+
+  if [ "$plugin_name" == "" ]; then
+    error "$usage_string"
+    exit 1
+  fi
+
+  if [ "$config_name" == "" ]; then
+    error "$usage_string"
+    exit 1
+  fi
+
+  local prompt_string
+  prompt_string=$("dotfiles_${plugin_name}_prompt_string" "$config_name")
+
+  local var_name
+  var_name="DOTFILES_${plugin_name^^}_CONFIG_${config_name^^}"
+
+  local value
+  read -rp "$prompt_string: " value
+
+  config_set "$var_name" "$value"
+  # not the most efficient, but probably the easiest way to avoid messing up the
+  # var name during assignment
+  config_load
+}
+
+plugin_run_hook () {
+  local plugin_name=$1
+  local hook_name=$2
+  local usage_string='usage: run_hook <plugin_name> <hook_name>'
+
+  if [ "$plugin_name" == "" ]; then
+    error "$usage_string"
+    exit 1
+  fi
+
+  if [ "$hook_name" == "" ]; then
+    error "$usage_string"
+    exit 1
+  fi
+
+  (
+    cd "plugins/$plugin_name"
+    "dotfiles_${plugin_name}_${hook_name}"
+  )
+}
+
+plugin_run_plugin () {
+  local plugin_name=$1
+  local usage_string='usage: plugin_run_plugin <plugin_name>'
+
+  if [ "$plugin_name" == "" ]; then
+    error "$usage_string"
+    exit 1
+  fi
+
+  if array_contains APPLIED_PLUGINS "$plugin_name"; then
+    return 0
+  fi
+
+  APPLIED_PLUGINS+=("$plugin_name")
+
+  plugin_config_ensure "$plugin_name"
+
+  _plugin_call_in_dep_order plugin_run_plugin "$(_plugin_deps_array "$plugin_name")"
+
+  plugin_run_hook "$plugin_name" apply
+}
+
+plugin_run_plugins () {
+  for plugin in $(plugin_list_plugins); do
+    plugin_run_plugin "$plugin"
+  done
+}
