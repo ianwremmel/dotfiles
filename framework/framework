@@ -48,11 +48,7 @@ load_plugin_config () {
     local env_name="DOTFILES_${plugin_name^^}_CONFIG_${config_name^^}"
     set +u
     if ! is_set "$env_name"; then
-      # TODO read config from file
-      # TODO prompt for config
-      set -u
-      error "$env_name must be set"
-      return 1
+      prompt_plugin_config "$plugin_name" "$config_name"
     fi
     set -u
   done
@@ -71,6 +67,37 @@ load_plugins () {
     source "./plugins/$plugin/$plugin"
     PLUGINS+=("$plugin")
   done
+}
+
+prompt_plugin_config () {
+  local plugin_name=$1
+  local config_name=$2
+
+  local usage_string='usage: prompt_plugin_config <plugin_name> <config_name>'
+
+  if [ "$plugin_name" == "" ]; then
+    error "$usage_string"
+    exit 1
+  fi
+
+  if [ "$config_name" == "" ]; then
+    error "$usage_string"
+    exit 1
+  fi
+
+  local prompt_string
+  prompt_string=$("dotfiles_${plugin_name}_prompt_string" "$config_name")
+
+  local var_name
+  var_name="DOTFILES_${plugin_name^^}_CONFIG_${config_name^^}"
+
+  local value
+  read -rp "$prompt_string: " value
+
+  config_set "$var_name" "$value"
+  # not the most efficient, but probably the easiest way to avoid messing up the
+  # var name during assignment
+  config_load
 }
 
 run_hook () {
@@ -121,6 +148,8 @@ run_plugins () {
 }
 
 main () {
+  config_load
+
   load_plugins
 
   run_plugins

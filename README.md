@@ -48,6 +48,8 @@ TODO
 - `$DOTFILES_*_DEPS` - an array of plugin names that must execute before this
   plugin can be applied
 - `dotfiles_*_apply ()` - does the plugin's work
+- `dotfiles_*_prompt_string ()` - function that accepts a (non-namespaced) var
+  name and echos the prompt string for `read` to present to the user
 
 ## Conventions
 
