@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+
+# Might at some point be silenced unless an environment variable is set
+debug () {
+  set +u
+  if [ "$DOTFILES_DEBUG" != '' ]; then
+    echo "$@"
+  fi
+  set -u
+}
+
+error () {
+  echo "$@" >&2
+}
+
+log () {
+  echo "$@"
+}

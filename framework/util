@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+
+array_contains () {
+  local -n haystack=$1
+  local needle=$2
+
+  for item in "${haystack[@]}"; do
+    if [ "$item" == "$needle" ]; then
+      return 0
+    fi
+  done
+
+  return 1
+}
+
+array_map () {
+  local func_name=$1
+  local -n array=$2
+
+  for item in "${array[@]}"; do
+    $func_name "$item"
+  done
+}
+
+function_exists () {
+  local func_name=$1
+
+  if [ "$(compgen -A 'function' "$func_name" | wc -l)" -eq 0 ]; then
+    return 1
+  else
+    return 0
+  fi
+}
+
+# Indicates if the passed-in string is the name of an environment variable
+is_set () {
+  set +u
+  local ret=1
+  if [ -n "${!1}" ]; then
+    ret=0
+  fi
+  set -u
+  return $ret
+}
+
+remind () {
+  # local script
+  script=$(cat <<EOT
+on run argv
+  tell application "Reminders"
+    set mylist to list "Reminders"
+    tell mylist
+      make new reminder at end with properties {name: (item 1 of argv)}
+    end tell
+  end tell
+end run
+EOT
+)
+
+  osascript -e "$script" "$*"
+}

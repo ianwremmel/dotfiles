@@ -1,0 +1,103 @@
+tap 'heroku/brew'
+tap 'wata727/tflint'
+
+##
+## Strongly Recommended
+##
+## Not necessarily required for functionality, but unclear if things will work
+## without these upgrades
+##
+
+brew 'wget'
+
+# Install GNU core utilities (those that come with macOS are outdated).
+# Don't forget to add `$(brew --prefix coreutils)/libexec/gnubin` to `$PATH`.
+brew 'coreutils'
+# Install GNU `find`, `locate`, `updatedb`, and `xargs`, `g`-prefixed.
+brew 'findutils'
+# Install GNU `sed`, overwriting the built-in `sed`.
+brew 'gnu-sed'
+
+##
+## Recommended
+##
+## You can probably do without these, but without a specific reason to skip
+## them, they should probably stay
+##
+
+# Install more recent versions of some macOS tools.
+brew 'vim'
+brew 'grep'
+brew 'screen'
+brew 'git'
+
+# Support large file with git
+brew 'git-lfs'
+
+##
+## User
+##
+## Put your packages here
+##
+
+# Install Casks
+cask 'aws-vault'
+cask '1password'
+cask 'adobe-creative-cloud'
+cask 'disk-inventory-x'
+cask 'docker'
+cask 'fork'
+cask 'firefox'
+cask 'flux'
+cask 'gitup'
+cask 'gpg-suite'
+cask 'hyperdock'
+cask 'java'
+cask 'keybase'
+cask 'ngrok'
+cask 'postico'
+cask 'spideroakone'
+cask 'steam'
+cask 'vlc'
+cask 'xquartz'
+cask 'visual-studio-code'
+
+# Install useful binaries
+# brew '1password-cli'
+brew 'chamber'
+brew 'httpie'
+brew 'hub'
+brew 'heroku'
+brew 'terraform'
+brew 'tflint'
+brew 'shellcheck'
+
+# Install (better) language interpreters
+brew 'python'
+brew 'go'
+
+# Install QuickLook helpers
+cask 'qlcolorcode'     # syntax highlighting in preview
+cask 'qlstephen'       # preview plaintext files without extension
+cask 'qlmarkdown'      # preview markdown files
+cask 'quicklook-json'  # preview json files
+cask 'quicklook-csv'   # preview csvs
+cask 'qlvideo'         # preview more video types
+
+# Install App Store packages
+mas 'Bear', id: 1_091_189_122
+mas 'Byword', id: 420_212_497
+mas 'Evernote', id: 406_056_744
+mas 'Keynote', id: 409_183_694
+mas 'Numbers', id: 409_203_825
+mas 'Pages', id: 409_201_541
+mas 'Pocket', id: 568_494_494
+mas 'Slack', id: 803_453_959
+mas 'Spark', id: 1_176_895_641
+mas 'Todoist', id: 585_829_637
+mas 'Xcode', id: 497_799_835
+
+# Install selenium drivers
+brew 'geckodriver'
+cask 'chromedriver'
+# reminder: macOS includes safaridriver

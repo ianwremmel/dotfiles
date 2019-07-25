@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+
+DOTFILES_CONFIG_FILE=${DOTFILES_CONFIG_FILE:-$HOME/.dotfilesrc}
+
+_config_ensure_file () {
+  touch "$DOTFILES_CONFIG_FILE"
+  chmod 0600 "$DOTFILES_CONFIG_FILE"
+}
+
+config_load () {
+  _config_ensure_file
+
+  debug 'loading config'
+
+  # TODO can we set IFS to ensure we only word split on X=? rather than spaces
+  # and every new line?
+  # shellcheck disable=SC2046
+  IFS=$'\n' export $(grep -v '^#' "$DOTFILES_CONFIG_FILE" | xargs)
+}
+
+config_read () {
+  _config_ensure_file
+
+  local key_name=$1
+  local usage_string='usage: config_read <key_name>'
+
+  if [ "$key_name" == "" ]; then
+    error "$usage_string"
+    return 1
+  fi
+
+  local val
+  val=$(grep -E "^$1=" "$DOTFILES_CONFIG_FILE" 2>/dev/null | head -n 1 | cut -d '=' -f 2-)
+  echo -n "$val"
+}
+
+config_write () {
+  _config_ensure_file
+
+  local key_name=$1
+  local value=$2
+  local usage_string='usage: config_read <key_name>'
+
+  if [ "$key_name" == "" ]; then
+    error "$usage_string"
+    return 1
+  fi
+
+  if [ "$value" == "" ]; then
+    error "$usage_string"
+    return 1
+  fi
+
+
+  local config
+  config=$(grep -v "$key_name" "$DOTFILES_CONFIG_FILE" || true)
+  # Yes, opening the file twice is *technically* less efficient, but it greatly
+  # simplifies ensuring newlines are in the right places
+  echo "$config" > "$DOTFILES_CONFIG_FILE"
+  echo "$key_name=$value" >>  "$DOTFILES_CONFIG_FILE"
+}

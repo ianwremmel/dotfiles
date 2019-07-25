@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+
+_dotfiles_homebrew_ensure () {
+  if ! command -v brew >/dev/null 2>&1; then
+    log "Homebrew not found. Installing"
+
+    /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+    brew analytics off
+
+    log "Homebrew installed"
+  fi
+}
+
+dotfiles_homebrew_apply () {
+  _dotfiles_homebrew_ensure
+
+  local brewfile
+  brewfile="$(mktemp)"
+
+  # Generate brewfile according to local environment config
+  erb Brewfile > "$brewfile"
+
+  log 'Installing packages with homebrew'
+  brew bundle --file="$brewfile"
+
+  log 'Removing no-longer specified homebrew packages'
+  brew bundle cleanup --force --file="$brewfile"
+
+  log 'Upgrading all installed homebrew packages'
+  brew upgrade
+
+  log 'Removing outdated homebrew packages'
+  brew cleanup
+}

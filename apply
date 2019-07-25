@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+# Load the compat helpers. These ensure that we have a modern version of bash
+# installed
+source ./framework/compat
+
+# Run framework in a subshell which should cause it to use homebrew bash rather
+# than (what may be) the macos system bash.
+./framework/framework
+

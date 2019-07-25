@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+
+# Note: framework and compat are the only files that should do stuff
+# automatically. Since everything else gets sourced into this process, weird
+# things can happen.
+
+set -euo pipefail
+
+source ./framework/config
+source ./framework/logging
+source ./framework/util
+
+source ./framework/plugin
+
+# this'll be improved later, but for now, hardcoding solves some early issues
+export DOTFILES_ENV=default
+
+config_load
+plugin_load_all
+plugin_configure_all
+
+plugin_run_plugins
