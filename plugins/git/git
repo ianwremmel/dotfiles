@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+
+export DOTFILES_GIT_CONFIG=('user_email' 'user_name')
+
+dotfiles_git_prompt_string () {
+  case $1 in
+    user_email)
+      echo 'Enter your preferred git user email'
+      return 0
+      ;;
+    user_name)
+      echo 'Entered your preferred git username'
+      return 0
+      ;;
+    esac
+  return 1
+}
+
+dotfiles_git_apply () {
+  git config --global user.name "$(plugin_config_get 'git' 'user_name')"
+  git config --global user.email "$(plugin_config_get 'git' 'user_email')"
+}
