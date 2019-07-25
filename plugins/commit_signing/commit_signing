@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+
+export DOTFILES_COMMIT_SIGNING_DEPS=('homebrew')
+
+_dotfiles_commit_signing_ensure () {
+  if ! command -v gpg > /dev/null 2>&1; then
+    echo 'The commit signing plugin requires gpg. Please add it to your Brewfile'
+    return 1
+  fi
+
+  if ! command -v pinentry-mac > /dev/null 2>&1; then
+    echo 'The commit signing plugin requires pinentry-mac. Please add it to your Brewfile'
+    return 1
+  fi
+}
+
+dotfiles_commit_signing_apply () {
+  mkdir -p "$HOME/.gnupg"
+  chmod 0700 "$HOME/.gnupg"
+
+  local key_id
+  key_id=$(gpg --list-secret-keys --keyid-format LONG | awk '/sec/ { print $2 }' | awk -F'/' '{ print $2 }')
+
+  if [ "$key_id" != '' ]; then
+    touch "$HOME/gpg-agent.conf"
+
+    if ! grep -q 'pinentry-program' "$HOME/gpg-agent.conf"; then
+      echo 'pinentry-program /usr/local/bin/pinentry-mac' >> "$HOME/gpg-agent.conf"
+    fi
+
+    git config --global user.signingkey "$key_id"
+    git config --global commit.gpgsign true
+    gpgconf --kill gpg-agent
+  else
+    echo 'gpg does not appear to contain any secret keys. skipping commit-signing setup'
+    remind 'Add a gpg key to gpgagent and rerun dotfiles'
+  fi
+}
