@@ -6,13 +6,11 @@
 
 set -euo pipefail
 
-pushd framework
-source ./config
-source ./logging
-source ./util
+source ./framework/config
+source ./framework/logging
+source ./framework/util
 
-source ./plugin
-popd
+source ./framework/plugin
 
 # this'll be improved later, but for now, hardcoding solves some early issues
 export DOTFILES_ENV=default

@@ -151,7 +151,7 @@ plugin_run_hook () {
   fi
 
   (
-    cd "plugins/$plugin_name"
+    cd "plugins/$plugin_name" || return
     "dotfiles_${plugin_name}_${hook_name}"
   )
 }
