@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+
+dotfiles_homedir_apply () {
+  for env in required all default; do
+    if [ -d "environments/$env/home" ]; then
+      rsync --exclude ".DS_Store" --exclude ".git/" -av "environments/$env/home" "$HOME"
+    fi
+  done
+
+  # $$ is the current shell pid; this should tell us what shell we're currently
+  # running so we can reload the right config file
+  case $(ps -p $$) in
+    *zsh*)
+      debug 'reloading zsh'
+      exec zsh
+      ;;
+    *bash*)
+      debug 'reloading bash'
+      exec bash
+      ;;
+  esac
+}
