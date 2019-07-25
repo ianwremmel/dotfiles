@@ -14,3 +14,14 @@ array_contains () {
 
   return 1
 }
+
+# Indicates if the passed-in string is the name of an environment variable
+is_set () {
+  set +u
+  local ret=1
+  if [ -n "${!1}" ]; then
+    ret=0
+  fi
+  set -u
+  return $ret
+}
