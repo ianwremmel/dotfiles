@@ -4,7 +4,11 @@ set -euo pipefail
 
 # Might at some point be silenced unless an environment variable is set
 debug () {
-  echo "$@"
+  set +u
+  if [ "$DOTFILES_DEBUG" != '' ]; then
+    echo "$@"
+  fi
+  set -u
 }
 
 error () {
