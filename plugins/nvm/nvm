@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+
+export DOTFILES_NVM_DEPS=('homebrew')
+
+dotfiles_nvm_apply () {
+  source ~/.nvm/nvm.sh >/dev/null 2>&1 || true
+
+  # reminder: 0 is truthy in bash
+  install_nvm=1
+
+  local nvm_version
+  nvm_version=$(curl -s https://api.github.com/repos/nvm-sh/nvm/releases/latest | jq . | grep tag_name | awk '{print $2}' | sed -e 's/[",]//g')
+  if ! command -v nvm >/dev/null 2>&1; then
+    install_nvm=0
+  elif [ "v$(nvm --version | tr -d '\n')" != "$nvm_version" ]; then
+    install_nvm=0
+  fi
+
+  if [ $install_nvm ]; then
+    debug "installing nvm"
+
+    curl -o- "https://raw.githubusercontent.com/nvm-sh/nvm/$nvm_version/install.sh" | bash
+    # shellcheck disable=SC1090
+    source ~/.nvm/nvm.sh
+  fi
+}
