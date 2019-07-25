@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+DOTFILES_CONFIG_FILE=${DOTFILES_CONFIG_FILE:-$HOME/.dotfilesrc}
+
+config_read () {
+  local key_name=$1
+  local usage_string='usage: config_read <key_name>'
+
+  if [ "$key_name" == "" ]; then
+    error "$usage_string"
+    return 1
+  fi
+
+  touch "$DOTFILES_CONFIG_FILE"
+
+  local val
+  val=$(grep -E "^$1=" "$DOTFILES_CONFIG_FILE" 2>/dev/null | head -n 1 | cut -d '=' -f 2-)
+  echo -n "$val"
+}
+
+config_write () {
+  local key_name=$1
+  local value=$2
+  local usage_string='usage: config_read <key_name>'
+
+  if [ "$key_name" == "" ]; then
+    error "$usage_string"
+    return 1
+  fi
+
+  if [ "$value" == "" ]; then
+    error "$usage_string"
+    return 1
+  fi
+
+  touch "$DOTFILES_CONFIG_FILE"
+
+  local config
+  config=$(grep -v "$key_name" "$DOTFILES_CONFIG_FILE" || true)
+  config+="$key_name=$value"
+  echo "$config" > "$DOTFILES_CONFIG_FILE"
+}

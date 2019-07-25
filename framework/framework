@@ -6,6 +6,7 @@
 set -euo pipefail
 
 pushd framework
+source ./config
 source ./logging
 source ./util
 popd
