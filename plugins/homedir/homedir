@@ -11,17 +11,4 @@ dotfiles_homedir_apply () {
   }
 
   environment_map_func _apply
-
-  # $$ is the current shell pid; this should tell us what shell we're currently
-  # running so we can reload the right config file
-  case $(ps -p $$) in
-    *zsh*)
-      debug 'reloading zsh'
-      exec zsh
-      ;;
-    *bash*)
-      debug 'reloading bash'
-      exec bash
-      ;;
-  esac
 }
