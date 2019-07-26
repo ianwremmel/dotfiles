@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+
+export DOTFILES_NTFY_CONFIG=('pushover_key')
+
+export DOTFILES_NTFY_DEPS=('homebrew')
+
+_dotfiles_ntfy_ensure () {
+  if ! command -v pip3 > /dev/null 2>&1; then
+    echo 'The ntfy plugin requires python3. Please add it to your Brewfile'
+    return 1
+  fi
+
+  if ! command -v ntfy > /dev/null 2>&1; then
+    pip3 install git+https://github.com/ianwremmel/ntfy@multi-screenlock
+    eval "$(ntfy shell-integration)"
+  fi
+}
+
+dotfiles_ntfy_prompt_string () {
+  case $1 in
+    pushover_key)
+      echo 'Enter your pushover API key'
+      return 0
+      ;;
+    esac
+  return 1
+}
+
+dotfiles_ntfy_apply () {
+  touch "$HOME/.ntfy.yml"
+
+  if [ "$(wc -c < "$HOME/.ntfy.yml" | tr -d '[:space:]')" == "0" ]; then
+    debug 'Initializing .ntfy.yml'
+    echo 'backends:' > "$HOME/.ntfy.yml"
+  fi
+
+  if [ "$(yq r "$HOME/.ntfy.yml" multi.locked.pushover.user_key)" != "$(plugin_config_get ntfy pushover_key)" ]; then
+    debug 'Setting ntfy pushover key'
+    yq write --inplace "$HOME/.ntfy.yml" multi.locked.pushover.user_key "$(plugin_config_get ntfy pushover_key)"
+  fi
+
+  if [ "$(yq r "$HOME/.ntfy.yml" multi.unfocused.default)" != '{}' ]; then
+    debug 'Setting ntfy unfocused behavior'
+    # This looks a little silly, but I couldn't find any other way to produce an
+    # empty object with yq
+    yq write --inplace "$HOME/.ntfy.yml" multi.unfocused.default.placeholder 0
+    yq delete --inplace "$HOME/.ntfy.yml" multi.unfocused.default.placeholder
+  fi
+
+  if [ "$(yq r "$HOME/.ntfy.yml" multi.focused)" != '{}' ]; then
+    debug 'Setting ntfy focused behavior'
+    # This looks a little silly, but I couldn't find any other way to produce an
+    # empty object with yq
+    yq write --inplace "$HOME/.ntfy.yml" multi.focused.placeholder 0
+    yq delete --inplace "$HOME/.ntfy.yml" multi.focused.placeholder
+  fi
+
+  if ! yq r "$HOME/.ntfy.yml" backends | grep -cq multi ; then
+    debug 'Setting multi as ntfy backend'
+    yq w -i "$HOME/.ntfy.yml" backends[+] multi
+  fi
+}

@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+
+export DOTFILES_VSCODE_DEPS=('homebrew')
+
+dotfiles_vscode_apply () {
+  local code_helper_path
+  code_helper_path='/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code'
+
+  if [ ! -f "$code_helper_path" ]; then
+    debug "VSCode does not appear to be installed"
+    return 0
+  fi
+
+  if command -v code > /dev/null 2>&1; then
+    debug "VSCode CLI helper already appears to be installed"
+    return 0
+  fi
+
+  ln -s "$code_helper_path" /usr/local/bin/code >/dev/null 2>&1
+}

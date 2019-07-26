@@ -22,6 +22,7 @@ brew 'pinentry-mac'
 # Plugin: ntfy
 #
 
+brew 'python'
 brew 'yq'
 
 #

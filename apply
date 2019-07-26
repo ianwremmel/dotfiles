@@ -10,3 +10,9 @@ source ./framework/compat
 # than (what may be) the macos system bash.
 ./framework/framework
 
+
+# TODO reload current shell to 1. run init scripts 2. get correct version of
+# shell (e.g. /usr/bin/bash instead of /bin/bash). Reminder that framework ran
+# in a subshell so nothing it did impacts this terminal session
+# Maybe determine user's default shell and use that?
+# exec SHELL_NAME will replace the current shell
