@@ -9,7 +9,7 @@ dotfiles_nvm_apply () {
   install_nvm=0
 
   local nvm_version
-  nvm_version=$(curl -s https://api.github.com/repos/nvm-sh/nvm/releases/latest | jq . | grep tag_name | awk '{print $2}' | sed -e 's/[",]//g')
+  nvm_version=$(curl -s https://api.github.com/repos/nvm-sh/nvm/releases/latest | jq -r .tag_name)
   if ! command -v nvm >/dev/null 2>&1; then
     install_nvm=1
   elif [ "v$(nvm --version | tr -d '\n')" != "$nvm_version" ]; then
