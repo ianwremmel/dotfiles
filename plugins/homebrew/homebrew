@@ -21,9 +21,9 @@ _dotfiles_homebrew_list_brewfiles () {
 
   # TODO need a plugin_ helper that gets the full path of a particular filename
   # for all plugins (with environment support)
-  for plugin in $(cd ../.. && plugin_list_plugins); do
+  for plugin in $(plugin_list_plugins); do
     local brewfilepath
-    brewfilepath="$(pwd)/../$plugin/Brewfile"
+    brewfilepath="$(plugin_get_path "$plugin" Brewfile)"
 
     if [ -f "$brewfilepath" ]; then
       brewfiles+="$brewfilepath "
