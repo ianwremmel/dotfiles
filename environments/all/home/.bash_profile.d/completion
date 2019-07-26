@@ -1,0 +1,111 @@
+#!/usr/bin/env bash
+
+# Add tab completion for SSH hostnames based on ~/.ssh/config, ignoring
+# wildcards
+[ -e "$HOME/.ssh/config" ] && complete -o "default" -o "nospace" -W "$(grep "^Host" ~/.ssh/config | grep -v "[?*]" | cut -d " " -f2)" scp sftp ssh
+
+if [ "$(uname)" == 'Darwin' ]; then
+  # Add tab completion for `defaults read|write NSGlobalDomain`
+  complete -W "NSGlobalDomain" defaults
+
+  # Add `killall` tab completion for common apps
+  complete -o "nospace" -W "Contacts Calendar Dock Finder Mail Safari iTunes SystemUIServer Terminal Twitter" killall
+fi
+
+# enable programmable completion features (you don't need to enable
+# this, if it's already enabled in /etc/bash.bashrc and /etc/profile
+# sources /etc/bash.bashrc).
+if [ -f /etc/bash_completion ] && ! shopt -oq posix; then
+  # shellcheck disable=SC1091
+  source /etc/bash_completion
+fi
+
+# Bash completion in Home folder
+if [ -d "$HOME/.bash_completion.d" ]; then
+	for FILE in "$HOME/.bash_completion.d"/*
+	do
+    # shellcheck disable=SC1090
+		source "$FILE"
+	done
+fi
+
+# Homebrew bash completion
+if hash brew 2>/dev/null ; then
+  BREW_PREFIX=$(brew --prefix)
+
+  if [ -f "$BREW_PREFIX/etc/bash_completion" ]; then
+    # shellcheck disable=SC1090
+   source "$BREW_PREFIX/etc/bash_completion"
+  fi
+
+  if [ -f "$BREW_PREFIX/share/bash-completion/bash_completion" ]; then
+    # shellcheck disable=SC1090
+    source "$BREW_PREFIX/share/bash-completion/bash_completion"
+  fi
+fi
+
+if hash npm 2> /dev/null; then
+  # shellcheck disable=SC2046 disable=SC2034 disable=SC2162
+
+  ###-begin-npm-completion-###
+  #
+  # npm command completion script
+  #
+  # Installation: npm completion >> ~/.bashrc  (or ~/.zshrc)
+  # Or, maybe: npm completion > /usr/local/etc/bash_completion.d/npm
+  #
+
+  if type complete &>/dev/null; then
+    _npm_completion () {
+      local words cword
+      if type _get_comp_words_by_ref &>/dev/null; then
+        _get_comp_words_by_ref -n = -n @ -n : -w words -i cword
+      else
+        cword="$COMP_CWORD"
+        words=("${COMP_WORDS[@]}")
+      fi
+
+      local si="$IFS"
+      IFS=$'\n' COMPREPLY=($(COMP_CWORD="$cword" \
+                            COMP_LINE="$COMP_LINE" \
+                            COMP_POINT="$COMP_POINT" \
+                            npm completion -- "${words[@]}" \
+                            2>/dev/null)) || return $?
+      IFS="$si"
+      if type __ltrim_colon_completions &>/dev/null; then
+        __ltrim_colon_completions "${words[cword]}"
+      fi
+    }
+    complete -o default -F _npm_completion npm
+  elif type compdef &>/dev/null; then
+    _npm_completion() {
+      local si=$IFS
+      compadd -- $(COMP_CWORD=$((CURRENT-1)) \
+                  COMP_LINE=$BUFFER \
+                  COMP_POINT=0 \
+                  npm completion -- "${words[@]}" \
+                  2>/dev/null)
+      IFS=$si
+    }
+    compdef _npm_completion npm
+  elif type compctl &>/dev/null; then
+    _npm_completion () {
+      local cword line point words si
+      read -Ac words
+      read -cn cword
+      let cword-=1
+      read -l line
+      read -ln point
+      si="$IFS"
+      IFS=$'\n' reply=($(COMP_CWORD="$cword" \
+                        COMP_LINE="$line" \
+                        COMP_POINT="$point" \
+                        npm completion -- "${words[@]}" \
+                        2>/dev/null)) || return $?
+      IFS="$si"
+    }
+    compctl -K _npm_completion npm
+  fi
+  ###-end-npm-completion-###
+
+fi

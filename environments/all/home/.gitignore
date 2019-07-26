@@ -1,0 +1,38 @@
+# Editor temp files #
+####################
+*.orig
+*.swp
+*~
+.*.swo
+*.pyc
+
+# Archives #
+############
+*.dmg
+*.gz
+*.iso
+*.rar
+*.tar
+*.zip
+
+# Logs and databases #
+######################
+*.log
+*.sql
+*.sqlite
+
+# OS generated files #
+######################
+.DS_Store
+.DS_Store?
+.Spotlight-V100
+.Trashes
+._*
+Icon?
+Thumbs.db
+Desktop.ini
+
+# Eclipse/Aptana files (these files depend too heavily on the exact state of the
+# user's environment and cause issues when collaborating).
+.settings
+.project

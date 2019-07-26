@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+
+# OS X has no `md5sum`, so use `md5` as a fallback
+command -v md5sum > /dev/null || alias md5sum='md5'
+
+# macOS has no `sha1sum`, so use `shasum` as a fallback
+command -v sha1sum > /dev/null || alias sha1sum="shasum"
+
+# Enable aliases to be sudoed
+alias sudo='sudo '
+
+if [ "$(uname)" != 'Darwin' ]; then
+	alias pbcopy='xsel --clipboard --input'
+	alias pbpaste='xsel --clipboard --output'
+fi
+
+# Force grep to use color when possible
+alias grep='/usr/bin/grep --color=auto'
+
+alias nopush='git add . && git commit --allow-empty -m "#no-push" -n && git push && git reset HEAD^'
+
+# Start an Ubuntu docker image and mount the current directory to /workspace
+alias ubuntu='docker run -it --rm -v $(pwd):/workspace --workdir=/workspace ubuntu bash'
+
+# Search running processes but omit the noise in /Applications and /System
+alias psgrep='ps -A | grep -v /Applications | grep -v /System | grep'
+
+if hash hub 2>/dev/null ; then
+	eval "$(hub alias -s)" || false
+fi
+
+alias https='http --default-scheme=https'
+
+# Make it easy to open newly created pull requests
+# Instead of
+# `git pull-request -m 'new stuff' | xargs open`
+# simply use
+# `git pull-request -m 'new stuff' | xo`
+alias xo='xargs open'

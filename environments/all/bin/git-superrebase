@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+CURRENT_BRANCH="$(git branch | awk '/\*/ { print $2 }')"
+if [ "$CURRENT_BRANCH" == "master" ]; then
+  echo 'Cannot begin superrebase from branch "master", aborting. Perhaps you meant superprune?'
+  exit 3
+fi
+
+git superprune
+git checkout -
+
+CURRENT_BRANCH="$(git branch | awk '/\*/ { print $2 }')"
+
+if [ "$CURRENT_BRANCH" == "" ]; then
+  echo 'Cannot determine current branch name, cowardly aborting'
+  exit 1
+fi
+
+if [ "$CURRENT_BRANCH" == "master" ]; then
+  echo 'Cannot superrebase branch "master", aborting'
+  exit 2
+fi
+git rebase master
