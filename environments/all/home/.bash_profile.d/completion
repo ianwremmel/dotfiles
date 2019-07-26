@@ -66,6 +66,7 @@ if hash npm 2> /dev/null; then
       fi
 
       local si="$IFS"
+      # shellcheck disable=SC2207
       IFS=$'\n' COMPREPLY=($(COMP_CWORD="$cword" \
                             COMP_LINE="$COMP_LINE" \
                             COMP_POINT="$COMP_POINT" \
@@ -93,10 +94,12 @@ if hash npm 2> /dev/null; then
       local cword line point words si
       read -Ac words
       read -cn cword
+      # shellcheck disable=SC2219
       let cword-=1
       read -l line
       read -ln point
       si="$IFS"
+      # shellcheck disable=SC2207
       IFS=$'\n' reply=($(COMP_CWORD="$cword" \
                         COMP_LINE="$line" \
                         COMP_POINT="$point" \

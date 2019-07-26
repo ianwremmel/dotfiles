@@ -52,5 +52,6 @@ function prompt_node() {
   fi
 }
 
+# shellcheck disable=SC1117
 PS1="\u@\h \t \w \$(prompt_git)\$(prompt_node)\\$ "
 export PS1
