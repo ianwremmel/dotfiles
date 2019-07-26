@@ -1,5 +1,0 @@
-# TODO allow plugins to supply Brewfiles
-
-<%= File.read("#{File.dirname(__FILE__)}/../../environments/required/Brewfile") %>
-<%= File.read("#{File.dirname(__FILE__)}/../../environments/all/Brewfile") %>
-<%= File.read("#{File.dirname(__FILE__)}/../../environments/#{ENV.fetch('DOTFILES_ENV', 'default')}/Brewfile") %>

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 dotfiles_homedir_apply () {
-  for env in required all default; do
+  for env in all default; do
     if [ -d "environments/$env/home" ]; then
       rsync --exclude ".DS_Store" --exclude ".git/" -av "environments/$env/home" "$HOME"
     fi

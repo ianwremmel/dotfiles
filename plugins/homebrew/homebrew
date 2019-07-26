@@ -11,15 +11,47 @@ _dotfiles_homebrew_ensure () {
   fi
 }
 
+_dotfiles_homebrew_list_brewfiles () {
+  local base_path
+  base_path=$(cd ../../ && pwd)
+
+  local brewfiles=''
+  # TODO need an environment helper that gets the full path of a particular
+  # filename for all relevant environments (or a single environment
+  # or the current environment)
+  for env in all default; do
+    if [ -f "$base_path/environments/$env/Brewfile" ]; then
+      brewfiles+="$base_path/environments/$env/Brewfile "
+    fi
+  done
+
+  # TODO need a plugin_ helper that gets the full path of a particular filename
+  # for all plugins (with environment support)
+  for plugin in $(cd ../.. && plugin_list_plugins); do
+    local brewfilepath
+    brewfilepath="$(pwd)/../$plugin/Brewfile"
+
+    if [ -f "$brewfilepath" ]; then
+      brewfiles+="$brewfilepath "
+    fi
+  done
+
+  echo "$brewfiles"
+}
+
 dotfiles_homebrew_apply () {
   _dotfiles_homebrew_ensure
 
-  if [ "$DOTFILES_HOMEBREW_SKIP" -ne 0 ]; then
+  if [ "$DOTFILES_HOMEBREW_SKIP" -ne 1 ]; then
     local brewfile
     brewfile="$(mktemp)"
 
+    export DOTFILES_HOMEBREW_CONFIG_BREWFILES
+    DOTFILES_HOMEBREW_CONFIG_BREWFILES=$(_dotfiles_homebrew_list_brewfiles)
+
     # Generate brewfile according to local environment config
-    erb Brewfile > "$brewfile"
+    erb Brewfile.erb > "$brewfile"
+    unset DOTFILES_HOMEBREW_CONFIG_BREWFILES
 
     log 'Installing packages with homebrew'
     brew bundle --file="$brewfile"

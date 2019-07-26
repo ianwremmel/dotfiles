@@ -1,0 +1,22 @@
+<%#
+  Techincally, bash, bash-completion etc belong in a root level brewfile and not
+  a plugin, but that's rather inconvenient just to service pedantry.
+%>
+
+cask_args appdir: '/Applications'
+
+tap 'caskroom/cask'
+
+brew 'bash'
+brew 'bash-completion@2'
+
+# Enable Mac App Store (`mas`) entries in Brewfile
+brew 'mas'
+
+<%# DOTFILES_HOMEBREW_CONFIG_BREWFILES must contain full paths %>
+<% ENV.fetch('DOTFILES_HOMEBREW_CONFIG_BREWFILES').split(' ').each do |filename| %>
+# begin <%= filename %>
+<%= File.read(filename) %>
+# end <%= filename %>
+<% end %>
+
