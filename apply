@@ -6,6 +6,34 @@ set -euo pipefail
 # installed
 source ./framework/compat
 
+export DOTFILES_AIRPLANE_MODE
+DOTFILES_AIRPLANE_MODE=0
+
+export DOTFILES_HOMEBREW_SKIP
+DOTFILES_HOMEBREW_SKIP=0
+
+while getopts "ABh?" opt; do
+  case $opt in
+    A)
+        DOTFILES_AIRPLANE_MODE=1
+        ;;
+    B)
+        DOTFILES_HOMEBREW_SKIP=1
+        ;;
+    ?)  echo "Usage: $(basename "$0") [-h|-?] [-B] [-f] [-r]"
+        echo "-B      Skip 'brew bundle'. If you've updated packages recently and you're just"
+        echo "        interested in applying other changes, '-B' will speed things up"
+        echo "        considerably, but may have unexpected errors if a plugin depends on "
+        echo "        something that's not yet installed."
+        echo "-h|-?   Print this help and exit"
+        exit 2;;
+  esac
+done
+
+if [ $DOTFILES_AIRPLANE_MODE -eq 1 ]; then
+  DOTFILES_HOMEBREW_SKIP=1
+fi
+
 # Run framework in a subshell which should cause it to use homebrew bash rather
 # than (what may be) the macos system bash.
 ./framework/framework
