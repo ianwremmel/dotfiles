@@ -12,16 +12,10 @@ _dotfiles_homebrew_ensure () {
 }
 
 _dotfiles_homebrew_list_brewfiles () {
-  local base_path
-  base_path=$(cd ../../ && pwd)
-
   local brewfiles=''
-  # TODO need an environment helper that gets the full path of a particular
-  # filename for all relevant environments (or a single environment
-  # or the current environment)
-  for env in all default; do
-    if [ -f "$base_path/environments/$env/Brewfile" ]; then
-      brewfiles+="$base_path/environments/$env/Brewfile "
+  for env in $(environment_list_environments); do
+    if [ -f "$(environment_get_path "$env" Brewfile)" ]; then
+      brewfiles+="$(environment_get_path "$env" Brewfile) "
     fi
   done
 
@@ -40,9 +34,9 @@ _dotfiles_homebrew_list_brewfiles () {
 }
 
 dotfiles_homebrew_apply () {
-  _dotfiles_homebrew_ensure
-
   if [ "$DOTFILES_HOMEBREW_SKIP" -ne 1 ]; then
+    _dotfiles_homebrew_ensure
+
     local brewfile
     brewfile="$(mktemp)"
 

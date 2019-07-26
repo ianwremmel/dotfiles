@@ -4,12 +4,6 @@ PLUGINS=${PLUGINS:-()}
 CONFIGURED_PLUGINS=${CONFIGURED_PLUGINS:-()}
 APPLIED_PLUGINS=${APPLIED_PLUGINS:-()}
 
-plugin_configure_all () {
-  for plugin in $(plugin_list_plugins); do
-    plugin_config_ensure "$plugin"
-  done
-}
-
 _plugin_call_in_dep_order () {
   local func_name=$1
   local -n dep_array=$2
@@ -22,6 +16,13 @@ _plugin_call_in_dep_order () {
 _plugin_deps_array () {
   local plugin_name=$1
   echo "DOTFILES_${plugin_name^^}_DEPS"
+}
+
+
+plugin_configure_all () {
+  for plugin in $(plugin_list_plugins); do
+    plugin_config_ensure "$plugin"
+  done
 }
 
 plugin_config_ensure () {
@@ -120,17 +121,16 @@ plugin_config_prompt () {
 }
 
 plugin_list_plugins () {
-  for plugin in plugins/*; do
-    echo "${plugin/plugins\//}"
+  for plugin in "$DOTFILES_ROOT_DIR/"plugins/*; do
+    basename "$plugin"
   done
 }
 
 plugin_load_all () {
   for plugin in $(plugin_list_plugins); do
-    plugin="${plugin/plugins\//}"
     log "Loading plugin $plugin"
     # shellcheck disable=SC1090
-    source "./plugins/$plugin/$plugin"
+    source "$DOTFILES_ROOT_DIR/plugins/$plugin/$plugin"
     PLUGINS+=("$plugin")
   done
 }
