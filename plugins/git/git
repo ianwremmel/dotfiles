@@ -2,6 +2,9 @@
 
 export DOTFILES_GIT_CONFIG=('user_email' 'user_name')
 
+# Needs to come after homedir so that gitconfig does't get overridden
+export DOTFILES_GIT_DEPS=('homedir')
+
 dotfiles_git_prompt_string () {
   case $1 in
     user_email)
