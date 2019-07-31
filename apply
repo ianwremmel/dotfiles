@@ -36,7 +36,7 @@ fi
 
 # Run framework in a subshell which should cause it to use homebrew bash rather
 # than (what may be) the macos system bash.
-./framework/framework
+/usr/bin/env bash -c 'source ./framework/framework && framework_apply'
 
 
 # TODO reload current shell to 1. run init scripts 2. get correct version of

@@ -13,14 +13,21 @@ source ./framework/util
 
 source ./framework/plugin
 
-# this'll be improved later, but for now, hardcoding solves some early issues
-export DOTFILES_ENV=default
+framework_apply () {
+  framework_init
 
-export DOTFILES_ROOT_DIR
-DOTFILES_ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." >/dev/null 2>&1 && pwd)"
+  plugin_run_plugins
+}
 
-config_load
-plugin_load_all
-plugin_configure_all
 
-plugin_run_plugins
+framework_init () {
+  # this'll be improved later, but for now, hardcoding solves some early issues
+  export DOTFILES_ENV=default
+
+  export DOTFILES_ROOT_DIR
+  DOTFILES_ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." >/dev/null 2>&1 && pwd)"
+
+  config_load
+  plugin_load_all
+  plugin_configure_all
+}
