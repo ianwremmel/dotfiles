@@ -18,15 +18,26 @@ that can be copied-and-pasted from this very README.
 
 ## Install
 
-TODO
+```bash
+git clone https://github.com/ianwremmel/dotfiles
+```
 
 ## Usage
 
-TODO
+Apply the repo to youre system. You'll be prompted on first run.
 
-### Bootstrap
+```bash
+cd dotfiles
+./apply
+```
 
-TODO
+Set `DOTFILES_DEBUG=1` for debug logging.
+
+### Configuration
+
+On first run, dotfiles will create `~/.dotfilesrc`. In general, this file should
+not be edited directly, however, if you wish to change a setting, you may delete
+that setting from the file to be reprompted on next run.
 
 ## Environments
 
@@ -92,7 +103,10 @@ process, so there's no need to e.g. `set -euo pipefail`.
 
 ## Contributing
 
-TODO
+PRs welcome, but please first open an issue for anything but the most trivial of
+changes. While I'm very open to improvements, these are my customizations for my
+personal machines, so you may be better off adding your own custom environment
+rather than trying to make a change :)
 
 ## License
 
