@@ -1,0 +1,17 @@
+# Disable the startup message
+startup_message off
+
+# Enable terminal colors
+term screen-256color
+
+# Change the escape key to backtick
+escape ``
+
+# Fancy up the status bar
+hardstatus off
+hardstatus alwayslastline
+hardstatus string '%{= kG}[ %{G}%H %{g}][%= %{= kw}%?%-Lw%?%{r}(%{W}%n*%f%t%?(%u)%?%{r})%{w}%?%+Lw%?%?%= %{g}][%{B} %m-%d %{W} %c %{g}]'
+
+# Make the window scrollable via scrollbars
+termcapinfo xterm* ti@:te@
+

@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+# @gf3’s Sexy Bash Prompt, inspired by “Extravagant Zsh Prompt”
+# Shamelessly copied from https://github.com/gf3/dotfiles
+# Screenshot: http://i.imgur.com/s0Blh.png
+
+# Enable color if possible
+if [[ $COLORTERM = gnome-* && $TERM = xterm ]] && infocmp gnome-256color >/dev/null 2>&1; then
+  export TERM='gnome-256color';
+elif infocmp xterm-256color >/dev/null 2>&1; then
+  export TERM='xterm-256color';
+fi;
+
+# Git status.
+function prompt_git() {
+
+  local status output flags
+
+  status="$(command git status 2>/dev/null)"
+  EXIT_CODE=$?
+  # If we're not in a git repo, don't do anything
+  [[ "$EXIT_CODE" != "0" ]] && return;
+
+  output="$(echo "$status" | awk '/# Initial commit/ {print "(init)"}')"
+
+  # Determine branch name
+  [[ "$output" ]] || output="$(command git branch | perl -ne '/^\* (.*)/ && print $1')"
+
+  # Determine flags
+  flags="$(
+    echo "$status" | awk 'BEGIN {r=""}
+      /Changes to be committed:/        {r=r "+"}
+      /Changes not staged for commit:/  {r=r "!"}
+      /Untracked files:/                {r=r "?"}
+      END {print r}'
+  )"
+  if [[ "$flags" ]]; then
+    output="$output$flags"
+  fi
+
+  stashes=$(git stash list | wc -l | sed 's/ *//')
+  if [[ $stashes ]]; then
+    output="$output $stashes"
+  fi
+
+  echo "on $output "
+}
+
+# Node version
+function prompt_node() {
+  if hash node 2> /dev/null; then
+    node --version
+  fi
+}
+
+# shellcheck disable=SC1117
+PS1="\u@\h \t \w \$(prompt_git)\$(prompt_node)\\$ "
+export PS1

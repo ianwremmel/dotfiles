@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+git upush
+hub pull-request -m "$(git last-commit-message)" | xargs open

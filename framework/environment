@@ -1,0 +1,115 @@
+#!/usr/bin/env bash
+
+#
+# Outputs the current environment
+#
+environment_get_current () {
+  echo "$DOTFILES_ENV"
+}
+
+#
+# Given an environment and a relative path, outputs the full path to that file
+#
+environment_get_path () {
+  usage='usage: environment_get_path <env> <filename>'
+  local env=$1
+  local filename=$2
+
+  if [ "$env" == '' ]; then
+    error "$usage"
+    return 1
+  fi
+
+  if [ "$filename" == '' ]; then
+    error "$usage"
+    return 1
+  fi
+
+  echo "$(environment_get_base_path "$env")/$filename"
+}
+
+#
+# Given an environment, outputs the full puth of that environment folder
+#
+environment_get_base_path () {
+  usage='usage: environment_get_base_path <env>'
+  local env=$1
+
+  if [ "$env" == '' ]; then
+    error "$usage"
+    return 1
+  fi
+
+  echo "$DOTFILES_ROOT_DIR/environments/$env"
+}
+
+#
+# Given a filename, outputs the full path of that file for the most relevant
+# environment (be it `$current`, `default`, or `all`)
+#
+environment_get_item_path () {
+  usage='usage: environment_get_item_path <filename>'
+  local filename=$1
+
+  if [ "$filename" == '' ]; then
+    error "$usage"
+    return 1
+  fi
+
+  error "filename=$filename"
+
+  for env in $(environment_list_environments); do
+
+    local candidate
+    candidate="$(environment_get_base_path "$env")/$filename"
+    error "candidate=$candidate"
+
+    if [ -f "$candidate" ] || [ -f "$candidate" ]; then
+      echo "$candidate"
+      return 0
+    fi
+  done
+
+  return 1
+}
+
+#
+# Lists all relevant environments, from most relevant to least relevant
+#
+environment_list_environments () {
+  if [ -d "$(environment_get_base_path "$(environment_get_current)")" ]; then
+    environment_get_current
+  elif [ -d "$(environment_get_base_path default)" ]; then
+    echo 'default'
+  fi
+
+  if [ -d "$(environment_get_base_path 'all')" ]; then
+    echo 'all'
+  fi
+}
+
+#
+# Given a function name, runs that function in each relevant environment folder
+# with the globals `CURRENT_ENVIRONMENT`, `CURRENT_ENVIRONMENT_PATH`,
+# `ENVIRONEMENTS`. First, the `all` environment is run, then the `$current`
+# environment (which may be `default`)
+#
+environment_map_func () {
+  usage='usage: environment_map_func <func_name>'
+  local func_name=$1
+
+  if [ "$func_name" == '' ]; then
+    error "$usage"
+    return 1
+  fi
+
+  for env in $(environment_list_environments | tac -s ' '); do
+    (
+      cd "$(environment_get_path "$env")" || return
+      ENVIRONEMENTS="$(environment_list_environments | tac -s ' ')" \
+      CURRENT_ENVIRONMENT="$env" \
+      CURRENT_ENVIRONMENT_PATH=$(environment_get_path "$env") \
+      $func_name
+    )
+  done
+}

@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+OLD_EMAIL=$(git log -1 --pretty=format:%ae)
+read -rp "old git user email [enter for '$OLD_EMAIL']: " OLD_EMAIL_ENTERED
+if [ -n "$OLD_EMAIL_ENTERED" ]; then
+  OLD_EMAIL=$OLD_EMAIL_ENTERED
+fi
+
+CORRECT_NAME=$(git config user.name)
+read -rp "new git user name [enter for '$CORRECT_NAME']: " CORRECT_NAME_ENTERED
+if [ -n "$CORRECT_NAME_ENTERED" ]; then
+  CORRECT_NAME=$CORRECT_NAME_ENTERED
+fi
+
+CORRECT_EMAIL=$(git config user.email)
+read -rp "new git user email [enter for '$CORRECT_EMAIL']: " CORRECT_EMAIL_ENTERED
+if [ -n "$CORRECT_EMAIL_ENTERED" ]; then
+  CORRECT_EMAIL=$CORRECT_EMAIL_ENTERED
+fi
+
+REV_LIST_SPECIFIER="HEAD"
+read -rp "rev list or specifier [enter for 'HEAD']: " REV_LIST_SPECIFIER_ENTERED
+if [ -n "$REV_LIST_SPECIFIER_ENTERED" ]; then
+  REV_LIST_SPECIFIER=$REV_LIST_SPECIFIER_ENTERED
+fi
+
+git filter-branch --env-filter "
+    if [ \"\$GIT_COMMITTER_EMAIL\" = \"$OLD_EMAIL\" ]
+    then
+        export GIT_COMMITTER_NAME=\"$CORRECT_NAME\"
+        export GIT_COMMITTER_EMAIL=\"$CORRECT_EMAIL\"
+    fi
+    if [ \"\$GIT_AUTHOR_EMAIL\" = \"$OLD_EMAIL\" ]
+    then
+        export GIT_AUTHOR_NAME=\"$CORRECT_NAME\"
+        export GIT_AUTHOR_EMAIL=\"$CORRECT_EMAIL\"
+    fi
+" "$REV_LIST_SPECIFIER"

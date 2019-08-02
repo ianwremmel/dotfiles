@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+die () {
+  echo >&2 "$@"
+  exit 1
+}
+
+[ "$#" -eq 1 ] || die "Usage: git delete-branch <branch-name>"
+
+
+set +e
+git branch -D "$1"
+set -e
+
+set +e
+git push origin :"$1"
+set -e

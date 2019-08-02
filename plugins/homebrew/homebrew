@@ -11,24 +11,52 @@ _dotfiles_homebrew_ensure () {
   fi
 }
 
+_dotfiles_homebrew_list_brewfiles () {
+  local brewfiles=''
+  for env in $(environment_list_environments); do
+    if [ -f "$(environment_get_path "$env" Brewfile)" ]; then
+      brewfiles+="$(environment_get_path "$env" Brewfile) "
+    fi
+  done
+
+  # TODO need a plugin_ helper that gets the full path of a particular filename
+  # for all plugins (with environment support)
+  for plugin in $(plugin_list_plugins); do
+    local brewfilepath
+    brewfilepath="$(plugin_get_path "$plugin" Brewfile)"
+
+    if [ -f "$brewfilepath" ]; then
+      brewfiles+="$brewfilepath "
+    fi
+  done
+
+  echo "$brewfiles"
+}
+
 dotfiles_homebrew_apply () {
-  _dotfiles_homebrew_ensure
+  if [ "$DOTFILES_HOMEBREW_SKIP" -ne 1 ]; then
+    _dotfiles_homebrew_ensure
 
-  local brewfile
-  brewfile="$(mktemp)"
+    local brewfile
+    brewfile="$(mktemp)"
 
-  # Generate brewfile according to local environment config
-  erb Brewfile > "$brewfile"
+    export DOTFILES_HOMEBREW_CONFIG_BREWFILES
+    DOTFILES_HOMEBREW_CONFIG_BREWFILES=$(_dotfiles_homebrew_list_brewfiles)
 
-  log 'Installing packages with homebrew'
-  brew bundle --file="$brewfile"
+    # Generate brewfile according to local environment config
+    erb Brewfile.erb > "$brewfile"
+    unset DOTFILES_HOMEBREW_CONFIG_BREWFILES
 
-  log 'Removing no-longer specified homebrew packages'
-  brew bundle cleanup --force --file="$brewfile"
+    log 'Installing packages with homebrew'
+    brew bundle --file="$brewfile"
 
-  log 'Upgrading all installed homebrew packages'
-  brew upgrade
+    log 'Removing no-longer specified homebrew packages'
+    brew bundle cleanup --force --file="$brewfile"
 
-  log 'Removing outdated homebrew packages'
-  brew cleanup
+    log 'Upgrading all installed homebrew packages'
+    brew upgrade
+
+    log 'Removing outdated homebrew packages'
+    brew cleanup
+  fi
 }
