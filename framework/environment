@@ -40,6 +40,11 @@ environment_get_base_path () {
     return 1
   fi
 
+  if [ -d "$DOTFILES_ROOT_DIR/custom_environments/$env" ]; then
+    echo "$DOTFILES_ROOT_DIR/custom_environments/$env"
+    return 0
+  fi
+
   echo "$DOTFILES_ROOT_DIR/environments/$env"
 }
 

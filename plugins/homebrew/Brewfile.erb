@@ -16,6 +16,9 @@ brew 'mas'
 # Needed for the environment helper
 brew 'coreutils'
 
+# Needed for the customize helper
+brew 'hub'
+
 <%# DOTFILES_HOMEBREW_CONFIG_BREWFILES must contain full paths %>
 <% ENV.fetch('DOTFILES_HOMEBREW_CONFIG_BREWFILES').split(' ').each do |filename| %>
 # begin <%= filename %>

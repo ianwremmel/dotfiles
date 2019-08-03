@@ -1,0 +1,188 @@
+#!/usr/bin/env bash
+
+export DOTFILES_CUSTOM_REPO=${DOTFILES_CUSTOM_REPO:-dotfiles-customizations}
+
+CUSTOMIZE_GITHUB_USER=
+CUSTOMIZE_GITHUB_REPO=
+
+CUSTOMIZE_ROOT_COMMIT_MESSAGE=$(cat <<EOT
+root - this space intentionally left blank
+
+This empty commit serves as a root for rebases early in a project's
+life cycle and prevents various git-based tools from breaking when they
+try to display data about the repository.
+
+See the link below for the problems this solves and a history of where
+the idea came from.
+
+https://bit-booster.com/doing-git-wrong/2017/01/02/git-init-empty/
+EOT
+)
+
+# TODO if more environments than "default" exist, make the user pick one
+
+_customize_prompt_should_copy_default_environments () {
+  echo "Do you want to copy the default environments?"
+  select yn in "Yes" "No"; do
+    case $yn in
+      Yes)
+            return 0;
+            ;;
+      No)
+            return 1;
+            ;;
+    esac
+  done
+}
+
+_customize_prompt_should_customize () {
+  echo "Do you intend to customize your dotfiles?"
+  select yn in "Yes" "No"; do
+    case $yn in
+      Yes)
+            return 0;
+            ;;
+      No)
+            return 1;
+            ;;
+    esac
+  done
+}
+
+_customize_clone () {
+  (
+    cd "$DOTFILES_ROOT_DIR" || return 1
+    # hub can clone with just the slug, no need for a full git url
+    hub clone "$(_customize_github_get_repo)" environments
+  )
+}
+
+_customize_create_remote_config () {
+  (
+    mkdir -p "$DOTFILES_ROOT_DIR/custom_environments"
+    cd "$DOTFILES_ROOT_DIR/custom_environments" || return 1
+    git init
+    git commit -m "$CUSTOMIZE_ROOT_COMMIT_MESSAGE" --allow-empty
+    if _customize_prompt_should_copy_default_environments ; then
+      cp -r "$DOTFILES_ROOT_DIR/environments/" "$DOTFILES_ROOT_DIR/custom_environments/"
+      git add .
+      git commit -m 'feat: initialize with default_environments'
+    fi
+    hub create --private "$(_customize_github_get_repo)"
+    git push -u origin master
+  )
+}
+
+_customize_ensure_hub () {
+  if ! command -v hub >/dev/null 2>&1; then
+    debug 'hub not found, installing'
+    brew install hub
+  fi
+}
+
+_customize_github_get_repo () {
+  if [ "$CUSTOMIZE_GITHUB_REPO" == '' ]; then
+    CUSTOMIZE_GITHUB_REPO="$(_customize_github_get_user)/$DOTFILES_CUSTOM_REPO"
+  fi
+
+  echo "$CUSTOMIZE_GITHUB_REPO"
+}
+
+_customize_github_get_user () {
+  if [ "$CUSTOMIZE_GITHUB_USER" == '' ]; then
+    CUSTOMIZE_GITHUB_USER=$(hub api /user | jq -r .login)
+  fi
+
+  echo "$CUSTOMIZE_GITHUB_USER"
+}
+
+#
+# Indicates it the local customizations are just a folder or a git repository.
+#
+_customize_has_local_git_repo () {
+  if [ -d "$DOTFILES_ROOT_DIR/custom_environments/.git" ]; then
+    return 0
+  fi
+
+  return 1
+}
+
+_customize_has_remote_repo () {
+  if hub api "/repos/$(_customize_github_get_user)/$DOTFILES_CUSTOM_REPO" > /dev/null 2>&1; then
+    return 0
+  fi
+
+  return 1
+}
+
+#
+# Based on local config and/or user input, indicates if customizations should be
+# done. note: this only disables customization setup steps. It DOES NOT prevent
+# the other helpers from reading customizations.
+#
+_customize_should_skip_customization () {
+  local skip
+  skip="$(config_read CUSTOMIZATION_SKIP_CUSTOMIZATION)"
+
+  if [ "$skip" == '' ]; then
+    if _customize_prompt_should_customize; then
+      skip=0
+    else
+      skip=1
+    fi
+
+    config_write CUSTOMIZATION_SKIP_CUSTOMIZATION "$skip"
+  fi
+
+  if [ "$skip" -eq 1 ]; then
+    debug 'customization should be skipped'
+    return 0
+  elif [ "$skip" -eq 0 ]; then
+    debug 'customization should not be skipped'
+    return 1
+  fi
+
+  error 'unrecognized value in config "CUSTOMIZATION_SKIP_CUSTOMIZATION"'
+  return 2
+}
+
+_customize_update () {
+  (
+    cd "$DOTFILES_ROOT_DIR/custom_environments" || return 1
+    if [ ! -d .git ]; then
+      debug "custom_environments is not a git repo. Assuming it's being managed manually"
+      return 0
+    fi
+
+    if [ "$(git status --porcelain | wc -l)" -ne 0 ]; then
+      log 'custom_environments have local changes, not updating'
+      return 0
+    fi
+
+    if [ "$( git branch | awk '/\*/ {print $2}')" != 'master' ]; then
+      log 'custom_environments is not on master'
+    fi
+
+    log 'updating local customizations with remote state'
+    git pull
+  )
+}
+
+customize_main () {
+  debug 'Checking for customizations'
+  if _customize_should_skip_customization; then
+    debug 'Customizations are disabled'
+    return 0
+  fi
+
+  if _customize_has_local_git_repo; then
+    debug "Found a local customization repo. Making sure it's up to date."
+    _customize_update
+  elif _customize_has_remote_repo; then
+    debug 'Found a remote customization repo. Cloning it.'
+    _customize_clone
+  else
+    debug "Offering to create a remote customization repo"
+    _customize_create_remote_config
+  fi
+}

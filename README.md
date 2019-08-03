@@ -18,29 +18,56 @@ that can be copied-and-pasted from this very README.
 
 ## Install
 
-TODO
+```bash
+git clone https://github.com/ianwremmel/dotfiles
+```
 
 ## Usage
 
-TODO
+Apply the repo to youre system. You'll be prompted on first run.
 
-### Bootstrap
+```bash
+cd dotfiles
+./apply
+```
 
-TODO
+Set `DOTFILES_DEBUG=1` for debug logging.
+
+### Configuration
+
+On first run, dotfiles will create `~/.dotfilesrc`. In general, this file should
+not be edited directly, however, if you wish to change a setting, you may delete
+that setting from the file to be reprompted on next run.
 
 ## Environments
 
-- `all` - config in here will always be applied
-- `default` - if no environment is set, this environment will be used
-- any other name - if the current environment matches the folder name, that
-  folder's config will be applied _instead of `default`_. Specify an environment
-  using `DOTFILES_HOMEBREW_CONFIG_ENV=<environment name>` where
-  `<environment name>` matches the folder
+Environments define config for a particular computer (or category of computers).
+For example, you might have an environment called "home" and an environment
+called "work".
+
+There are two special environment names with extra behavior. Configuration in
+the `all` environment gets applied the every device regardless of any other
+environment name being set. `default` gets applied on any device that doesn't
+have a specific environment set. It's entirely possible (likely, even) that
+these are the only environments you'll need.
+
+Environments are are defined in two place:
+
+- `environments` - these are defined in this reposity. These are @ianwremmel's
+  custom dotfiles. You may be happy with them or you may wish to customize them.
+  They tend to change regularly (particularly his brewfile, so you'll likely
+  want to copy `all` and `default` to your `custom_environments`)
+- `custom_environments` - This folder is gitignored. You can choose to put your
+  environments here and not track them, but you'll probably want to create a
+  separate repo that you checkout to this folder. If you create a folder called
+  e.g. `all` in `custom_environments`, it will be used exclusively in place of
+  the `all` in `environments`. If that folder is empty, you'll be working from a
+  completely clean slate (other than the work done by plugins)
 
 ## Plugins
 
 Plugins do the bulk of the work here. Plugins are just bash scripts that
-implement wone or more [lifecycle hooks](#lifecycle-hooks). They're executued
+implement one or more [lifecycle hooks](#lifecycle-hooks). They're executued
 automatically and by `./apply`.
 
 When authoring plugins, keep in mind that they're sourced into the framework
@@ -76,7 +103,10 @@ process, so there's no need to e.g. `set -euo pipefail`.
 
 ## Contributing
 
-TODO
+PRs welcome, but please first open an issue for anything but the most trivial of
+changes. While I'm very open to improvements, these are my customizations for my
+personal machines, so you may be better off adding your own custom environment
+rather than trying to make a change :)
 
 ## License
 
