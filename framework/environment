@@ -110,10 +110,10 @@ environment_map_func () {
 
   for env in $(environment_list_environments | tac -s ' '); do
     (
-      cd "$(environment_get_path "$env")" || return
+      cd "$(environment_get_base_path "$env")" || return
       ENVIRONEMENTS="$(environment_list_environments | tac -s ' ')" \
       CURRENT_ENVIRONMENT="$env" \
-      CURRENT_ENVIRONMENT_PATH=$(environment_get_path "$env") \
+      CURRENT_ENVIRONMENT_PATH=$(environment_base_get_path "$env") \
       $func_name
     )
   done
