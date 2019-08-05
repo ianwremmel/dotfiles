@@ -22,6 +22,9 @@ while true; do sudo -n true; sleep 30; kill -0 "$$" || exit; done 2>/dev/null &
 ###############################################################################
 echo 'Configuring General UI/UX Properties'
 
+# Disable the sound effects on boot
+sudo nvram SystemAudioVolume=" "
+
 # Menu bar: show battery percentage
 defaults write com.apple.menuextra.battery ShowPercent -string "YES"
 
@@ -187,6 +190,9 @@ defaults write com.apple.desktopservices DSDontWriteUSBStores -bool true
 # Default view for new finder windows
 defaults write com.apple.finder FXPreferredViewStyle -string "Nlsv"
 
+# Enable AirDrop over Ethernet and on unsupported Macs running Lion
+defaults write com.apple.NetworkBrowser BrowseAllInterfaces -bool true
+
 # Show the ~/Library folder
 chflags nohidden ~/Library
 
@@ -236,7 +242,7 @@ defaults write com.apple.dock mru-spaces -bool false
 # Remove the auto-hiding Dock delay
 defaults write com.apple.dock autohide-delay -float 0
 
-# Auto hide and show the Dock
+# Do not auto hide and show the Dock
 defaults write com.apple.dock autohide -bool false
 
 # Make Dock icons of hidden applications translucent
@@ -256,6 +262,7 @@ defaults write com.apple.menuextra.clock IsAnalog -int 0
 ###############################################################################
 echo 'Configuring Safari Properties'
 
+
 # Privacy: don’t send search queries to Apple
 defaults write com.apple.Safari UniversalSearchEnabled -bool false
 defaults write com.apple.Safari SuppressSearchSuggestions -bool true
@@ -273,8 +280,8 @@ defaults write com.apple.Safari HomePage -string "about:blank"
 # Prevent Safari from opening ‘safe’ files automatically after downloading
 defaults write com.apple.Safari AutoOpenSafeDownloads -bool false
 
-# Disallow hitting the Backspace key to go to the previous page in history
-defaults write com.apple.Safari com.apple.Safari.ContentPageGroupIdentifier.WebKit2BackspaceKeyNavigationEnabled -bool false
+# Allow hitting the Backspace key to go to the previous page in history
+defaults write com.apple.Safari com.apple.Safari.ContentPageGroupIdentifier.WebKit2BackspaceKeyNavigationEnabled -bool true
 
 # Hide Safari’s bookmarks bar by default
 defaults write com.apple.Safari ShowFavoritesBar -bool false
@@ -290,6 +297,9 @@ defaults write com.apple.Safari IncludeInternalDebugMenu -bool true
 
 # Make Safari’s search banners default to Contains instead of Starts With
 defaults write com.apple.Safari FindOnPageMatchesWordStartsOnly -bool false
+
+# Remove useless icons from Safari’s bookmarks bar
+defaults write com.apple.Safari ProxiesInBookmarksBar "()"
 
 # Enable the Develop menu and the Web Inspector in Safari
 defaults write com.apple.Safari IncludeDevelopMenu -bool true
@@ -333,6 +343,7 @@ defaults write com.apple.mail AddressesIncludeNameOnPasteboard -bool false
 
 # Disable inline attachments (just show the icons)
 defaults write com.apple.mail DisableInlineAttachmentViewing -bool true
+
 
 ###############################################################################
 # Terminal & iTerm 2                                                          #
@@ -476,18 +487,18 @@ set +e
 for app in "Activity Monitor" \
            "Address Book" \
            "Calendar" \
-           "Contacts" \
            "cfprefsd" \
+           "Contacts" \
            "Dock" \
            "Finder" \
-           "Google Chrome" \
            "Mail" \
            "Messages" \
            "Photos" \
            "Safari" \
            "SystemUIServer" \
+           "Terminal" \
            "iCal"; do
   killall "$app" &> /dev/null
 done
 set -e
-echo 'Done. Note that some of these changes require a logout/restart to take effect.'
+echo 'Done. Note that some of these changes may require a logout/restart to take effect.'
