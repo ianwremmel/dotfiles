@@ -101,3 +101,7 @@ mas 'Xcode', id: 497_799_835
 brew 'geckodriver'
 cask 'chromedriver'
 # reminder: macOS includes safaridriver
+
+# Install zsh
+brew 'zsh'
+brew 'zsh-completions'

@@ -1,7 +1,3 @@
-# Install zsh
-brew 'zsh'
-brew 'zsh-completions'
-
 ##
 ## Work
 ##
