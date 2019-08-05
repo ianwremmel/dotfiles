@@ -4,7 +4,40 @@
 # Outputs the current environment
 #
 environment_get_current () {
-  echo "$DOTFILES_ENV"
+  local env
+  env="$(config_read DOTFILES_ENVIRONMENT)"
+
+  if [ "$env" != '' ]; then
+    debug "environment '$env' has already been set"
+    echo "$env"
+    return 0
+  fi
+
+  local non_default_envs=''
+
+  for env in $(environment_list_all_environments); do
+    if [ "$env" == 'all' ]; then
+      continue
+    fi
+
+    non_default_envs+="$env "
+  done
+
+  if [ "$non_default_envs" == 'default ' ]; then
+    debug 'no custom environments have been detected, choosing default'
+    echo 'default'
+    return 0
+  fi
+
+  echo 'Multiple environments detected. Which would you like to apply to this device?'
+  select env in $non_default_envs; do
+    debug "Storing user-selected environment '$env'"
+    config_write DOTFILES_ENVIRONMENT "$env"
+    echo "$env"
+    # Without the break, the select just loops forever.
+    break
+  done
+
 }
 
 #
@@ -91,6 +124,19 @@ environment_list_environments () {
   if [ -d "$(environment_get_base_path 'all')" ]; then
     echo 'all'
   fi
+}
+
+environment_list_all_environments () {
+  # shellcheck disable=SC2012
+  envs=$(ls "$DOTFILES_ROOT_DIR/environments" | sort)
+  if [ -d "$DOTFILES_ROOT_DIR/environments" ]; then
+    # This looks weird, but the quote-wrapped-linebreak is intentional
+    envs+="
+"
+    envs+=$(ls "$DOTFILES_ROOT_DIR/custom_environments")
+  fi
+
+  echo "$envs" | sort | uniq | grep -v all
 }
 
 #

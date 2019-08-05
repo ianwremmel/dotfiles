@@ -25,11 +25,10 @@ framework_apply () {
 
 framework_init () {
   debug 'Initializing dotfiles framework'
-  # this'll be improved later, but for now, hardcoding solves some early issues
-  export DOTFILES_ENV=default
-
   export DOTFILES_ROOT_DIR
   DOTFILES_ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." >/dev/null 2>&1 && pwd)"
+
+  environment_get_current
 
   customize_main
 
