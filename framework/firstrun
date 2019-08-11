@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+
+_firstrun_should_apply () {
+  # reminder, FIRSTRUN_APPLIED will be "" or 1, so we need to use `==`, not
+  # `-eq`, to deal with the fact that it might not a number.
+  if [ "$(config_read FIRSTRUN_APPLIED)" == "1" ]; then
+    return 1
+  fi
+
+  return 0
+}
+
+_firstrun_apply () {
+  debug 'start'
+
+  local firstrun_file
+  firstrun_file="$(environment_get_item_path firstrun)"
+
+  if [ -f "$firstrun_file" ]; then
+    (
+      # shellcheck disable=SC1090
+      source "$DOTFILES_ROOT_DIR/framework/framework"
+      # shellcheck disable=SC1090
+      source "$firstrun_file"
+    )
+
+    config_write FIRSTRUN_APPLIED 1
+  fi
+
+}
+
+firstrun_main () {
+  if ! _firstrun_should_apply; then
+    return 0
+  fi
+
+  _firstrun_apply
+}
