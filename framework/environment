@@ -133,7 +133,9 @@ environment_list_all_environments () {
     # This looks weird, but the quote-wrapped-linebreak is intentional
     envs+="
 "
-    envs+=$(ls "$DOTFILES_ROOT_DIR/custom_environments")
+    if [ -d "$DOTFILES_ROOT_DIR/custom_environments" ]; then
+      envs+=$(ls "$DOTFILES_ROOT_DIR/custom_environments")
+    fi
   fi
 
   echo "$envs" | sort | uniq | grep -v all
