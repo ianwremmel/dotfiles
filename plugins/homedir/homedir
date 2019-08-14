@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+export DOTFILES_HOMEDIR_DEPS=('vim')
+
 dotfiles_homedir_apply () {
   _apply () {
     local candidate
