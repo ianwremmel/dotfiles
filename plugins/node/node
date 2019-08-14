@@ -4,6 +4,11 @@ export DOTFILES_NODE_DEPS=('nvm')
 
 dotfiles_node_apply () {
   if ! command -v node >/dev/null 2>&1; then
+    # shellcheck disable=SC1090
+    source "$HOME/.nvm/nvm.sh"
+  fi
+
+  if ! command -v node >/dev/null 2>&1; then
     nvm install lts/*
     nvm alias default lts/*
   fi

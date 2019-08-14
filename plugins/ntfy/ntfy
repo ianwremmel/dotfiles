@@ -27,6 +27,8 @@ dotfiles_ntfy_prompt_string () {
 }
 
 dotfiles_ntfy_apply () {
+  _dotfiles_ntfy_ensure
+
   touch "$HOME/.ntfy.yml"
 
   if [ "$(wc -c < "$HOME/.ntfy.yml" | tr -d '[:space:]')" == "0" ]; then

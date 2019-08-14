@@ -1,14 +1,18 @@
 #!/usr/bin/env bash
 
 dotfiles_vim_apply () {
-  if [ ! "$DOTFILES_AIRPLANE_MODE" ]; then
-    rm -rf environments/all/home/.vim/bundle/vim-javascript-syntax
-    git clone --depth=1 https://github.com/jelera/vim-javascript-syntax.git environments/all/home/.vim/bundle/vim-javascript-syntax
+  if [ "$DOTFILES_AIRPLANE_MODE" != '1' ]; then
+    local BASE
+    BASE="$(environment_get_path all home/.vim/bundle)"
+    mkdir -p "$BASE"
 
-    rm -rf environments/all/home/.vim/bundle/vim-colors-solarized
-    git clone --depth=1 git://github.com/altercation/vim-colors-solarized.git environments/all/home/.vim/bundle/vim-colors-solarized
+    rm -rf "$BASE/vim-javascript-syntax"
+    git clone --depth=1 https://github.com/jelera/vim-javascript-syntax.git "$BASE/vim-javascript-syntax"
 
-    rm -rf environments/all/home/.vim/bundle/editorconfig
-    git clone --depth=1 https://github.com/editorconfig/editorconfig-vim.git environments/all/home/.vim/bundle/editorconfig
+    rm -rf "$BASE/vim-colors-solarized"
+    git clone --depth=1 git://github.com/altercation/vim-colors-solarized.git "$BASE/vim-colors-solarized"
+
+    rm -rf "$BASE/editorconfig"
+    git clone --depth=1 https://github.com/editorconfig/editorconfig-vim.git "$BASE/editorconfig"
   fi
 }
