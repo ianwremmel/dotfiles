@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+
+export DOTFILES_XCODE_DEPS=('homebrew_core')
+
+dotfiles_xcode_apply () {
+  if ! mas list | grep -iq xcode; then
+    if ! command -v mas >/dev/null 2>&1; then
+      brew install mas
+    fi
+
+    log 'Installing Xcode. Note: this could take quite a while.'
+    # This is the app store id for xcode
+    mas install 497799835
+  fi
+
+  debug 'Making sure we have accepted the xcode license'
+  sudo xcodebuild -license accept
+}

@@ -95,7 +95,6 @@ mas 'Pocket', id: 568_494_494
 mas 'Slack', id: 803_453_959
 mas 'Spark', id: 1_176_895_641
 mas 'Todoist', id: 585_829_637
-mas 'Xcode', id: 497_799_835
 
 # Install selenium drivers
 brew 'geckodriver'
