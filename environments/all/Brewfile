@@ -63,7 +63,7 @@ cask 'xquartz'
 cask 'visual-studio-code'
 
 # Install useful binaries
-# brew '1password-cli'
+cask '1password-cli'
 brew 'chamber'
 brew 'httpie'
 brew 'hub'
