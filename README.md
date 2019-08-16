@@ -24,7 +24,7 @@ git clone https://github.com/ianwremmel/dotfiles
 
 ## Usage
 
-Apply the repo to youre system. You'll be prompted on first run.
+Apply the repo to your system. You'll be prompted on first run.
 
 ```bash
 cd dotfiles
