@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+
+export DOTFILES_SHELLS_DEPS=('homebrew')
+
+dotfiles_shells_apply () {
+  local brew_prefix
+  brew_prefix="$(brew --prefix)"
+
+  local is_default_shell
+  is_default_shell=0
+  if [[ $SHELL == /bin* ]]; then
+    is_default_shell=1
+  fi
+
+  # so, the following logic is a little odd, but the only alternative that comes
+  # to mind is adding some kind of manifest file to environments that allows
+  # setting non-home-directory config. Rather than that level of complexity, we
+  # assume no one wants to use `/bin/{bash,zsh}` and instead assume that a
+  # custom bash is preferred to a default shell and a custom zsh is preferred to
+  # bash.
+
+  if brew ls bash >/dev/null 2>&1; then
+    debug 'bash has been installed from homebrew'
+    if ! grep -Fq "$brew_prefix/bin/bash" /etc/shells; then
+      debug 'add homebrew bash to /etc/shells'
+      echo "$brew_prefix/bin/bash" | sudo tee -a /etc/shells
+    fi
+
+    if [ "$is_default_shell" -eq 1 ]; then
+      chsh -s "$brew_prefix/bin/bash"
+    fi
+  fi
+
+  if brew ls zsh >/dev/null 2>&1; then
+    debug 'zsh has been installed from homebrew'
+    if ! grep -Fq "$brew_prefix/bin/zsh" /etc/shells; then
+      debug 'add homebrew zsh to /etc/shells'
+      echo "$brew_prefix/bin/zsh" | sudo tee -a /etc/shells
+    fi
+
+    if [ "$is_default_shell" -eq 1 ]; then
+      chsh -s "$brew_prefix/bin/zsh"
+    fi
+  fi
+}
