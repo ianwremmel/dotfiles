@@ -43,7 +43,6 @@ brew 'git-lfs'
 # Install Casks
 cask 'aws-vault'
 cask '1password'
-cask 'adobe-creative-cloud'
 cask 'disk-inventory-x'
 cask 'docker'
 cask 'fork'
