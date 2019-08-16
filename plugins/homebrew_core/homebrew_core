@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+
+dotfiles_homebrew_core_apply () {
+  if ! command -v brew >/dev/null 2>&1; then
+    if [ "$DOTFILES_HOMEBREW_SKIP" -eq 1 ]; then
+      error 'This appears to be your first run of dotfiles. While homebrew can be skipped on '
+      error 'subsequent runs, dotfiles cannot work without a core set of dependencies. Please'
+      error 'rerun.'
+      return 1
+    fi
+
+    log "Homebrew not found. Installing"
+
+    /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+    brew analytics off
+
+    log "Homebrew installed"
+  fi
+}

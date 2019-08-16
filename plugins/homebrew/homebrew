@@ -1,15 +1,6 @@
 #!/usr/bin/env bash
 
-_dotfiles_homebrew_ensure () {
-  if ! command -v brew >/dev/null 2>&1; then
-    log "Homebrew not found. Installing"
-
-    /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
-    brew analytics off
-
-    log "Homebrew installed"
-  fi
-}
+export DOTFILES_HOMEBREW_DEPS=('homebrew_core')
 
 _dotfiles_homebrew_list_brewfiles () {
   local brewfiles=''
@@ -35,8 +26,6 @@ _dotfiles_homebrew_list_brewfiles () {
 
 dotfiles_homebrew_apply () {
   if [ "$DOTFILES_HOMEBREW_SKIP" -ne 1 ]; then
-    _dotfiles_homebrew_ensure
-
     local brewfile
     brewfile="$(mktemp)"
 
