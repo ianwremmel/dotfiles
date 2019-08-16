@@ -36,7 +36,16 @@ _customize_prompt_should_copy_default_environments () {
 }
 
 _customize_prompt_should_customize () {
-  echo "Do you intend to customize your dotfiles?"
+  echo "Do you have a custom dotfiles repository?"
+  select yn in "Yes" "No"; do
+    case $yn in
+      Yes)
+            return 0;
+            ;;
+    esac
+  done
+
+  echo "Do you want one?"
   select yn in "Yes" "No"; do
     case $yn in
       Yes)
@@ -53,7 +62,7 @@ _customize_clone () {
   (
     cd "$DOTFILES_ROOT_DIR" || return 1
     # hub can clone with just the slug, no need for a full git url
-    hub clone "$(_customize_github_get_repo)" environments
+    hub clone "$(_customize_github_get_repo)" custom_environments
   )
 }
 
