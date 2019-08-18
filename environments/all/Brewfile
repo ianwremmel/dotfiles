@@ -50,16 +50,14 @@ cask 'firefox'
 cask 'flux'
 cask 'gitup'
 cask 'gpg-suite'
-cask 'hyperdock'
 cask 'java'
 cask 'keybase'
 cask 'ngrok'
 cask 'postico'
-cask 'spideroakone'
-cask 'steam'
 cask 'vlc'
 cask 'xquartz'
 cask 'visual-studio-code'
+cask 'zeplin'
 
 # Install useful binaries
 cask '1password-cli'
@@ -84,17 +82,12 @@ cask 'quicklook-csv'   # preview csvs
 cask 'qlvideo'         # preview more video types
 
 # Install App Store packages
-mas 'Bear', id: 1_091_189_122
-mas 'Byword', id: 420_212_497
-mas 'Evernote', id: 406_056_744
 mas 'Keynote', id: 409_183_694
 mas 'Magnet', id: 441_258_766
 mas 'Numbers', id: 409_203_825
 mas 'Pages', id: 409_201_541
 mas 'Pocket', id: 568_494_494
 mas 'Slack', id: 803_453_959
-mas 'Spark', id: 1_176_895_641
-mas 'Todoist', id: 585_829_637
 
 # Install selenium drivers
 brew 'geckodriver'
