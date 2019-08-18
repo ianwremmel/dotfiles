@@ -187,7 +187,7 @@ customize_main () {
   if [ ! -f "$HOME/.config/hub" ]; then
     echo 'hub is not yet configured. You will be prompted for your github credentials. hub'
     echo 'will store them in ~/.config/hub. dotfiles scripts will not use them in any way'
-    echo '(beyond issues commands with hub).'
+    echo '(beyond issuing commands with hub).'
     echo ''
     echo "(Since hub doesn't have an explicit auth command, we'll issue a read-only "
     echo 'request to the get users api. You can ignore the JSON that prints after you'
