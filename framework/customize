@@ -36,7 +36,16 @@ _customize_prompt_should_copy_default_environments () {
 }
 
 _customize_prompt_should_customize () {
-  echo "Do you intend to customize your dotfiles?"
+  echo "Do you have a custom dotfiles repository?"
+  select yn in "Yes" "No"; do
+    case $yn in
+      Yes)
+            return 0;
+            ;;
+    esac
+  done
+
+  echo "Do you want one?"
   select yn in "Yes" "No"; do
     case $yn in
       Yes)
@@ -53,7 +62,7 @@ _customize_clone () {
   (
     cd "$DOTFILES_ROOT_DIR" || return 1
     # hub can clone with just the slug, no need for a full git url
-    hub clone "$(_customize_github_get_repo)" environments
+    hub clone "$(_customize_github_get_repo)" custom_environments
   )
 }
 
@@ -173,6 +182,18 @@ customize_main () {
   if _customize_should_skip_customization; then
     debug 'Customizations are disabled'
     return 0
+  fi
+
+  if [ ! -f "$HOME/.config/hub" ]; then
+    echo 'hub is not yet configured. You will be prompted for your github credentials. hub'
+    echo 'will store them in ~/.config/hub. dotfiles scripts will not use them in any way'
+    echo '(beyond issuing commands with hub).'
+    echo ''
+    echo "(Since hub doesn't have an explicit auth command, we'll issue a read-only "
+    echo 'request to the get users api. You can ignore the JSON that prints after you'
+    echo 'enter your username and password)'
+
+    hub api /users
   fi
 
   if _customize_has_local_git_repo; then

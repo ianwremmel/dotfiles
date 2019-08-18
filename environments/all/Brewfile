@@ -43,7 +43,6 @@ brew 'git-lfs'
 # Install Casks
 cask 'aws-vault'
 cask '1password'
-cask 'adobe-creative-cloud'
 cask 'disk-inventory-x'
 cask 'docker'
 cask 'fork'
@@ -63,7 +62,7 @@ cask 'xquartz'
 cask 'visual-studio-code'
 
 # Install useful binaries
-# brew '1password-cli'
+cask '1password-cli'
 brew 'chamber'
 brew 'httpie'
 brew 'hub'
@@ -96,7 +95,6 @@ mas 'Pocket', id: 568_494_494
 mas 'Slack', id: 803_453_959
 mas 'Spark', id: 1_176_895_641
 mas 'Todoist', id: 585_829_637
-mas 'Xcode', id: 497_799_835
 
 # Install selenium drivers
 brew 'geckodriver'
