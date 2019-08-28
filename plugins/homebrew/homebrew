@@ -40,7 +40,7 @@ dotfiles_homebrew_apply () {
     brew bundle --file="$brewfile"
 
     log 'Removing no-longer specified homebrew packages'
-    brew bundle cleanup --force --file="$brewfile"
+    brew bundle --file="$brewfile" cleanup --force
 
     log 'Upgrading all installed homebrew packages'
     brew upgrade --ignore-pinned
