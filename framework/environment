@@ -116,8 +116,10 @@ environment_get_item_path () {
 #
 environment_list_environments () {
   if [ -d "$(environment_get_base_path "$(environment_get_current)")" ]; then
+    debug "current env is $(environment_get_current)"
     environment_get_current
   elif [ -d "$(environment_get_base_path default)" ]; then
+    debug "current env is default"
     echo 'default'
   fi
 
@@ -161,7 +163,7 @@ environment_map_func () {
       cd "$(environment_get_base_path "$env")" || return
       ENVIRONEMENTS="$(environment_list_environments | tac -s ' ')" \
       CURRENT_ENVIRONMENT="$env" \
-      CURRENT_ENVIRONMENT_PATH=$(environment_base_get_path "$env") \
+      CURRENT_ENVIRONMENT_PATH=$(environment_get_base_path "$env") \
       $func_name
     )
   done
