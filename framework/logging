@@ -1,10 +1,9 @@
 #!/usr/bin/env bash
 
-# Might at some point be silenced unless an environment variable is set
 debug () {
   set +u
   if [ "$DOTFILES_DEBUG" != '' ]; then
-    echo "$@"
+    echo "$@" >&2
   fi
   set -u
 }
