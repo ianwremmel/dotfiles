@@ -43,7 +43,7 @@ dotfiles_homebrew_apply () {
     brew bundle cleanup --force --file="$brewfile"
 
     log 'Upgrading all installed homebrew packages'
-    brew upgrade
+    brew upgrade --ignore-pinned
 
     log 'Removing outdated homebrew packages'
     brew cleanup
