@@ -16,6 +16,12 @@ source ./framework/util
 source ./framework/plugin
 
 framework_apply () {
+  echo 'Many of the following commands will need root access'
+  echo 'Please enter your password to (hopefully) only be prompted once'
+  sudo -v
+  # Keep-alive: update existing `sudo` timestamp
+  while true; do sudo -n true; sleep 30; kill -0 "$$" || exit; done 2>/dev/null &
+
   framework_init
 
   plugin_run_plugins
@@ -24,12 +30,6 @@ framework_apply () {
 }
 
 framework_init () {
-  echo 'Many of the following commands will need root access'
-  echo 'Please enter your password to (hopefully) only be prompted once'
-  sudo -v
-  # Keep-alive: update existing `sudo` timestamp
-  while true; do sudo -n true; sleep 30; kill -0 "$$" || exit; done 2>/dev/null &
-
   debug 'Initializing dotfiles framework'
   export DOTFILES_ROOT_DIR
   DOTFILES_ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." >/dev/null 2>&1 && pwd)"
