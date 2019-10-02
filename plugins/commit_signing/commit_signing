@@ -25,7 +25,7 @@ dotfiles_commit_signing_apply () {
     touch "$HOME/.gnupg/gpg-agent.conf"
     # At one time, this program mistakenly created the gpg config file in the
     # root of the home directory
-    rm "$HOME/gpg-agent.conf"
+    rm -f "$HOME/gpg-agent.conf"
 
 
     if ! grep -q 'pinentry-program' "$HOME/.gnupg/gpg-agent.conf"; then
