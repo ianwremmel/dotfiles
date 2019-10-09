@@ -26,3 +26,7 @@ GPG_TTY=$(tty)
 export CLICOLOR=1
 export LSCOLORS=GxFxCxDxBxegedabagaced
 export LS_COLORS="$LSCOLORS"
+
+# Prefer the user's default keychain
+export AWS_VAULT_KEYCHAIN_NAME
+AWS_VAULT_KEYCHAIN_NAME=login
