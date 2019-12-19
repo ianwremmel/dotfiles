@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+if [ "$(git diff --name-only --cached | wc -l)" -gt "0" ]; then
+  echo "You cannot use git touch when there are staged changes"
+  exit 1
+fi
+
+git commit --amend --no-edit
