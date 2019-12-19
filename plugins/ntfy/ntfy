@@ -61,4 +61,6 @@ dotfiles_ntfy_apply () {
     debug 'Setting multi as ntfy backend'
     yq w -i "$HOME/.ntfy.yml" backends[+] multi
   fi
+
+  ntfy send "ntfy is installed and allowed to use Catalina's notification system"
 }
