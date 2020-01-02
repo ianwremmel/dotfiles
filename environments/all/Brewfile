@@ -30,6 +30,7 @@ brew 'vim'
 brew 'grep'
 brew 'screen'
 brew 'git'
+brew 'make'
 
 # Support large file with git
 brew 'git-lfs'
