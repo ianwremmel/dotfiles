@@ -41,6 +41,8 @@ brew 'git-lfs'
 ## Put your packages here
 ##
 
+brew 'awscli'
+
 # Install Casks
 cask 'aws-vault'
 cask '1password'
