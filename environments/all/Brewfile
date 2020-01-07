@@ -67,6 +67,8 @@ cask '1password-cli'
 brew 'chamber'
 brew 'httpie'
 brew 'hub'
+# declare heroku-node explicitly so that brew bundle cleanup doesn't error
+brew 'heroku-node'
 brew 'heroku'
 brew 'terraform'
 brew 'tflint'
