@@ -73,6 +73,7 @@ brew 'heroku'
 cask 'synergy'
 brew 'terraform'
 brew 'tflint'
+brew 'tree'
 brew 'shellcheck'
 # use watch to rerun shell command every two seconds. for example
 # `watch hub ci-status`. To get really fancy: `ntfy done watch hub ci-status`
