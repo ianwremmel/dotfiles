@@ -70,6 +70,7 @@ brew 'hub'
 # declare heroku-node explicitly so that brew bundle cleanup doesn't error
 brew 'heroku-node'
 brew 'heroku'
+cask 'synergy'
 brew 'terraform'
 brew 'tflint'
 brew 'shellcheck'
