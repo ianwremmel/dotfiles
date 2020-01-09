@@ -41,6 +41,8 @@ brew 'git-lfs'
 ## Put your packages here
 ##
 
+brew 'awscli'
+
 # Install Casks
 cask 'aws-vault'
 cask '1password'
@@ -65,10 +67,15 @@ cask '1password-cli'
 brew 'chamber'
 brew 'httpie'
 brew 'hub'
+# declare heroku-node explicitly so that brew bundle cleanup doesn't error
+brew 'heroku-node'
 brew 'heroku'
 brew 'terraform'
 brew 'tflint'
 brew 'shellcheck'
+# use watch to rerun shell command every two seconds. for example
+# `watch hub ci-status`. To get really fancy: `ntfy done watch hub ci-status`
+brew 'watch'
 
 # Install (better) language interpreters
 brew 'python'
@@ -83,10 +90,12 @@ cask 'quicklook-csv'   # preview csvs
 cask 'qlvideo'         # preview more video types
 
 # Install App Store packages
-mas 'Keynote', id: 409_183_694
+# for some reason, Keynote, Numbers, and Pages insist on being reinstalled on
+# every run, so, for the time being, they've been disabled.
+# mas 'Keynote', id: 409_183_694
+# mas 'Numbers', id: 409_203_825
+# mas 'Pages', id: 409_201_541
 mas 'Magnet', id: 441_258_766
-mas 'Numbers', id: 409_203_825
-mas 'Pages', id: 409_201_541
 mas 'Pocket', id: 568_494_494
 mas 'Slack', id: 803_453_959
 

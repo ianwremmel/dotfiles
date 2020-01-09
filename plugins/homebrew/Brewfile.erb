@@ -19,6 +19,10 @@ brew 'coreutils'
 # Needed for the customize helper
 brew 'hub'
 
+# explicitly tap homebrew/cask; otherwise, brew bundle cleanup untaps it and the
+# next run of brew bundle reinstalls all casks.
+tap 'homebrew/cask'
+
 <%# DOTFILES_HOMEBREW_CONFIG_BREWFILES must contain full paths %>
 <% ENV.fetch('DOTFILES_HOMEBREW_CONFIG_BREWFILES').split(' ').each do |filename| %>
 # begin <%= filename %>

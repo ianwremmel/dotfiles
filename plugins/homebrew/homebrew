@@ -26,6 +26,9 @@ _dotfiles_homebrew_list_brewfiles () {
 
 dotfiles_homebrew_apply () {
   if [ "$DOTFILES_HOMEBREW_SKIP" -ne 1 ]; then
+    log 'Updating homebrew'
+    brew update
+
     local brewfile
     brewfile="$(mktemp)"
 
@@ -36,8 +39,14 @@ dotfiles_homebrew_apply () {
     erb Brewfile.erb > "$brewfile"
     unset DOTFILES_HOMEBREW_CONFIG_BREWFILES
 
+    log "Generated Brewfile available at $brewfile"
+
     log 'Installing packages with homebrew'
+    log "If this is the first time you're installing dotfiles, it may look like this is hanging, but it's actually just installing xcode"
     brew bundle --file="$brewfile"
+
+    log 'Listing no-longer specified homebrew packages'
+    brew bundle --file="$brewfile" cleanup
 
     log 'Removing no-longer specified homebrew packages'
     brew bundle --file="$brewfile" cleanup --force
