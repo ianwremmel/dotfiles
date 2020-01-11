@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+
+# If everything already passed, no need to wait.
+if [ "$(hub ci-status)" == "success" ]; then
+  exit 0
+fi
+
+# poll GitHub until the status changes
+watch --chgexit hub ci-status
+
+# Check with GitHub one more time to figure out the right exit status
+if [ "$(hub ci-status)" != "success" ]; then
+  exit 1
+fi
