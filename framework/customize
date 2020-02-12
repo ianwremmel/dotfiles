@@ -85,6 +85,7 @@ _customize_create_remote_config () {
 _customize_ensure_hub () {
   if ! command -v hub >/dev/null 2>&1; then
     debug 'hub not found, installing'
+    # TODO linux
     brew install hub
   fi
 }

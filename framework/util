@@ -44,6 +44,7 @@ is_set () {
 }
 
 remind () {
+  # TODO linux
   # local script
   script=$(cat <<EOT
 on run argv

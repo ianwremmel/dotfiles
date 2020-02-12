@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 export DOTFILES_COMMIT_SIGNING_DEPS=('homebrew' 'homedir')
+export DOTFILES_COMMIT_SIGNING_PLATFORMS=('darwin')
 
 _dotfiles_commit_signing_ensure () {
   if ! command -v gpg > /dev/null 2>&1; then

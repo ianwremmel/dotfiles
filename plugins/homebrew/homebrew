@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 export DOTFILES_HOMEBREW_DEPS=('homebrew_core' 'xcode')
+export DOTFILES_HOMEBREW_PLATFORMS=('darwin')
 
 _dotfiles_homebrew_list_brewfiles () {
   local brewfiles=''

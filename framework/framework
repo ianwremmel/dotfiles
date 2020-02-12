@@ -6,13 +6,20 @@
 
 set -euo pipefail
 
+# shellcheck source=config
 source ./framework/config
+# shellcheck source=customize
 source ./framework/customize
+# shellcheck source=environment
 source ./framework/environment
+# shellcheck source=firstrun
 source ./framework/firstrun
+# shellcheck source=logging
 source ./framework/logging
+# shellcheck source=util
 source ./framework/util
 
+# shellcheck source=plugin
 source ./framework/plugin
 
 framework_apply () {

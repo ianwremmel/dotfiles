@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 export DOTFILES_GIT_CONFIG=('user_email' 'user_name')
+export DOTFILES_GIT_PLATFORMS=('darwin')
 
 # Needs to come after homedir so that gitconfig does't get overridden
 export DOTFILES_GIT_DEPS=('homedir')

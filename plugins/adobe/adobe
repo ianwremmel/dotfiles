@@ -1,10 +1,9 @@
 #!/usr/bin/env bash
 
-export ADOBE_DEPS=('homebrew')
+export DOTFILES_ADOBE_DEPS=('homebrew')
+export DOTFILES_ADOBE_PLATFORMS=('darwin')
 
 dotfiles_adobe_apply () {
-
-
   if [ -d '/Applications/Adobe Creative Cloud' ]; then
     debug 'Adobe Creative Cloud already installed'
     return 0
@@ -23,3 +22,4 @@ dotfiles_adobe_apply () {
   remind 'Install Photoshop'
   remind 'Install Lightroom'
 }
+
