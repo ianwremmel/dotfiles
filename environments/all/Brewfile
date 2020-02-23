@@ -85,14 +85,6 @@ cask 'zeplin'
 brew 'python'
 brew 'go'
 
-# Install QuickLook helpers
-cask 'qlcolorcode'     # syntax highlighting in preview
-cask 'qlstephen'       # preview plaintext files without extension
-cask 'qlmarkdown'      # preview markdown files
-cask 'quicklook-json'  # preview json files
-cask 'quicklook-csv'   # preview csvs
-cask 'qlvideo'         # preview more video types
-
 # Install App Store packages
 # for some reason, Keynote, Numbers, and Pages insist on being reinstalled on
 # every run, so, for the time being, they've been disabled.
