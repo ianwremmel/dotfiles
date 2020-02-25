@@ -42,6 +42,9 @@ _customize_prompt_should_customize () {
       Yes)
             return 0;
             ;;
+      No)
+            return 1;
+            ;;
     esac
   done
 
@@ -61,6 +64,7 @@ _customize_prompt_should_customize () {
 _customize_clone () {
   (
     cd "$DOTFILES_ROOT_DIR" || return 1
+    _customize_ensure_hub 
     # hub can clone with just the slug, no need for a full git url
     hub clone "$(_customize_github_get_repo)" custom_environments
   )
@@ -77,6 +81,7 @@ _customize_create_remote_config () {
       git add .
       git commit -m 'feat: initialize with default_environments'
     fi
+    _customize_ensure_hub 
     hub create --private "$(_customize_github_get_repo)"
     git push -u origin master
   )
@@ -86,6 +91,13 @@ _customize_ensure_hub () {
   if ! command -v hub >/dev/null 2>&1; then
     debug 'hub not found, installing'
     brew install hub
+  fi
+}
+
+_customize_ensure_jq () {
+  if ! command -v jq >/dev/null 2>&1; then
+    debug 'jq not found, installing'
+    brew install jq
   fi
 }
 
@@ -99,6 +111,8 @@ _customize_github_get_repo () {
 
 _customize_github_get_user () {
   if [ "$CUSTOMIZE_GITHUB_USER" == '' ]; then
+    _customize_ensure_jq
+    _customize_ensure_hub 
     CUSTOMIZE_GITHUB_USER=$(hub api /user | jq -r .login)
   fi
 
@@ -117,6 +131,7 @@ _customize_has_local_git_repo () {
 }
 
 _customize_has_remote_repo () {
+  _customize_ensure_hub 
   if hub api "/repos/$(_customize_github_get_user)/$DOTFILES_CUSTOM_REPO" > /dev/null 2>&1; then
     return 0
   fi
@@ -185,6 +200,8 @@ customize_main () {
   fi
 
   if [ ! -f "$HOME/.config/hub" ]; then
+    _customize_ensure_hub 
+
     echo 'hub is not yet configured. You will be prompted for your github credentials. hub'
     echo 'will store them in ~/.config/hub. dotfiles scripts will not use them in any way'
     echo '(beyond issuing commands with hub).'
