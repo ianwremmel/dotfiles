@@ -14,7 +14,7 @@ dotfiles_powerlevel_prompt_string ()  {
 
 dotfiles_powerlevel_apply  () {
   debug 'checking if we want powerlevel10'
-  if [ "$(plugin_config_get ntfy pushover_key)" -ne "1" ]; then
+  if [ "$(plugin_config_get powerlevel enable)" -ne "1" ]; then
     debug 'we do not want powerlevel10'
     return 0
   fi
