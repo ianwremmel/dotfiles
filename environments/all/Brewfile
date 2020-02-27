@@ -26,14 +26,25 @@ brew 'gnu-sed'
 ##
 
 # Install more recent versions of some macOS tools.
-brew 'vim'
 brew 'grep'
-brew 'screen'
 brew 'git'
 brew 'make'
+brew 'screen'
+brew 'vim'
 
 # Support large file with git
 brew 'git-lfs'
+
+
+##
+## AWS Tools
+##
+
+brew 'awscli'
+cask 'aws-vault'
+brew 'chamber'
+cask 'session-manager-plugin'
+
 
 ##
 ## User
@@ -41,11 +52,8 @@ brew 'git-lfs'
 ## Put your packages here
 ##
 
-brew 'awscli'
-
-# Install Casks
-cask 'aws-vault'
 cask '1password'
+cask '1password-cli'
 cask 'disk-inventory-x'
 cask 'docker'
 cask 'fork'
@@ -53,41 +61,29 @@ cask 'firefox'
 cask 'flux'
 cask 'gitup'
 cask 'gpg-suite'
+# declare heroku-node explicitly so that brew bundle cleanup doesn't error
+brew 'heroku-node'
+brew 'heroku'
+brew 'httpie'
+brew 'hub'
 cask 'java'
 cask 'keybase'
 cask 'ngrok'
 cask 'postico'
-cask 'vlc'
-cask 'xquartz'
-cask 'visual-studio-code'
-cask 'zeplin'
-
-# Install useful binaries
-cask '1password-cli'
-brew 'chamber'
-brew 'httpie'
-brew 'hub'
-# declare heroku-node explicitly so that brew bundle cleanup doesn't error
-brew 'heroku-node'
-brew 'heroku'
+cask 'synergy'
+brew 'shellcheck'
 brew 'terraform'
 brew 'tflint'
-brew 'shellcheck'
-# use watch to rerun shell command every two seconds. for example
-# `watch hub ci-status`. To get really fancy: `ntfy done watch hub ci-status`
+brew 'tree'
+cask 'visual-studio-code'
+cask 'vlc'
 brew 'watch'
+cask 'xquartz'
+cask 'zeplin'
 
 # Install (better) language interpreters
 brew 'python'
 brew 'go'
-
-# Install QuickLook helpers
-cask 'qlcolorcode'     # syntax highlighting in preview
-cask 'qlstephen'       # preview plaintext files without extension
-cask 'qlmarkdown'      # preview markdown files
-cask 'quicklook-json'  # preview json files
-cask 'quicklook-csv'   # preview csvs
-cask 'qlvideo'         # preview more video types
 
 # Install App Store packages
 # for some reason, Keynote, Numbers, and Pages insist on being reinstalled on

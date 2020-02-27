@@ -39,11 +39,13 @@ local function git_prompt_info() {
   fi
 }
 
-# Interpret prompt string after each command
-setopt PROMPT_SUBST
+if [ ! -d "$HOME/powerlevel10k" ]; then
+  # Interpret prompt string after each command
+  setopt PROMPT_SUBST
 
-local USER_AT_MACHINE="%n@%M"
-local TIMESTAMP="%T"
-local WORKING_DIRECTORY="%{$fg[cyan]%}%~%{$reset_color%}"
-local SUCCESS_INDICATOR="%(?:%{$fg_bold[green]%}➜ :%{$fg_bold[red]%}➜ )"
-PROMPT='${SUCCESS_INDICATOR} ${TIMESTAMP} ${USER_AT_MACHINE} ${WORKING_DIRECTORY} $(git_prompt_info)%# '
+  local USER_AT_MACHINE="%n@%M"
+  local TIMESTAMP="%T"
+  local WORKING_DIRECTORY="%{$fg[cyan]%}%~%{$reset_color%}"
+  local SUCCESS_INDICATOR="%(?:%{$fg_bold[green]%}➜ :%{$fg_bold[red]%}➜ )"
+  PROMPT='${SUCCESS_INDICATOR} ${TIMESTAMP} ${USER_AT_MACHINE} ${WORKING_DIRECTORY} $(git_prompt_info)%# '
+fi

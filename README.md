@@ -46,7 +46,7 @@ For example, you might have an environment called "home" and an environment
 called "work".
 
 There are two special environment names with extra behavior. Configuration in
-the `all` environment gets applied the every device regardless of any other
+the `all` environment gets applied to every device regardless of any other
 environment name being set. `default` gets applied on any device that doesn't
 have a specific environment set. It's entirely possible (likely, even) that
 these are the only environments you'll need.
@@ -68,7 +68,7 @@ Environments are are defined in two place:
 
 Plugins do the bulk of the work here. Plugins are just bash scripts that
 implement one or more [lifecycle hooks](#lifecycle-hooks). They're executued
-automatically and by `./apply`.
+automatically by `./apply`.
 
 When authoring plugins, keep in mind that they're sourced into the framework
 process, so there's no need to e.g. `set -euo pipefail`.
@@ -81,8 +81,6 @@ process, so there's no need to e.g. `set -euo pipefail`.
 
 - `$DOTFILES_*_CONFIG` - an array containing the unprefixed names of the
   plugin's config variables
-- (future) `dotfiles_*_prompt` - declares the strings needed to prompt the user
-  for any missing config values
 - `$DOTFILES_*_DEPS` - an array of plugin names that must execute before this
   plugin can be applied
 - `dotfiles_*_apply ()` - does the plugin's work
@@ -96,7 +94,7 @@ process, so there's no need to e.g. `set -euo pipefail`.
   separaters.
 - Functions and local variables are snake case.
 - Shell scripts (including plugins, though technically only the plugin
-  _entrypoint_ need be bash) are written for bash > 3. At time of writing, this
+  _entrypoint_ need be bash) are written for bash >= 4. At time of writing, this
   means bash 5. While you may choose any shell you wish as your default, the
   majority of the script files are loading by sourcing them into the current
   process. Moreover shellcheck supports bash, but not zsh.

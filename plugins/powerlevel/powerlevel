@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+
+export DOTFILES_POWERLEVEL_CONFIG=('enable')
+
+dotfiles_powerlevel_prompt_string ()  {
+  case $1 in
+    enable)
+      echo 'Do you want to use powerlevel10k to configure your prompt? (1 for yes, anything else for no)'
+      return 0
+      ;;
+    esac
+  return 1
+}
+
+dotfiles_powerlevel_apply  () {
+  debug 'checking if we want powerlevel10'
+  if [ "$(plugin_config_get powerlevel enable)" -ne "1" ]; then
+    debug 'we do not want powerlevel10'
+    return 0
+  fi
+
+  debug 'we want powerlevel10'
+
+  if [ -d "$HOME/powerlevel10k" ]; then
+    debug 'updating powerlevel10'
+    (
+      cd "$HOME/powerlevel10k" || exit 1
+      git pull --rebase
+    )
+  else
+    debug 'installing powerlevel10'
+    git clone --depth=1 https://github.com/romkatv/powerlevel10k.git "$HOME/powerlevel10k"
+  fi
+}

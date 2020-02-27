@@ -3,11 +3,11 @@
 export DOTFILES_XCODE_DEPS=('homebrew_core')
 
 dotfiles_xcode_apply () {
-  if ! mas list | grep -iq xcode; then
-    if ! command -v mas >/dev/null 2>&1; then
-      brew install mas
-    fi
+  if ! command -v mas >/dev/null 2>&1; then
+    brew install mas
+  fi
 
+  if ! mas list | grep -iq xcode; then
     log 'Installing Xcode. Note: this could take quite a while.'
     # This is the app store id for xcode
     mas install 497799835

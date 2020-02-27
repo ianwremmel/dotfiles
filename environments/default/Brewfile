@@ -1,4 +1,6 @@
 cask 'adobe-creative-cloud'
+cask 'quickbooks'
+cask 'quicken'
 cask 'steam'
 cask 'spideroakone'
 
