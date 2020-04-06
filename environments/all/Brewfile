@@ -44,7 +44,8 @@ brew 'awscli'
 cask 'aws-vault'
 brew 'chamber'
 cask 'session-manager-plugin'
-
+tap 'aws/tap'
+brew 'aws-sam-cli'
 
 ##
 ## User
