@@ -104,3 +104,7 @@ cask 'chromedriver'
 # Install zsh
 brew 'zsh'
 brew 'zsh-completions'
+
+# Enough libraries just assume watchman is installed, we might as well just have
+# it by default
+brew 'watchman'
