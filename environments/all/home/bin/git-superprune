@@ -13,5 +13,7 @@ done
 
 GONE_BRANCHES=$(git branch -vv | grep ': gone' | awk '{print $1}' || true)
 for BRANCH in $GONE_BRANCHES; do
-  git branch -D "$BRANCH"
+  if [ "$BRANCH" != '+' ]; then
+    git branch -D "$BRANCH"
+  fi
 done
