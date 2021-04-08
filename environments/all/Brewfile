@@ -75,7 +75,6 @@ cask 'visual-studio-code'
 cask 'vlc'
 brew 'watch'
 cask 'xquartz'
-cask 'zeplin'
 
 # Install (better) language interpreters
 brew 'python'
