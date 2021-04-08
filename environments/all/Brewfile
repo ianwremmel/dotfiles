@@ -1,4 +1,3 @@
-tap 'heroku/brew'
 tap 'wata727/tflint'
 
 ##
@@ -35,7 +34,6 @@ brew 'vim'
 # Support large file with git
 brew 'git-lfs'
 
-
 ##
 ## AWS Tools
 ##
@@ -62,9 +60,6 @@ cask 'firefox'
 cask 'flux'
 cask 'gitup'
 cask 'gpg-suite'
-# declare heroku-node explicitly so that brew bundle cleanup doesn't error
-brew 'heroku-node'
-brew 'heroku'
 brew 'httpie'
 brew 'hub'
 cask 'java'
