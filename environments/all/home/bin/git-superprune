@@ -6,12 +6,14 @@ git checkout master
 git fetch origin --prune
 git pull --rebase
 
-MERGED_BRANCHES=$(git branch --merged | grep -v master || true)
+MERGED_BRANCHES=$(git branch --merged | grep -v master | grep -Ev '^\+' || true)
 for BRANCH in $MERGED_BRANCHES; do
-  git delete-branch "$BRANCH"
+  if [ "$BRANCH" != '+' ]; then
+    git delete-branch "$BRANCH"
+  fi
 done
 
-GONE_BRANCHES=$(git branch -vv | grep ': gone' | awk '{print $1}' || true)
+GONE_BRANCHES=$(git branch -vv | grep -Ev '^\+' | grep ': gone' | awk '{print $1}' || true)
 for BRANCH in $GONE_BRANCHES; do
   if [ "$BRANCH" != '+' ]; then
     git branch -D "$BRANCH"
