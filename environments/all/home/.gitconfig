@@ -51,6 +51,10 @@
   # attempt to make the resulting patch easier to read.
   indentHeuristic = true
 
+[init]
+
+  defaultBranch = main
+
 [merge]
 
   # Include summaries of merged commits in newly created merge commit messages
