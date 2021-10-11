@@ -2,9 +2,10 @@
 
 set -euo pipefail
 
+DEFAULT_BRANCH=$(gh repo view --json defaultBranchRef --jq .defaultBranchRef.name)
 CURRENT_BRANCH="$(git branch | awk '/\*/ { print $2 }')"
-if [ "$CURRENT_BRANCH" == "master" ]; then
-  echo 'Cannot begin superrebase from branch "master", aborting. Perhaps you meant superprune?'
+if [ "$CURRENT_BRANCH" == "$DEFAULT_BRANCH" ]; then
+  echo "Cannot begin superrebase from branch $DEFAULT_BRANCH, aborting. Perhaps you meant superprune?"
   exit 3
 fi
 
@@ -18,8 +19,8 @@ if [ "$CURRENT_BRANCH" == "" ]; then
   exit 1
 fi
 
-if [ "$CURRENT_BRANCH" == "master" ]; then
-  echo 'Cannot superrebase branch "master", aborting'
+if [ "$CURRENT_BRANCH" == "$DEFAULT_BRANCH" ]; then
+  echo "Cannot superrebase branch $DEFAULT_BRANCH, aborting"
   exit 2
 fi
 git rebase master
