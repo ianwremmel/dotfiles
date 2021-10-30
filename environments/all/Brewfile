@@ -44,6 +44,7 @@ brew 'chamber'
 cask 'session-manager-plugin'
 tap 'aws/tap'
 brew 'aws-sam-cli'
+brew 'aws-sam-cli-beta-cdk'
 
 ##
 ## User
@@ -53,7 +54,6 @@ brew 'aws-sam-cli'
 
 cask '1password'
 cask '1password-cli'
-cask 'disk-inventory-x'
 cask 'docker'
 cask 'fork'
 cask 'firefox'
@@ -61,13 +61,16 @@ cask 'flux'
 brew 'gh'
 cask 'gitup'
 cask 'gpg-suite'
+cask 'grandperspective'
 brew 'httpie'
 brew 'hub'
 cask 'java'
 cask 'keybase'
 cask 'ngrok'
+cask 'notion'
+cask 'obsidian'
 cask 'postico'
-cask 'synergy'
+brew 'postgres'
 brew 'shellcheck'
 brew 'terraform'
 brew 'tflint'
@@ -77,7 +80,7 @@ cask 'vlc'
 brew 'watch'
 cask 'xquartz'
 
-# Install (better) language interpreters
+# Install language interpreters
 brew 'python'
 brew 'go'
 
