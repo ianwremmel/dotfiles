@@ -1,9 +1,6 @@
-cask 'adobe-creative-cloud'
 cask 'quicken'
 cask 'steam'
 cask 'spideroakone'
 
-mas 'Bear', id: 1_091_189_122
 mas 'Byword', id: 420_212_497
 mas 'Evernote', id: 406_056_744
-mas 'Todoist', id: 585_829_637

@@ -36,30 +36,28 @@ dotfiles_ntfy_apply () {
     echo 'backends:' > "$HOME/.ntfy.yml"
   fi
 
-  if [ "$(yq r "$HOME/.ntfy.yml" multi.locked.pushover.user_key)" != "$(plugin_config_get ntfy pushover_key)" ]; then
+  # If the pushover key doesn't match what's in ntfy.yml, update it
+  if [ "$(yq e .multi.locked.pushover.user_key "$HOME/.ntfy.yml")" != "$(plugin_config_get ntfy pushover_key)" ]; then
     debug 'Setting ntfy pushover key'
-    yq write --inplace "$HOME/.ntfy.yml" multi.locked.pushover.user_key "$(plugin_config_get ntfy pushover_key)"
+    yq eval --inplace ".multi.locked.pushover.user_key = \"$(plugin_config_get ntfy pushover_key)\"" "$HOME/.ntfy.yml"
   fi
 
-  if [ "$(yq r "$HOME/.ntfy.yml" multi.unfocused.default)" != '{}' ]; then
+  # Clear the unfocused behavior
+  if [ "$(yq e .multi.unfocused.default "$HOME/.ntfy.yml")" != '{}' ]; then
     debug 'Setting ntfy unfocused behavior'
-    # This looks a little silly, but I couldn't find any other way to produce an
-    # empty object with yq
-    yq write --inplace "$HOME/.ntfy.yml" multi.unfocused.default.placeholder 0
-    yq delete --inplace "$HOME/.ntfy.yml" multi.unfocused.default.placeholder
+    yq eval --inplace ".multi.unfocused.default = {}" "$HOME/.ntfy.yml"
   fi
 
-  if [ "$(yq r "$HOME/.ntfy.yml" multi.focused)" != '{}' ]; then
+  # Clear the unfocused behavior
+  if [ "$(yq e .multi.focused "$HOME/.ntfy.yml")" != '{}' ]; then
     debug 'Setting ntfy focused behavior'
-    # This looks a little silly, but I couldn't find any other way to produce an
-    # empty object with yq
-    yq write --inplace "$HOME/.ntfy.yml" multi.focused.placeholder 0
-    yq delete --inplace "$HOME/.ntfy.yml" multi.focused.placeholder
+    yq eval --inplace ".multi.focused.default = {}" "$HOME/.ntfy.yml"
   fi
 
-  if ! yq r "$HOME/.ntfy.yml" backends | grep -cq multi ; then
+  # Set default backend
+  if ! yq e .backends "$HOME/.ntfy.yml" | grep -cq multi ; then
     debug 'Setting multi as ntfy backend'
-    yq w -i "$HOME/.ntfy.yml" backends[+] multi
+    yq eval --inplace '.["backends"] += ["multi"]' "$HOME/.ntfy.yml"
   fi
 
   ntfy send "ntfy is installed and allowed to use Catalina's notification system"
