@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-export DOTFILES_NTFY_CONFIG=('pushover_key')
+export DOTFILES_NTFY_CONFIG=('enable' 'pushover_key')
 
 export DOTFILES_NTFY_DEPS=('homebrew')
 
@@ -18,6 +18,10 @@ _dotfiles_ntfy_ensure () {
 
 dotfiles_ntfy_prompt_string () {
   case $1 in
+    enable)
+      echo 'Do you want to use ntfy? (1 for yes, anything else for no)'
+      return 0
+      ;;
     pushover_key)
       echo 'Enter your pushover API key'
       return 0
@@ -27,6 +31,14 @@ dotfiles_ntfy_prompt_string () {
 }
 
 dotfiles_ntfy_apply () {
+  debug 'checking if we want ntfy'
+  if [ "$(plugin_config_get ntfy enable)" -ne "1" ]; then
+    debug 'we do not want ntfy'
+    return 0
+  fi
+
+  debug 'we want ntfy'
+
   _dotfiles_ntfy_ensure
 
   touch "$HOME/.ntfy.yml"
