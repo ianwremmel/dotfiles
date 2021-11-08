@@ -3,6 +3,26 @@
 export DOTFILES_XCODE_DEPS=('homebrew_core')
 
 dotfiles_xcode_apply () {
+  # Sometimes it's preferrable to have Xcode installed from outside the App
+  # Store. This is particularly useful if you want to maintain multiple versions
+  # of Xcode. Therefore, if Xcode is already installed we can skip it.
+  if xcode-select -p 1>/dev/null; then
+    debug 'Xcode is already installed, skipping it.'
+  else
+    _install_xcode_from_mas
+  fi
+
+  debug 'Make sure we have accepted the xcode license'
+  sudo xcodebuild -license accept
+}
+
+_install_xcode_from_mas() {
+  local xcode_plugin_path
+  xcode_plugin_path=$(plugin_get_path xcode)
+  
+  # Copy Brewfile for Xcode into expected place
+  cp "$xcode_plugin_path/XcodeBrewfile" "$xcode_plugin_path/Brewfile"
+
   if ! command -v mas >/dev/null 2>&1; then
     brew install mas
   fi
@@ -12,7 +32,6 @@ dotfiles_xcode_apply () {
     # This is the app store id for xcode
     mas install 497799835
   fi
-
-  debug 'Making sure we have accepted the xcode license'
-  sudo xcodebuild -license accept
 }
+
+dotfiles_xcode_apply
