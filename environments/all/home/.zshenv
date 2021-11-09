@@ -4,8 +4,8 @@
 export GOROOT
 
 # Add Homebrew. We have pretty much no PATH at this point, so use its full path
-if command -v /usr/local/bin/brew > /dev/null 2>&1 ; then
-  BREW_PREFIX="$(/usr/local/bin/brew --prefix)"
+if command -v /opt/homebrew/bin/brew > /dev/null 2>&1 ; then
+  BREW_PREFIX="$(/opt/homebrew/bin/brew --prefix)"
 
   # Put brew binaries at the start of PATH so they override system binaries
   PATH=$BREW_PREFIX/bin:$BREW_PREFIX/sbin:$PATH;
