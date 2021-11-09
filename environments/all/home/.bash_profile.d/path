@@ -22,7 +22,6 @@ if command -v go > /dev/null 2>&1 ; then
   PATH=$PATH:$GOROOT/bin
 fi
 
-
 # Add Java
 if command -v /usr/libexec/java_home > /dev/null 2>&1 ; then
   PATH=$PATH:$(/usr/libexec/java_home)/bin;

@@ -16,15 +16,15 @@ if command -v /opt/homebrew/bin/brew > /dev/null 2>&1 ; then
   done
 fi
 
-# Add Java
-if command -v /usr/libexec/java_home > /dev/null 2>&1 ; then
-  PATH=$PATH:$(/usr/libexec/java_home)/bin;
-fi
-
 # Add GO
 if command -v go > /dev/null 2>&1 ; then
   GOROOT=/usr/local/opt/go/libexec
   PATH=$PATH:$GOROOT/bin
+fi
+
+# Add Java
+if command -v /usr/libexec/java_home > /dev/null 2>&1 ; then
+  PATH=$PATH:$(/usr/libexec/java_home)/bin;
 fi
 
 # set PATH so it includes user's private bin
