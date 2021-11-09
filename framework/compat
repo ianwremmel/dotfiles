@@ -9,7 +9,8 @@ compat_ensure_homebrew () {
   if ! command -v brew >/dev/null 2>&1; then
     echo "Homebrew not found. Installing"
 
-    /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
+    eval "$(/opt/homebrew/bin/brew shellenv)"
     brew analytics off
 
     echo "Homebrew installed"
