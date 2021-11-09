@@ -4,6 +4,7 @@ export DOTFILES_CUSTOM_REPO=${DOTFILES_CUSTOM_REPO:-dotfiles-customizations}
 
 CUSTOMIZE_GITHUB_USER=
 CUSTOMIZE_GITHUB_REPO=
+CUSTOMIZE_DOTFILES_CUSTOM_DEFAULT_BRANCH=
 
 CUSTOMIZE_ROOT_COMMIT_MESSAGE=$(cat <<EOT
 root - this space intentionally left blank
@@ -83,7 +84,7 @@ _customize_create_remote_config () {
     fi
     _customize_ensure_hub 
     hub create --private "$(_customize_github_get_repo)"
-    git push -u origin master
+    git push -u origin "$(_customize_get_default_branch)"
   )
 }
 
@@ -139,6 +140,16 @@ _customize_has_remote_repo () {
   return 1
 }
 
+_customize_get_default_branch () {
+  if [ "$CUSTOMIZE_DOTFILES_CUSTOM_DEFAULT_BRANCH" == '' ]; then
+    _customize_ensure_jq
+    _customize_ensure_hub
+    CUSTOMIZE_DOTFILES_CUSTOM_DEFAULT_BRANCH=$(hub api "/repos/$(_customize_github_get_user)/$DOTFILES_CUSTOM_REPO" | jq .default_branch)
+  fi
+
+  echo "$CUSTOMIZE_DOTFILES_CUSTOM_DEFAULT_BRANCH"
+}
+
 #
 # Based on local config and/or user input, indicates if customizations should be
 # done. note: this only disables customization setup steps. It DOES NOT prevent
@@ -183,8 +194,10 @@ _customize_update () {
       return 0
     fi
 
-    if [ "$( git branch | awk '/\*/ {print $2}')" != 'master' ]; then
-      log 'custom_environments is not on master'
+    local default_branch
+    default_branch="$(_customize_get_default_branch)"
+    if [ "$( git branch | awk '/\*/ {print $2}')" != "$default_branch" ]; then
+      log "custom_environments is not on $default_branch"
     fi
 
     log 'updating local customizations with remote state'
