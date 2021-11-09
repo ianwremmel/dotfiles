@@ -56,5 +56,9 @@ dotfiles_homebrew_apply () {
 
     log 'Removing outdated homebrew packages'
     brew cleanup
+
+    if test -d $(brew --prefix)/opt/openjdk/libexec/openjdk.jdk && ! test -d /Library/Java/JavaVirtualMachines/openjdk.jdk ; then
+       sudo ln -sfn $(brew --prefix)/opt/openjdk/libexec/openjdk.jdk /Library/Java/JavaVirtualMachines/openjdk.jdk
+    fi
   fi
 }

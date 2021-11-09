@@ -16,4 +16,8 @@ dotfiles_homebrew_core_apply () {
 
     log "Homebrew installed"
   fi
+
+  # There's no good spot to put this, but we're almost certainly going to need 
+  # it at some point, so we might as well include it in core.
+  sudo softwareupdate --install-rosetta --agree-to-license
 }

@@ -16,5 +16,5 @@ dotfiles_vscode_apply () {
     return 0
   fi
 
-  ln -s "$code_helper_path" /usr/local/bin/code >/dev/null 2>&1
+  ln -s "$code_helper_path" /opt/homebrew/bin/code >/dev/null 2>&1
 }
