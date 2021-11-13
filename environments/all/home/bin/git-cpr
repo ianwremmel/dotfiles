@@ -4,4 +4,4 @@ set -euo pipefail
 
 git upush
 gh pr create --fill
-gh pr view  | awk '/url/ {print $NF}' | xargs open
+gh pr view --web

@@ -65,9 +65,9 @@ _customize_prompt_should_customize () {
 _customize_clone () {
   (
     cd "$DOTFILES_ROOT_DIR" || return 1
-    _customize_ensure_hub 
-    # hub can clone with just the slug, no need for a full git url
-    hub clone "$(_customize_github_get_repo)" custom_environments
+    _customize_ensure_gh
+    # gh can clone with just the slug, no need for a full git url
+    gh repo clone "$(_customize_github_get_repo)" custom_environments
   )
 }
 
@@ -82,16 +82,16 @@ _customize_create_remote_config () {
       git add .
       git commit -m 'feat: initialize with default_environments'
     fi
-    _customize_ensure_hub 
-    hub create --private "$(_customize_github_get_repo)"
+    _customize_ensure_gh
+    gh repo create --private "$(_customize_github_get_repo)"
     git push -u origin "$(_customize_get_default_branch)"
   )
 }
 
-_customize_ensure_hub () {
-  if ! command -v hub >/dev/null 2>&1; then
-    debug 'hub not found, installing'
-    brew install hub
+_customize_ensure_gh () {
+  if ! command -v gh >/dev/null 2>&1; then
+    debug 'gh not found, installing'
+    brew install gh
   fi
 }
 
@@ -113,8 +113,8 @@ _customize_github_get_repo () {
 _customize_github_get_user () {
   if [ "$CUSTOMIZE_GITHUB_USER" == '' ]; then
     _customize_ensure_jq
-    _customize_ensure_hub 
-    CUSTOMIZE_GITHUB_USER=$(hub api /user | jq -r .login)
+    _customize_ensure_gh
+    CUSTOMIZE_GITHUB_USER=$(gh api /user --jq '.login')
   fi
 
   echo "$CUSTOMIZE_GITHUB_USER"
@@ -132,8 +132,8 @@ _customize_has_local_git_repo () {
 }
 
 _customize_has_remote_repo () {
-  _customize_ensure_hub 
-  if hub api "/repos/$(_customize_github_get_user)/$DOTFILES_CUSTOM_REPO" > /dev/null 2>&1; then
+  _customize_ensure_gh
+  if gh repo "$(_customize_github_get_user)/$DOTFILES_CUSTOM_REPO" > /dev/null 2>&1; then
     return 0
   fi
 
@@ -143,8 +143,8 @@ _customize_has_remote_repo () {
 _customize_get_default_branch () {
   if [ "$CUSTOMIZE_DOTFILES_CUSTOM_DEFAULT_BRANCH" == '' ]; then
     _customize_ensure_jq
-    _customize_ensure_hub
-    CUSTOMIZE_DOTFILES_CUSTOM_DEFAULT_BRANCH=$(hub api "/repos/$(_customize_github_get_user)/$DOTFILES_CUSTOM_REPO" | jq .default_branch)
+    _customize_ensure_gh
+    CUSTOMIZE_DOTFILES_CUSTOM_DEFAULT_BRANCH=$(gh repo view --json defaultBranchRef --jq .defaultBranchRef.name "$(_customize_github_get_user)/$DOTFILES_CUSTOM_REPO")
   fi
 
   echo "$CUSTOMIZE_DOTFILES_CUSTOM_DEFAULT_BRANCH"
@@ -210,20 +210,6 @@ customize_main () {
   if _customize_should_skip_customization; then
     debug 'Customizations are disabled'
     return 0
-  fi
-
-  if [ ! -f "$HOME/.config/hub" ]; then
-    _customize_ensure_hub 
-
-    echo 'hub is not yet configured. You will be prompted for your github credentials. hub'
-    echo 'will store them in ~/.config/hub. dotfiles scripts will not use them in any way'
-    echo '(beyond issuing commands with hub).'
-    echo ''
-    echo "(Since hub doesn't have an explicit auth command, we'll issue a read-only "
-    echo 'request to the get users api. You can ignore the JSON that prints after you'
-    echo 'enter your username and password)'
-
-    hub api /users
   fi
 
   if _customize_has_local_git_repo; then

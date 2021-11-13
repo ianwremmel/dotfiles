@@ -25,15 +25,6 @@ alias ubuntu='docker run -it --rm -v $(pwd):/workspace --workdir=/workspace ubun
 # Search running processes but omit the noise in /Applications and /System
 alias psgrep='ps -A | grep -v /Applications | grep -v /System | grep'
 
-if hash hub 2>/dev/null ; then
-	eval "$(hub alias -s)" || false
-fi
-
 alias https='http --default-scheme=https'
 
-# Make it easy to open newly created pull requests
-# Instead of
-# `git pull-request -m 'new stuff' | xargs open`
-# simply use
-# `git pull-request -m 'new stuff' | xo`
 alias xo='xargs open'
