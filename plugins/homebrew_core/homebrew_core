@@ -17,7 +17,16 @@ dotfiles_homebrew_core_apply () {
     log "Homebrew installed"
   fi
 
-  # There's no good spot to put this, but we're almost certainly going to need 
+  # There's no good spot to put this, but we're almost certainly going to need
   # it at some point, so we might as well include it in core.
-  sudo softwareupdate --install-rosetta --agree-to-license
+  #
+  # Found this test on
+  # https://forum.latenightsw.com/t/possible-for-a-script-to-test-whether-rosetta-2-is-installed/3207/2
+  # where others verified that it works as intended.
+  if [[ "$(pkgutil --files com.apple.pkg.RosettaUpdateAuto)" == "" ]]; then
+    log 'Rosetta 2 is not installed. Installing it now.'
+    sudo softwareupdate --install-rosetta --agree-to-license
+  else
+    log 'Rosetta 2 is already installed.'
+  fi
 }

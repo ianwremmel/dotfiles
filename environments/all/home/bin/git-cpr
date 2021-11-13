@@ -3,4 +3,5 @@
 set -euo pipefail
 
 git upush
-hub pull-request -m "$(git last-commit-message)" | xargs open
+gh pr create --fill
+gh pr view --web
