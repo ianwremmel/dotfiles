@@ -1,3 +1,7 @@
+# Not including in `all` because many companies may install it through MDM and
+# I don't want to clobber that
+cask 'zoom'
+
 cask 'quicken'
 cask 'steam'
 cask 'spideroakone'
