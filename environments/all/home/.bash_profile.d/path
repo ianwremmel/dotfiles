@@ -2,15 +2,24 @@
 
 export PATH
 
-# Add Homebrew. We have pretty much no PATH at this point, so use its full path
-if command -v /opt/homebrew/bin/brew > /dev/null 2>&1 ; then
-  BREW_PREFIX="$(brew --prefix)"
+# Add Homebrew. We probably don't have much of a path at this point, so, start with the brew command,
+# but fall back to its wellknown locations if it can't be found on $PATH
+if command -v brew > /dev/null 2>&1; then
+  BREW_PREFIX=$(brew --prefix)
+elif command -v /opt/homebrew/bin/brew > /dev/null 2>&1; then
+  BREW_PREFIX=$(/opt/homebrew/bin/brew --prefix)
+elif command -v /usr/local/bin/brew > /dev/null 2>&1; then
+  BREW_PREFIX=$(/usr/local/bin/brew --prefix)
+else
+  echo 'Homebrew does not appear to be installed.'
+fi
 
+if [ "$BREW_PREFIX" != "" ]; then
   # Put brew binaries at the start of PATH so they override system binaries
   PATH=$BREW_PREFIX/bin:$BREW_PREFIX/sbin:$PATH;
 
   # Put all of the gnubin binaries in front of system binares
-  for FILE in "$(brew --prefix)"/opt/*/libexec/gnubin; do
+  for FILE in "$BREW_PREFIX"/opt/*/libexec/gnubin; do
     PATH=$FILE:$PATH
   done
 fi
