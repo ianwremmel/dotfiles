@@ -4,7 +4,6 @@
 # `/etc/zprofile`` which tampers with path ordering, so we need to configure 
 # PATH here instead.
 
-export GOROOT
 export PATH
 
 # Add Homebrew. We have pretty much no PATH at this point, so use its full path
@@ -18,12 +17,6 @@ if command -v /opt/homebrew/bin/brew > /dev/null 2>&1 ; then
   for FILE in "$(brew --prefix)"/opt/*/libexec/gnubin; do
     PATH=$FILE:$PATH
   done
-fi
-
-# Add GO
-if command -v go > /dev/null 2>&1 ; then
-  GOROOT=/usr/local/opt/go/libexec
-  PATH=$PATH:$GOROOT/bin
 fi
 
 # Add Java

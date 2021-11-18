@@ -81,7 +81,6 @@ cask 'xquartz'
 
 # Install language interpreters
 brew 'python'
-brew 'go'
 
 # Install App Store packages
 # for some reason, Keynote, Numbers, and Pages insist on being reinstalled on
