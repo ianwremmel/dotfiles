@@ -93,6 +93,10 @@ _customize_ensure_gh () {
     debug 'gh not found, installing'
     brew install gh
   fi
+
+  if ! gh api /user > /dev/null 2>&1; then
+    gh auth login
+  fi
 }
 
 _customize_ensure_jq () {
