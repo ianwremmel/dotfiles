@@ -19,7 +19,7 @@ _dotfiles_ntfy_ensure () {
 dotfiles_ntfy_prompt_string () {
   case $1 in
     enable)
-      echo 'Do you want to use ntfy? (1 for yes, anything else for no)'
+      echo 'Do you want to use ntfy? (1 for yes, 0 for no)'
       return 0
       ;;
     pushover_key)

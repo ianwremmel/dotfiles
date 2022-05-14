@@ -5,7 +5,7 @@ export DOTFILES_POWERLEVEL_CONFIG=('enable')
 dotfiles_powerlevel_prompt_string ()  {
   case $1 in
     enable)
-      echo 'Do you want to use powerlevel10k to configure your prompt? (1 for yes, anything else for no)'
+      echo 'Do you want to use powerlevel10k to configure your prompt? (1 for yes, 0 for no)'
       return 0
       ;;
     esac
