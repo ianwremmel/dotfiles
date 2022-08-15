@@ -8,3 +8,7 @@ GPG_TTY=$(tty)
 # Prefer the user's default keychain
 export AWS_VAULT_KEYCHAIN_NAME
 AWS_VAULT_KEYCHAIN_NAME=login
+
+# Make vim the default editor.
+export EDITOR='vim'
+export GIT_EDITOR="$EDITOR"
