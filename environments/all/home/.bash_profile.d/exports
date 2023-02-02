@@ -2,6 +2,7 @@
 
 # Make vim the default editor.
 export EDITOR='vim'
+export GIT_EDITOR="$EDITOR"
 
 # Set bash history to unlimited
 export HISTFILESIZE=

@@ -10,7 +10,7 @@ dotfiles_vim_apply () {
     git clone --depth=1 https://github.com/jelera/vim-javascript-syntax.git "$BASE/vim-javascript-syntax"
 
     rm -rf "$BASE/vim-colors-solarized"
-    git clone --depth=1 git://github.com/altercation/vim-colors-solarized.git "$BASE/vim-colors-solarized"
+    git clone --depth=1 https://github.com/altercation/vim-colors-solarized.git "$BASE/vim-colors-solarized"
 
     rm -rf "$BASE/editorconfig"
     git clone --depth=1 https://github.com/editorconfig/editorconfig-vim.git "$BASE/editorconfig"
