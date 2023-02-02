@@ -93,6 +93,10 @@ _customize_ensure_gh () {
     debug 'gh not found, installing'
     brew install gh
   fi
+
+  if ! gh api /user > /dev/null 2>&1; then
+    gh auth login
+  fi
 }
 
 _customize_ensure_jq () {
@@ -133,7 +137,7 @@ _customize_has_local_git_repo () {
 
 _customize_has_remote_repo () {
   _customize_ensure_gh
-  if gh repo "$(_customize_github_get_user)/$DOTFILES_CUSTOM_REPO" > /dev/null 2>&1; then
+  if gh repo view "$(_customize_github_get_repo)" > /dev/null 2>&1; then
     return 0
   fi
 
