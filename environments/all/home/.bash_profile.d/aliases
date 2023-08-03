@@ -28,3 +28,5 @@ alias psgrep='ps -A | grep -v /Applications | grep -v /System | grep'
 alias https='http --default-scheme=https'
 
 alias xo='xargs open'
+
+alias r2='env /usr/bin/arch -x86_64'

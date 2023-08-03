@@ -7,3 +7,5 @@ alias xo='xargs open'
 
 # Shorthand to let httpie know we want https
 alias https='http --default-scheme=https'
+
+alias r2='env /usr/bin/arch -x86_64'
