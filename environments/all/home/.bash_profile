@@ -46,7 +46,7 @@ if [ -f ~/.profile ]; then
 fi
 
 # Load SSH keys
-ssh-add -K > /dev/null 2> /dev/null
+ssh-add --apple-use-keychain > /dev/null 2> /dev/null
 
 # Load the non-interactive shell dotfiles, and then some:
 FILES="path exports aliases functions extra secure"
