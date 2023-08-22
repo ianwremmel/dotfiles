@@ -66,16 +66,21 @@
   default = upstream
 
 [rerere]
+
   enabled = 1
   autoupdate = true
 
 [rebase]
+
   autoStash = true
+  updateRefs = true
 
 [include]
+
   path = .gitconfig.custom
 
 [alias]
+
   autosquash = !GIT_SEQUENCE_EDITOR=true git rebase -i --autosquash
   fixup = commit --fixup
   pfl = push --force-with-lease
