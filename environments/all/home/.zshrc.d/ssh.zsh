@@ -1,3 +1,3 @@
 # shellcheck disable
 
-ssh-add -K > /dev/null 2> /dev/null
+ssh-add --apple-use-keychain > /dev/null 2> /dev/null
