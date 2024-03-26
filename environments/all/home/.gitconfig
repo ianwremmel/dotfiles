@@ -1,22 +1,16 @@
-[apply]
+[alias]
 
-  # # Detect whitespace errors when applying a patch
-  # whitespace = fix
+  autosquash = !GIT_SEQUENCE_EDITOR=true git rebase -i --autosquash
+  fixup = commit --fixup
+  pfl = push --force-with-lease
 
-[core]
+[branch "main"]
 
-  # Use custom `.gitignore` and `.gitattributes`
-  excludesfile = ~/.gitignore
-  attributesfile = ~/.gitattributes
-  # Treat spaces before tabs, lines that are indented with 8 or more spaces,
-  # and all kinds of trailing whitespace as an error
-  whitespace = space-before-tab,indent-with-non-tab,trailing-space
-  # Make `git rebase` safer on macOS
-  # More info: <http://www.git-tower.com/blog/make-git-rebase-safe-on-osx/>
-  trustctime = false
-  # Prevent showing files whose names contain non-ASCII symbols as unversioned.
-  # http://michael-kuehnel.de/git/2014/11/21/git-mac-osx-and-german-umlaute.html
-  precomposeunicode = false
+  rebase = true
+
+[branch "master"]
+
+  rebase = true
 
 [color]
 
@@ -32,10 +26,10 @@
 
 [color "diff"]
 
-  meta = yellow bold
   frag = magenta bold
-  old = red bold
+  meta = yellow bold
   new = green bold
+  old = red bold
 
 [color "status"]
 
@@ -43,13 +37,32 @@
   changed = green
   untracked = cyan
 
+[core]
+
+  # Use custom `.gitignore` and `.gitattributes`
+  attributesfile = ~/.gitattributes
+  excludesfile = ~/.gitignore
+  # Prevent showing files whose names contain non-ASCII symbols as unversioned.
+  # http://michael-kuehnel.de/git/2014/11/21/git-mac-osx-and-german-umlaute.html
+  precomposeunicode = false
+  # Make `git rebase` safer on macOS
+  # More info: <http://www.git-tower.com/blog/make-git-rebase-safe-on-osx/>
+  trustctime = false
+  # Treat spaces before tabs, lines that are indented with 8 or more spaces,
+  # and all kinds of trailing whitespace as an error
+  whitespace = space-before-tab,indent-with-non-tab,trailing-space
+
 [diff]
 
-  # Detect copies as well as renames
-  renames = copies
   # Enable an experimental heuristic that shifts the hunk boundary in an
   # attempt to make the resulting patch easier to read.
   indentHeuristic = true
+  # Detect copies as well as renames
+  renames = copies
+
+[include]
+
+  path = .gitconfig.custom
 
 [init]
 
@@ -65,30 +78,12 @@
 
   default = upstream
 
-[branch "main"]
-
-	rebase = true
-
-[branch "master"]
-
-	rebase = true
-
-[rerere]
-
-  enabled = 1
-  autoupdate = true
-
 [rebase]
 
   autoStash = true
   updateRefs = true
 
-[include]
+[rerere]
 
-  path = .gitconfig.custom
-
-[alias]
-
-  autosquash = !GIT_SEQUENCE_EDITOR=true git rebase -i --autosquash
-  fixup = commit --fixup
-  pfl = push --force-with-lease
+  autoupdate = true
+  enabled = 1
