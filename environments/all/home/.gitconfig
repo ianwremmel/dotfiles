@@ -65,6 +65,14 @@
 
   default = upstream
 
+[branch "main"]
+
+	rebase = true
+
+[branch "master"]
+
+	rebase = true
+
 [rerere]
 
   enabled = 1
