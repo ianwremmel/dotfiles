@@ -41,8 +41,7 @@ brew 'git-lfs'
 brew 'awscli'
 cask 'aws-vault'
 brew 'chamber'
-tap 'aws/tap'
-brew 'aws-sam-cli'
+
 
 ##
 ## User
