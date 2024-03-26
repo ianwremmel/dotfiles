@@ -1,8 +1,19 @@
+#
+# Many of these settings are inspired by the following sources:
+# - https://jvns.ca/blog/2024/02/16/popular-git-config-options/
+# - https://thoughtbot.com/blog/autosquashing-git-commits
+# - unknown/lost to time
+
 [alias]
 
   autosquash = !GIT_SEQUENCE_EDITOR=true git rebase -i --autosquash
   fixup = commit --fixup
   pfl = push --force-with-lease
+
+[branch]
+
+  # make git branch sort from newest to oldest by default
+  sort = -committerdate
 
 [branch "main"]
 
@@ -26,6 +37,9 @@
 
 [color "diff"]
 
+  # In theory, this should handle reordering of functions better than the
+  # default.
+  algorithm = histogram
   frag = magenta bold
   meta = yellow bold
   new = green bold
@@ -70,6 +84,10 @@
 
 [merge]
 
+  # Improve diffs
+  conflictstyle = zdiff3
+  # Autodelete *.orig files
+  keepbackup = false
   # Include summaries of merged commits in newly created merge commit messages
   log = true
   tool = opendiff
@@ -81,9 +99,17 @@
 [rebase]
 
   autoStash = true
+  # When rebasing, include all branches in history between current branch and
+  # base.
   updateRefs = true
 
 [rerere]
 
   autoupdate = true
   enabled = 1
+
+# Prefer git protocal when cloning from GitHub. Note that this may actually make
+# bootstrapping a machine via `dotfiles` more difficult. Will need to
+# investigate next time I bootstrap a machine.
+[url "git@github.com:"]
+  insteadOf = "https://github.com/"
