@@ -1,22 +1,27 @@
-[apply]
+#
+# Many of these settings are inspired by the following sources:
+# - https://jvns.ca/blog/2024/02/16/popular-git-config-options/
+# - https://thoughtbot.com/blog/autosquashing-git-commits
+# - unknown/lost to time
 
-  # # Detect whitespace errors when applying a patch
-  # whitespace = fix
+[alias]
 
-[core]
+  autosquash = !GIT_SEQUENCE_EDITOR=true git rebase -i --autosquash
+  fixup = commit --fixup
+  pfl = push --force-with-lease
 
-  # Use custom `.gitignore` and `.gitattributes`
-  excludesfile = ~/.gitignore
-  attributesfile = ~/.gitattributes
-  # Treat spaces before tabs, lines that are indented with 8 or more spaces,
-  # and all kinds of trailing whitespace as an error
-  whitespace = space-before-tab,indent-with-non-tab,trailing-space
-  # Make `git rebase` safer on macOS
-  # More info: <http://www.git-tower.com/blog/make-git-rebase-safe-on-osx/>
-  trustctime = false
-  # Prevent showing files whose names contain non-ASCII symbols as unversioned.
-  # http://michael-kuehnel.de/git/2014/11/21/git-mac-osx-and-german-umlaute.html
-  precomposeunicode = false
+[branch]
+
+  # make git branch sort from newest to oldest by default
+  sort = -committerdate
+
+[branch "main"]
+
+  rebase = true
+
+[branch "master"]
+
+  rebase = true
 
 [color]
 
@@ -32,10 +37,13 @@
 
 [color "diff"]
 
-  meta = yellow bold
+  # In theory, this should handle reordering of functions better than the
+  # default.
+  algorithm = histogram
   frag = magenta bold
-  old = red bold
+  meta = yellow bold
   new = green bold
+  old = red bold
 
 [color "status"]
 
@@ -43,13 +51,32 @@
   changed = green
   untracked = cyan
 
+[core]
+
+  # Use custom `.gitignore` and `.gitattributes`
+  attributesfile = ~/.gitattributes
+  excludesfile = ~/.gitignore
+  # Prevent showing files whose names contain non-ASCII symbols as unversioned.
+  # http://michael-kuehnel.de/git/2014/11/21/git-mac-osx-and-german-umlaute.html
+  precomposeunicode = false
+  # Make `git rebase` safer on macOS
+  # More info: <http://www.git-tower.com/blog/make-git-rebase-safe-on-osx/>
+  trustctime = false
+  # Treat spaces before tabs, lines that are indented with 8 or more spaces,
+  # and all kinds of trailing whitespace as an error
+  whitespace = space-before-tab,indent-with-non-tab,trailing-space
+
 [diff]
 
-  # Detect copies as well as renames
-  renames = copies
   # Enable an experimental heuristic that shifts the hunk boundary in an
   # attempt to make the resulting patch easier to read.
   indentHeuristic = true
+  # Detect copies as well as renames
+  renames = copies
+
+[include]
+
+  path = .gitconfig.custom
 
 [init]
 
@@ -57,6 +84,10 @@
 
 [merge]
 
+  # Improve diffs
+  conflictstyle = zdiff3
+  # Autodelete *.orig files
+  keepbackup = false
   # Include summaries of merged commits in newly created merge commit messages
   log = true
   tool = opendiff
@@ -65,22 +96,20 @@
 
   default = upstream
 
-[rerere]
-
-  enabled = 1
-  autoupdate = true
-
 [rebase]
 
   autoStash = true
+  # When rebasing, include all branches in history between current branch and
+  # base.
   updateRefs = true
 
-[include]
+[rerere]
 
-  path = .gitconfig.custom
+  autoupdate = true
+  enabled = 1
 
-[alias]
-
-  autosquash = !GIT_SEQUENCE_EDITOR=true git rebase -i --autosquash
-  fixup = commit --fixup
-  pfl = push --force-with-lease
+# Prefer git protocal when cloning from GitHub. Note that this may actually make
+# bootstrapping a machine via `dotfiles` more difficult. Will need to
+# investigate next time I bootstrap a machine.
+[url "git@github.com:"]
+  insteadOf = "https://github.com/"
