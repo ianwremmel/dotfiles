@@ -38,6 +38,6 @@ fi
 # than (what may be) the macos system bash.
 /usr/bin/env bash -c 'source ./framework/framework && framework_apply'
 
-# reload terminal session with latest config (and possibly change shells if
-# dotfiles changed the default)
-exec "$SHELL"
+echo ''
+echo 'Please reload your shell to apply changes'
+echo ''
