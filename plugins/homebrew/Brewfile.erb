@@ -5,8 +5,6 @@
 
 cask_args appdir: '/Applications'
 
-tap 'homebrew/cask'
-
 brew 'bash'
 brew 'bash-completion@2'
 
@@ -18,10 +16,6 @@ brew 'coreutils'
 
 # Needed for the customize helper
 brew 'gh'
-
-# explicitly tap homebrew/cask; otherwise, brew bundle cleanup untaps it and the
-# next run of brew bundle reinstalls all casks.
-tap 'homebrew/cask'
 
 <%# DOTFILES_HOMEBREW_CONFIG_BREWFILES must contain full paths %>
 <% ENV.fetch('DOTFILES_HOMEBREW_CONFIG_BREWFILES').split(' ').each do |filename| %>
