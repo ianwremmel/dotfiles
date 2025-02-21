@@ -1,0 +1,4 @@
+# Make sure we can use mas on the next line
+brew 'mas'
+
+mas 'Xcode', id: 497_799_835

@@ -13,7 +13,11 @@ dotfiles_xcode_apply () {
   fi
 
   debug 'Make sure we have accepted the xcode license'
-  sudo xcodebuild -license accept
+  if ! sudo xcodebuild -license accept; then
+    debug 'Failed to accept license. Assuming we got "this is only the cli version of xcode" error. Attempting to install complete XCode'
+    _install_xcode_from_mas
+    sudo xcodebuild -license accept
+  fi
 }
 
 _install_xcode_from_mas() {
