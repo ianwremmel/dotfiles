@@ -262,7 +262,6 @@ defaults write com.apple.menuextra.clock IsAnalog -int 0
 ###############################################################################
 echo 'Configuring Safari Properties'
 
-
 # Privacy: don’t send search queries to Apple
 defaults write com.apple.Safari UniversalSearchEnabled -bool false
 defaults write com.apple.Safari SuppressSearchSuggestions -bool true
@@ -389,10 +388,10 @@ defaults write com.apple.ActivityMonitor SortDirection -int 0
 echo 'Configuring Address Book Properties'
 
 # Display format "Last, First"
-defaults write com.apple.AddressBook ABNameDisplay -int 1
+defaults write com.apple.addressbook ABNameDisplay -int 1
 
 # Sort by last name
-defaults write com.apple.AddressBook ABNameSortingFormat -string "sortingLastName sortingFirstName"
+defaults write com.apple.addressbook ABNameSortingFormat -string "sortingLastName sortingFirstName"
 
 # Use plain text mode for new TextEdit documents
 defaults write com.apple.TextEdit RichText -int 0
