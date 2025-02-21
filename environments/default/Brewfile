@@ -6,7 +6,6 @@ cask 'quicken'
 cask 'steam'
 cask 'spideroakone'
 
-tap 'homebrew/cask-drivers'
 cask 'synology-drive'
 
 mas 'Byword', id: 420_212_497
