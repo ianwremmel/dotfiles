@@ -193,6 +193,8 @@ plugin_run_plugin () {
 
 plugin_run_plugins () {
   for plugin in $(plugin_list_plugins); do
+    debug "Running plugin $plugin"
     plugin_run_plugin "$plugin"
+    debug "Done running plugin $plugin"
   done
 }
