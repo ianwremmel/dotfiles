@@ -9,7 +9,17 @@ compat_ensure_homebrew () {
   if ! command -v brew >/dev/null 2>&1; then
     echo "Homebrew not found. Installing"
 
-    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
+    if [ -f /usr/local/bin/brew ]; then
+      eval "$(/usr/local/bin/brew shellenv)"
+    elif [ -f /opt/homebrew/bin/brew ]; then
+      eval "$(/opt/homebrew/bin/brew shellenv)"
+    else
+      if [ ! -f ./Homebrew-4.4.21.pkg ]; then
+          curl -O -L https://github.com/Homebrew/brew/releases/download/4.4.21/Homebrew-4.4.21.pkg
+      fi
+      sudo installer -pkg Homebrew-4.4.21.pkg -target /
+    fi
+
     if [ -f /usr/local/bin/brew ]; then
       eval "$(/usr/local/bin/brew shellenv)"
     elif [ -f /opt/homebrew/bin/brew ]; then

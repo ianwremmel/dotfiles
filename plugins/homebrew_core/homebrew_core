@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+source ./framework/compat
+
 dotfiles_homebrew_core_apply () {
   if ! command -v brew >/dev/null 2>&1; then
     if [ "$DOTFILES_HOMEBREW_SKIP" -eq 1 ]; then
@@ -9,12 +11,7 @@ dotfiles_homebrew_core_apply () {
       return 1
     fi
 
-    log "Homebrew not found. Installing"
-
-    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
-    brew analytics off
-
-    log "Homebrew installed"
+    compat_ensure_homebrew
   fi
 
   # There's no good spot to put this, but we're almost certainly going to need
