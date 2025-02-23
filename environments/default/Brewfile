@@ -4,9 +4,7 @@ cask 'zoom'
 
 cask 'quicken'
 cask 'steam'
-cask 'spideroakone'
 
-tap 'homebrew/cask-drivers'
 cask 'synology-drive'
 
 mas 'Byword', id: 420_212_497
@@ -15,3 +13,4 @@ cask 'discord'
 
 mas 'Tailscale', id: 1_475_387_142
 
+cask 'proton-mail'

@@ -107,9 +107,3 @@
 
   autoupdate = true
   enabled = 1
-
-# Prefer git protocal when cloning from GitHub. Note that this may actually make
-# bootstrapping a machine via `dotfiles` more difficult. Will need to
-# investigate next time I bootstrap a machine.
-[url "git@github.com:"]
-  insteadOf = "https://github.com/"

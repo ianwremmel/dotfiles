@@ -45,14 +45,11 @@ dotfiles_homebrew_apply () {
     log "If this is the first time you're installing dotfiles, it may look like this is hanging, but it's actually just installing xcode"
     brew bundle --file="$brewfile"
 
-    log 'Listing no-longer specified homebrew packages'
-    brew bundle --file="$brewfile" cleanup
-
     log 'Removing no-longer specified homebrew packages'
     brew bundle --file="$brewfile" cleanup --force
 
     log 'Upgrading all installed homebrew packages'
-    brew upgrade --ignore-pinned
+    brew upgrade 
 
     log 'Removing outdated homebrew packages'
     brew cleanup
