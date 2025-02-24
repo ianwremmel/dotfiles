@@ -1,6 +1,7 @@
 brew 'flyctl'
 brew 'aws-sam-cli'
 
+cask 'adobe-creative-cloud'
 cask 'discord'
 cask 'proton-mail'
 cask 'quicken'
