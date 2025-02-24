@@ -1,17 +1,13 @@
+brew 'flyctl'
+
+cask 'discord'
+cask 'proton-mail'
+cask 'quicken'
+cask 'steam'
+cask 'synology-drive'
 # Not including in `all` because many companies may install it through MDM and
 # I don't want to clobber that
 cask 'zoom'
 
-cask 'quicken'
-cask 'steam'
-
-cask 'synology-drive'
-
 mas 'Byword', id: 420_212_497
-
-cask 'discord'
-
 mas 'Tailscale', id: 1_475_387_142
-
-cask 'proton-mail'
-brew 'flyctl'
