@@ -1,4 +1,5 @@
 brew 'flyctl'
+brew 'aws-sam-cli'
 
 cask 'discord'
 cask 'proton-mail'
