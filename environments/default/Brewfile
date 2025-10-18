@@ -1,5 +1,6 @@
 brew 'flyctl'
 brew 'aws-sam-cli'
+brew 'ansible'
 
 cask 'adobe-creative-cloud'
 cask 'discord'
