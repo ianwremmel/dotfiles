@@ -8,14 +8,12 @@ git checkout "$DEFAULT_BRANCH"
 git fetch origin --prune
 git pull --rebase
 
-MERGED_BRANCHES=$(git branch --merged | grep -v "$DEFAULT_BRANCH" || true)
+MERGED_BRANCHES=$(git branch --merged | grep -v "$DEFAULT_BRANCH" | grep -v '^\+' || true)
 for BRANCH in $MERGED_BRANCHES; do
   git delete-branch "$BRANCH"
 done
 
-GONE_BRANCHES=$(git branch -vv | grep ': gone' | awk '{print $1}' || true)
+GONE_BRANCHES=$(git branch -vv | grep ': gone' | grep -v '^\+' | awk '{print $1}' || true)
 for BRANCH in $GONE_BRANCHES; do
-  if [ "$BRANCH" != '+' ]; then
-    git branch -D "$BRANCH"
-  fi
+  git branch -D "$BRANCH"
 done
