@@ -6,6 +6,7 @@ logging:
   path: "$HOME/.claude/logs/pre-tool-use/bash.log"
 
 # Task runners - commands that execute other commands
+# These extract the effective command for rule matching (e.g., npx eslint -> eslint)
 taskRunners:
   # Simple task runners: first argument is the actual command
   simple:
@@ -15,17 +16,9 @@ taskRunners:
     - pnpx
 
   # Nested task runners: subcommand triggers task runner mode
-  nested:
-    npm:
-      - run
-      - exec
-    yarn:
-      - run
-      - dlx
-    pnpm:
-      - run
-      - exec
-      - dlx
+  # Note: npm/yarn/pnpm run scripts are trusted (defined in package.json)
+  # so they're not listed here - they match their base command rules instead
+  nested: {}
 
 # Command rules - first matching rule wins
 commands:
