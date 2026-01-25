@@ -1,0 +1,32 @@
+# Fixes
+
+- [ ] give terminal full disk access before firstrun
+- [x] fix firstrun
+- [x] make both homebrew install flows identical
+  - [x] avoid redownloading
+- [ ] add github hostkey before doing git stuff (and after ssh stuff?)
+      `ssh-keyscan -t rsa github.com >> ~/.ssh/known_hosts`
+- [ ] get id_rsa\* before doing git stuff
+- [ ] why do I keep needing to enter my password
+- [ ] add tag to all reminders
+- [ ] reminders:
+  - [ ] synology drive
+  - [ ] internet accounts
+  - [ ] 1password
+  - [ ] tailscale
+- [ ] right click doesn't work
+- [ ] sam cli not found
+
+# Manual Steps
+
+- [x] setup gpg
+- [ ] 1password universal autofill
+- [x] synology drive
+- [ ] verify Photos and delete backup library
+- [x] change cmd+\ to not open 1password
+- [x] enable magic mouse right click
+- [x] sounds in taskbar
+- [x] ctrl+1
+- [x] install streamdeck plugins
+- [x] aws-vault
+- [ ] prevent escape from closing full screen mode in firefox

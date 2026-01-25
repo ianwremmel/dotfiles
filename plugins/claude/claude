@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+
+# Needs to come before homedir since homedir rsyncs the environments
+export DOTFILES_CLAUDE_DEPS=()
+
+dotfiles_claude_apply () {
+  local plugin_dir src_pre src_post src_lib dest_pre dest_post dest_lib
+
+  plugin_dir="$(plugin_get_path 'claude')"
+
+  # Install Python dependencies if not already installed
+  if ! python3 -c "import yaml" 2>/dev/null; then
+    log "Installing PyYAML..."
+    python3 -m pip install --quiet pyyaml
+  fi
+
+  # Source and destination paths
+  src_pre="$plugin_dir/hooks/pre-tool-use"
+  src_post="$plugin_dir/hooks/post-tool-use"
+  src_lib="$plugin_dir/hooks/lib"
+
+  dest_pre="$(environment_get_path 'default' 'home/.claude/hooks/pre-tool-use')"
+  dest_post="$(environment_get_path 'default' 'home/.claude/hooks/post-tool-use')"
+  dest_lib="$(environment_get_path 'default' 'home/.claude/hooks/lib')"
+
+  # Create destination directories
+  mkdir -p "$dest_pre" "$dest_post" "$dest_lib"
+
+  # Copy pre-tool-use files (only runtime files, not tests/fixtures)
+  cp "$src_pre/bash" "$dest_pre/bash"
+  chmod +x "$dest_pre/bash"
+  cp "$src_pre/bash.yml" "$dest_pre/bash.yml"
+
+  # Copy post-tool-use files (only runtime files, not tests)
+  cp "$src_post/bash" "$dest_post/bash"
+  chmod +x "$dest_post/bash"
+
+  # Copy shared library (only runtime files, not tests)
+  cp "$src_lib/bash_common.py" "$dest_lib/bash_common.py"
+
+  log "Claude hooks installed"
+}
