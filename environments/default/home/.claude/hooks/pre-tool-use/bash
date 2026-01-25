@@ -15,6 +15,19 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "lib"))
 
 from bash_common import evaluate_command, expand_path, load_config
 
+HOOK_EVENT_NAME = "PreToolUse"
+
+
+def make_hook_output(decision: str, reason: str) -> dict:
+    """Create properly formatted hook output for Claude Code."""
+    return {
+        "hookSpecificOutput": {
+            "hookEventName": HOOK_EVENT_NAME,
+            "permissionDecision": decision,
+            "permissionDecisionReason": reason,
+        }
+    }
+
 
 def get_log_path(config: dict) -> Path | None:
     """Get expanded log path from config, or None if logging disabled."""
@@ -61,11 +74,7 @@ def main() -> None:
     try:
         input_data = json.load(sys.stdin)
     except json.JSONDecodeError as e:
-        output = {
-            "permissionDecision": "deny",
-            "permissionDecisionReason": f"Failed to parse input JSON: {e}",
-        }
-        print(json.dumps(output))
+        print(json.dumps(make_hook_output("deny", f"Failed to parse input JSON: {e}")))
         return
 
     tool_input = input_data.get("tool_input", {})
@@ -73,21 +82,13 @@ def main() -> None:
     tool_use_id = input_data.get("tool_use_id")
 
     if not command:
-        output = {
-            "permissionDecision": "deny",
-            "permissionDecisionReason": "No command provided",
-        }
-        print(json.dumps(output))
+        print(json.dumps(make_hook_output("deny", "No command provided")))
         return
 
     try:
         config = load_config()
     except Exception as e:
-        output = {
-            "permissionDecision": "ask",
-            "permissionDecisionReason": f"Failed to load config: {e}",
-        }
-        print(json.dumps(output))
+        print(json.dumps(make_hook_output("ask", f"Failed to load config: {e}")))
         return
 
     result = evaluate_command(command, config)
@@ -97,12 +98,7 @@ def main() -> None:
 
     log_decision(config, command, action, reason, tool_use_id)
 
-    output = {
-        "permissionDecision": action,
-        "permissionDecisionReason": reason,
-    }
-
-    print(json.dumps(output))
+    print(json.dumps(make_hook_output(action, reason)))
 
 
 if __name__ == "__main__":
