@@ -2,14 +2,14 @@
 
 autoload -U colors && colors
 
-local function git_branch_name() {
+function git_branch_name() {
   local ref
   ref=$(command git symbolic-ref HEAD 2> /dev/null) || \
   ref=$(command git rev-parse --short HEAD 2> /dev/null) || return 0
   echo "${ref#refs/heads/}"
 }
 
-local function git_flags() {
+function git_flags() {
   echo "$(command git status 2>/dev/null)" | awk 'BEGIN {r=""}
     /Changes to be committed:/        {r=r "+"}
     /Changes not staged for commit:/  {r=r "!"}
@@ -17,7 +17,7 @@ local function git_flags() {
     END {print r}'
 }
 
-local function git_stash_count() {
+function git_stash_count() {
   local count
   count="$(git stash list | wc -l | sed 's/ *//')"
   if [[ "$count" != "0" ]]; then
@@ -29,7 +29,7 @@ local function git_stash_count() {
   fi
 }
 
-local function git_prompt_info() {
+function git_prompt_info() {
   local EXIT_CODE
   git branch > /dev/null 2>&1
   EXIT_CODE=$?
