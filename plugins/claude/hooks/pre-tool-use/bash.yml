@@ -3,7 +3,7 @@
 
 logging:
   enabled: true
-  path: "$HOME/.claude/logs/pre-tool-use/bash.log"
+  path: '$HOME/.claude/logs/pre-tool-use/bash.log'
 
 # Task runners - commands that execute other commands
 # These extract the effective command for rule matching (e.g., npx eslint -> eslint)
@@ -25,11 +25,11 @@ commands:
   # ============================================
   # Shell builtins and simple commands
   # ============================================
-  "[":
+  '[':
     action: allow
-  "true":
+  'true':
     action: allow
-  "false":
+  'false':
     action: allow
   test:
     action: allow
@@ -53,7 +53,7 @@ commands:
     action: ask
   source:
     action: ask
-  ".":
+  '.':
     action: ask
   eval:
     action: deny
@@ -166,7 +166,7 @@ commands:
   rm:
     action: deny
     rules:
-      - switches: ["-i"]
+      - switches: ['-i']
         action: ask
 
   # ============================================
@@ -207,11 +207,11 @@ commands:
   find:
     action: allow
     rules:
-      - switches: ["-exec"]
+      - switches: ['-exec']
         action: deny
-      - switches: ["-execdir"]
+      - switches: ['-execdir']
         action: deny
-      - switches: ["-ok"]
+      - switches: ['-ok']
         action: deny
 
   # ============================================
@@ -220,7 +220,7 @@ commands:
   git:
     action: allow
     rules:
-      - switches: ["--force"]
+      - switches: ['--force']
         action: deny
     subcommands:
       status:
@@ -256,32 +256,32 @@ commands:
       push:
         action: allow
         rules:
-          - switches: ["--force-with-lease"]
+          - switches: ['--force-with-lease']
             action: allow
-          - switches: ["--force"]
+          - switches: ['--force']
             action: deny
-          - switches: ["-f"]
+          - switches: ['-f']
             action: deny
       rebase:
         action: allow
         rules:
-          - switches: ["-i"]
+          - switches: ['-i']
             action: deny
-          - switches: ["--interactive"]
+          - switches: ['--interactive']
             action: deny
       reset:
         action: ask
         rules:
-          - switches: ["--hard"]
+          - switches: ['--hard']
             action: deny
-          - switches: ["--soft"]
+          - switches: ['--soft']
             action: allow
       clean:
         action: deny
         rules:
-          - switches: ["-n"]
+          - switches: ['-n']
             action: allow
-          - switches: ["--dry-run"]
+          - switches: ['--dry-run']
             action: allow
 
   # ============================================
@@ -296,27 +296,10 @@ commands:
   kubectl:
     action: allow
     subcommands:
-      get:
-        action: allow
-      describe:
-        action: allow
-      logs:
-        action: allow
-      config:
-        action: allow
-      apply:
-        action: allow
       run:
         action: deny
         rules:
-          - switches: ["--rm"]
-            action: allow
-      exec:
-        action: ask
-      delete:
-        action: ask
-        rules:
-          - switches: ["--dry-run"]
+          - switches: ['--rm']
             action: allow
 
   talosctl:
@@ -384,7 +367,7 @@ commands:
       run:
         action: ask
         rules:
-          - switches: ["--rm"]
+          - switches: ['--rm']
             action: allow
       exec:
         action: ask
@@ -393,7 +376,7 @@ commands:
       rm:
         action: ask
         rules:
-          - switches: ["-f"]
+          - switches: ['-f']
             action: deny
       rmi:
         action: ask
