@@ -52,6 +52,50 @@ def strip_env_vars(command: str) -> str:
     return re.sub(pattern, '', command).strip()
 
 
+def strip_comments(command: str) -> str:
+    """Strip bash comments from command.
+
+    Comments start with # and continue to end of line, but only when
+    # is not inside quotes.
+
+    Examples:
+        # comment → (empty)
+        echo foo # comment → echo foo
+        echo "# not a comment" → echo "# not a comment"
+    """
+    result = []
+    in_single_quote = False
+    in_double_quote = False
+    in_comment = False
+    i = 0
+
+    while i < len(command):
+        char = command[i]
+
+        if in_comment:
+            if char == '\n':
+                in_comment = False
+                result.append(char)
+        elif char == "'" and not in_double_quote:
+            in_single_quote = not in_single_quote
+            result.append(char)
+        elif char == '"' and not in_single_quote:
+            in_double_quote = not in_double_quote
+            result.append(char)
+        elif char == '\\' and i + 1 < len(command) and not in_single_quote:
+            result.append(char)
+            result.append(command[i + 1])
+            i += 1
+        elif char == '#' and not in_single_quote and not in_double_quote:
+            in_comment = True
+        else:
+            result.append(char)
+
+        i += 1
+
+    return ''.join(result)
+
+
 def strip_subshell(command: str) -> str:
     """Strip balanced outer parentheses from subshell commands.
 
@@ -82,10 +126,11 @@ def strip_subshell(command: str) -> str:
 
 
 def split_compound_command(command: str) -> list[str]:
-    """Split command on &&, ||, ;, | respecting quotes.
+    """Split command on &&, ||, ;, |, newline respecting quotes.
 
     Returns list of individual command segments.
     """
+    command = strip_comments(command)
     command = strip_subshell(command)
     segments = []
     current = []
@@ -123,7 +168,7 @@ def split_compound_command(command: str) -> list[str]:
                     segments.append(''.join(current).strip())
                     current = []
                 i += 1
-            elif char == ';':
+            elif char == ';' or char == '\n':
                 if current:
                     segments.append(''.join(current).strip())
                     current = []
