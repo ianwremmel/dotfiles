@@ -52,11 +52,41 @@ def strip_env_vars(command: str) -> str:
     return re.sub(pattern, '', command).strip()
 
 
+def strip_subshell(command: str) -> str:
+    """Strip balanced outer parentheses from subshell commands.
+
+    Examples:
+        (cd /tmp && ls) → cd /tmp && ls
+        ((nested)) → (nested)
+        (unbalanced → (unbalanced (unchanged)
+    """
+    cmd = command.strip()
+    while cmd.startswith('(') and cmd.endswith(')'):
+        # Check if parens are balanced
+        depth = 0
+        balanced = True
+        for i, c in enumerate(cmd):
+            if c == '(':
+                depth += 1
+            elif c == ')':
+                depth -= 1
+            # If depth hits 0 before the end, outer parens aren't a pair
+            if depth == 0 and i < len(cmd) - 1:
+                balanced = False
+                break
+        if balanced and depth == 0:
+            cmd = cmd[1:-1].strip()
+        else:
+            break
+    return cmd
+
+
 def split_compound_command(command: str) -> list[str]:
     """Split command on &&, ||, ;, | respecting quotes.
 
     Returns list of individual command segments.
     """
+    command = strip_subshell(command)
     segments = []
     current = []
     in_single_quote = False
