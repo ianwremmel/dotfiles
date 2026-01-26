@@ -104,9 +104,14 @@ def split_compound_command(command: str) -> list[str]:
             in_double_quote = not in_double_quote
             current.append(char)
         elif char == '\\' and i + 1 < len(chars) and not in_single_quote:
-            current.append(char)
-            current.append(chars[i + 1])
-            i += 1
+            next_char = chars[i + 1]
+            if next_char == '\n':
+                # Line continuation - skip both backslash and newline
+                i += 1
+            else:
+                current.append(char)
+                current.append(next_char)
+                i += 1
         elif not in_single_quote and not in_double_quote:
             if chars[i:i+2] == '&&':
                 if current:
