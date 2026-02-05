@@ -8,12 +8,6 @@ dotfiles_claude_apply () {
 
   plugin_dir="$(plugin_get_path 'claude')"
 
-  # Install Python dependencies if not already installed
-  if ! python3 -c "import yaml" 2>/dev/null; then
-    log "Installing PyYAML..."
-    python3 -m pip install --quiet pyyaml
-  fi
-
   # Source and destination paths
   src_pre="$plugin_dir/hooks/pre-tool-use"
   src_post="$plugin_dir/hooks/post-tool-use"

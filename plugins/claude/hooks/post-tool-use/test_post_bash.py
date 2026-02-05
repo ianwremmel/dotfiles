@@ -22,9 +22,9 @@ class TestPostToolUseFunctions:
     def test_import_modules(self):
         """Verify we can import the shared library."""
         sys.path.insert(0, str(Path(__file__).parent.parent / "lib"))
-        from bash_common import parse_command, strip_env_vars
+        from bash_common import parse_command, split_compound_command
         assert callable(parse_command)
-        assert callable(strip_env_vars)
+        assert callable(split_compound_command)
 
 
 class TestAddAllowRule:

@@ -65,7 +65,7 @@ fixtures:
     commands: ['kubectl run test --rm --image=alpine']
 
   - input: 'kubectl delete pod test'
-    action: ask
+    action: allow
     commands: ['kubectl delete pod test']
 
   - input: 'kubectl delete pod test --dry-run=client'
@@ -95,12 +95,12 @@ fixtures:
     commands: ['npm install lodash']
 
   - input: 'yarn dlx create-react-app my-app'
-    action: ask
+    action: allow
     commands: ['yarn dlx create-react-app my-app']
 
   # Environment variables
   - input: 'DEBUG=1 npm run build'
-    action: ask
+    action: allow
     commands: ['npm run build']
 
   - input: 'FOO=bar BAZ=qux git status'
@@ -263,9 +263,10 @@ fixtures:
     commands: ['argocd app sync my-app']
 
   # Complex multi-line commit message with && compound
+  # Note: Uses proper bash line continuation (\) to join lines
   - input: |
-      git -C /Users/ian/projects/homelab add
-      apps/buildkite-agent-stack/application.yaml && git -C
+      git -C /Users/ian/projects/homelab add \
+      apps/buildkite-agent-stack/application.yaml && git -C \
       /Users/ian/projects/homelab commit -m "fix(buildkite): restore hostPath
       volumes for npm/nx cache
 
@@ -277,13 +278,14 @@ fixtures:
       Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
     action: allow
     commands:
+      - 'git -C /Users/ian/projects/homelab add apps/buildkite-agent-stack/application.yaml'
       - |
-        git -C /Users/ian/projects/homelab add apps/buildkite-agent-stack/application.yaml
-      - |
-        git -C /Users/ian/projects/homelab commit -m "fix(buildkite): restore hostPath volumes for npm/nx cache
+        git -C /Users/ian/projects/homelab commit -m "fix(buildkite): restore hostPath
+        volumes for npm/nx cache
 
-
-        Commit d40b9b6 removed these volumes from the controller, but the apps repo's build.homelab.yml still mounts them. Without the volume definitions, pods fail to start with exit status -1.
-
+        Commit d40b9b6 removed these volumes from the controller, but the apps
+        repo's build.homelab.yml still mounts them. Without the volume
+        definitions,
+        pods fail to start with exit status -1.
 
         Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"

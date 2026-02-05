@@ -1,4 +1,4 @@
-#!/usr/bin/env -S uv run --quiet --with pyyaml python3
+#!/usr/bin/env -S uv run --quiet --with pyyaml --with bashlex python3
 """PreToolUse hook for Bash command validation.
 
 Reads JSON from stdin containing tool_input.command, evaluates against

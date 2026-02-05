@@ -5,11 +5,12 @@ and rule matching for PreToolUse and PostToolUse hooks.
 """
 
 import os
-import re
 import shlex
 from pathlib import Path
 from typing import Optional
 
+import bashlex
+import bashlex.errors
 import yaml
 
 
@@ -41,152 +42,61 @@ def expand_path(path: str) -> str:
     return os.path.expandvars(os.path.expanduser(path))
 
 
-def strip_env_vars(command: str) -> str:
-    """Strip leading environment variable assignments from command.
+def _extract_command_text(node, source: str) -> str | None:
+    """Extract the original text for a command node, excluding env var assignments.
 
-    Examples:
-        X=1 Y=2 npm run → npm run
-        FOO=bar echo test → echo test
+    Returns the command text starting from the first word (after any assignments),
+    or None if there's no actual command (just assignments).
     """
-    pattern = r'^(\s*[A-Za-z_][A-Za-z0-9_]*=[^\s]*\s+)+'
-    return re.sub(pattern, '', command).strip()
-
-
-def strip_comments(command: str) -> str:
-    """Strip bash comments from command.
-
-    Comments start with # and continue to end of line, but only when
-    # is not inside quotes.
-
-    Examples:
-        # comment → (empty)
-        echo foo # comment → echo foo
-        echo "# not a comment" → echo "# not a comment"
-    """
-    result = []
-    in_single_quote = False
-    in_double_quote = False
-    in_comment = False
-    i = 0
-
-    while i < len(command):
-        char = command[i]
-
-        if in_comment:
-            if char == '\n':
-                in_comment = False
-                result.append(char)
-        elif char == "'" and not in_double_quote:
-            in_single_quote = not in_single_quote
-            result.append(char)
-        elif char == '"' and not in_single_quote:
-            in_double_quote = not in_double_quote
-            result.append(char)
-        elif char == '\\' and i + 1 < len(command) and not in_single_quote:
-            result.append(char)
-            result.append(command[i + 1])
-            i += 1
-        elif char == '#' and not in_single_quote and not in_double_quote:
-            in_comment = True
-        else:
-            result.append(char)
-
-        i += 1
-
-    return ''.join(result)
-
-
-def strip_subshell(command: str) -> str:
-    """Strip balanced outer parentheses from subshell commands.
-
-    Examples:
-        (cd /tmp && ls) → cd /tmp && ls
-        ((nested)) → (nested)
-        (unbalanced → (unbalanced (unchanged)
-    """
-    cmd = command.strip()
-    while cmd.startswith('(') and cmd.endswith(')'):
-        # Check if parens are balanced
-        depth = 0
-        balanced = True
-        for i, c in enumerate(cmd):
-            if c == '(':
-                depth += 1
-            elif c == ')':
-                depth -= 1
-            # If depth hits 0 before the end, outer parens aren't a pair
-            if depth == 0 and i < len(cmd) - 1:
-                balanced = False
-                break
-        if balanced and depth == 0:
-            cmd = cmd[1:-1].strip()
-        else:
+    first_word_pos = None
+    for part in node.parts:
+        if part.kind == 'word':
+            first_word_pos = part.pos[0]
             break
-    return cmd
+
+    if first_word_pos is None:
+        return None
+
+    end = node.pos[1]
+    return source[first_word_pos:end]
 
 
 def split_compound_command(command: str) -> list[str]:
-    """Split command on &&, ||, ;, |, newline respecting quotes.
+    """Split command on &&, ||, ;, |, newline using bashlex AST.
 
-    Returns list of individual command segments.
+    Returns list of individual command segments with env vars stripped.
+    Handles comments, subshells, and all bash syntax via the bashlex parser.
     """
-    command = strip_comments(command)
-    command = strip_subshell(command)
-    segments = []
-    current = []
-    in_single_quote = False
-    in_double_quote = False
-    i = 0
-    chars = command
+    if not command or not command.strip():
+        return []
 
-    while i < len(chars):
-        char = chars[i]
+    try:
+        parts = bashlex.parse(command)
+    except bashlex.errors.ParsingError:
+        # If bashlex can't parse it, return as single command
+        return [command.strip()]
 
-        if char == "'" and not in_double_quote:
-            in_single_quote = not in_single_quote
-            current.append(char)
-        elif char == '"' and not in_single_quote:
-            in_double_quote = not in_double_quote
-            current.append(char)
-        elif char == '\\' and i + 1 < len(chars) and not in_single_quote:
-            next_char = chars[i + 1]
-            if next_char == '\n':
-                # Line continuation - skip both backslash and newline
-                i += 1
-            else:
-                current.append(char)
-                current.append(next_char)
-                i += 1
-        elif not in_single_quote and not in_double_quote:
-            if chars[i:i+2] == '&&':
-                if current:
-                    segments.append(''.join(current).strip())
-                    current = []
-                i += 1
-            elif chars[i:i+2] == '||':
-                if current:
-                    segments.append(''.join(current).strip())
-                    current = []
-                i += 1
-            elif char == ';' or char == '\n':
-                if current:
-                    segments.append(''.join(current).strip())
-                    current = []
-            elif char == '|':
-                if current:
-                    segments.append(''.join(current).strip())
-                    current = []
-            else:
-                current.append(char)
-        else:
-            current.append(char)
+    commands = []
 
-        i += 1
+    def visit(node):
+        if node.kind == 'command':
+            cmd_text = _extract_command_text(node, command)
+            if cmd_text:
+                commands.append(cmd_text)
+        elif node.kind in ('list', 'pipeline', 'compound'):
+            if hasattr(node, 'parts'):
+                for part in node.parts:
+                    if hasattr(part, 'kind'):
+                        visit(part)
+            if hasattr(node, 'list'):
+                for item in node.list:
+                    if hasattr(item, 'kind'):
+                        visit(item)
 
-    if current:
-        segments.append(''.join(current).strip())
+    for part in parts:
+        visit(part)
 
-    return [s for s in segments if s]
+    return commands
 
 
 def parse_command(command: str) -> dict:
@@ -365,7 +275,7 @@ def evaluate_command(command: str, config: dict) -> dict:
     """Evaluate a full command string against configuration.
 
     Handles:
-        - Environment variable stripping
+        - Environment variable stripping (via bashlex)
         - Compound command splitting
         - Task runner detection
         - Rule matching
@@ -375,8 +285,7 @@ def evaluate_command(command: str, config: dict) -> dict:
         - reason: Explanation of the decision
         - commands: List of evaluated command segments
     """
-    stripped = strip_env_vars(command)
-    segments = split_compound_command(stripped)
+    segments = split_compound_command(command)
 
     if not segments:
         return {

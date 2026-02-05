@@ -4,7 +4,6 @@ import pytest
 from pathlib import Path
 
 from bash_common import (
-    strip_env_vars,
     split_compound_command,
     parse_command,
     detect_task_runner,
@@ -13,32 +12,6 @@ from bash_common import (
     evaluate_command,
     load_config,
 )
-
-
-class TestStripEnvVars:
-    """Tests for strip_env_vars function."""
-
-    def test_no_env_vars(self):
-        assert strip_env_vars("npm run build") == "npm run build"
-
-    def test_single_env_var(self):
-        assert strip_env_vars("DEBUG=1 npm run build") == "npm run build"
-
-    def test_multiple_env_vars(self):
-        assert strip_env_vars("FOO=bar BAZ=qux npm run") == "npm run"
-
-    def test_env_var_with_equals_in_value(self):
-        assert strip_env_vars("CONFIG=a=b npm start") == "npm start"
-
-    def test_preserves_command_with_equals(self):
-        result = strip_env_vars("npm run build --env=prod")
-        assert result == "npm run build --env=prod"
-
-    def test_empty_command(self):
-        assert strip_env_vars("") == ""
-
-    def test_only_env_vars(self):
-        assert strip_env_vars("FOO=bar ").strip() == ""
 
 
 class TestSplitCompoundCommand:
@@ -74,6 +47,35 @@ class TestSplitCompoundCommand:
     def test_escaped_chars(self):
         result = split_compound_command("echo hello\\&\\&world")
         assert result == ["echo hello\\&\\&world"]
+
+    def test_env_vars_stripped(self):
+        # bashlex strips env vars from commands during extraction
+        result = split_compound_command("DEBUG=1 npm run build")
+        assert result == ["npm run build"]
+
+    def test_multiple_env_vars_stripped(self):
+        result = split_compound_command("FOO=bar BAZ=qux git status")
+        assert result == ["git status"]
+
+    def test_env_vars_only(self):
+        # Assignment-only commands return nothing (no actual command)
+        result = split_compound_command("FOO=bar")
+        assert result == []
+
+    def test_comment_stripped(self):
+        result = split_compound_command("echo hello # comment")
+        assert result == ["echo hello"]
+
+    def test_subshell(self):
+        result = split_compound_command("(cd /tmp && ls)")
+        assert result == ["cd /tmp", "ls"]
+
+    def test_line_continuation(self):
+        # bashlex handles line continuation - the command is parsed as single command
+        result = split_compound_command("echo hello \\\nworld")
+        # Note: bashlex preserves the original text including escape chars
+        assert len(result) == 1
+        assert "echo" in result[0] and "world" in result[0]
 
 
 class TestParseCommand:

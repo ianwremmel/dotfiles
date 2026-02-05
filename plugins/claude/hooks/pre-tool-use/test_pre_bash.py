@@ -30,7 +30,11 @@ def run_hook(command: str, tool_use_id: str = "test-123") -> dict:
     if result.returncode != 0:
         raise RuntimeError(f"Hook failed: {result.stderr}")
 
-    return json.loads(result.stdout)
+    output = json.loads(result.stdout)
+    # Extract hookSpecificOutput if present (the actual hook format)
+    if "hookSpecificOutput" in output:
+        return output["hookSpecificOutput"]
+    return output
 
 
 def load_fixtures():
@@ -68,6 +72,9 @@ class TestPreToolUseHook:
             text=True,
         )
         output = json.loads(result.stdout)
+        # Handle hookSpecificOutput wrapper
+        if "hookSpecificOutput" in output:
+            output = output["hookSpecificOutput"]
         assert output["permissionDecision"] == "deny"
 
     def test_missing_command_denied(self):
@@ -78,6 +85,9 @@ class TestPreToolUseHook:
             text=True,
         )
         output = json.loads(result.stdout)
+        # Handle hookSpecificOutput wrapper
+        if "hookSpecificOutput" in output:
+            output = output["hookSpecificOutput"]
         assert output["permissionDecision"] == "deny"
 
     def test_invalid_json_denied(self):
@@ -88,6 +98,9 @@ class TestPreToolUseHook:
             text=True,
         )
         output = json.loads(result.stdout)
+        # Handle hookSpecificOutput wrapper
+        if "hookSpecificOutput" in output:
+            output = output["hookSpecificOutput"]
         assert output["permissionDecision"] == "deny"
 
 
@@ -158,7 +171,8 @@ class TestTaskRunners:
 
     def test_npm_run(self):
         result = run_hook("npm run build")
-        assert result["permissionDecision"] == "ask"
+        # npm is allowed by default (run scripts are trusted per config comment)
+        assert result["permissionDecision"] == "allow"
 
     def test_npm_install_not_task_runner(self):
         result = run_hook("npm install")

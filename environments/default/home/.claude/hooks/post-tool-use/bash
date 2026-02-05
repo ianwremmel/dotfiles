@@ -1,4 +1,4 @@
-#!/usr/bin/env -S uv run --quiet --with pyyaml python3
+#!/usr/bin/env -S uv run --quiet --with pyyaml --with bashlex python3
 """PostToolUse hook for Bash command config auto-update.
 
 After a command that required manual approval executes successfully,
@@ -21,7 +21,6 @@ from bash_common import (
     load_config,
     parse_command,
     split_compound_command,
-    strip_env_vars,
 )
 
 
@@ -64,8 +63,7 @@ def add_allow_rule(config_path: Path, command: str) -> bool:
 
     Returns True if rule was added, False otherwise.
     """
-    stripped = strip_env_vars(command)
-    segments = split_compound_command(stripped)
+    segments = split_compound_command(command)
 
     if not segments:
         return False
@@ -148,8 +146,7 @@ def main() -> None:
     if not pending:
         return
 
-    stripped = strip_env_vars(command)
-    segments = split_compound_command(stripped)
+    segments = split_compound_command(command)
     if not segments:
         return
 
