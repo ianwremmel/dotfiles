@@ -32,5 +32,8 @@ dotfiles_claude_apply () {
   # Copy shared library (only runtime files, not tests)
   cp "$src_lib/bash_common.py" "$dest_lib/bash_common.py"
 
+  # Copy CLAUDE.md
+  cp "$plugin_dir/CLAUDE_DOT_MD.md" "$(environment_get_path 'default' 'home/.claude/CLAUDE.md')"
+
   log "Claude hooks installed"
 }
