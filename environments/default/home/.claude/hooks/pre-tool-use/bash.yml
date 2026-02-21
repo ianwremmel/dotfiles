@@ -117,6 +117,8 @@ commands:
     action: allow
   xargs:
     action: allow
+  perl:
+    action: deny
 
   # ============================================
   # System info
@@ -154,9 +156,9 @@ commands:
   touch:
     action: allow
   cp:
-    action: ask
+    action: allow
   mv:
-    action: ask
+    action: allow
   chmod:
     action: allow
   chown:
@@ -164,10 +166,7 @@ commands:
   chgrp:
     action: deny
   rm:
-    action: deny
-    rules:
-      - switches: ['-i']
-        action: ask
+    action: allow
 
   # ============================================
   # Network tools
@@ -393,6 +392,8 @@ commands:
   yarn:
     action: allow
   pnpm:
+    action: allow
+  nx:
     action: allow
   bun:
     action: allow
