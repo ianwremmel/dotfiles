@@ -46,5 +46,14 @@
       }
     ]
   },
-  "alwaysThinkingEnabled": true
+  "alwaysThinkingEnabled": true,
+  "sandbox": {
+    "autoAllowBashIfSandboxed": true,
+    "allowUnsandboxedCommands": false,
+    "enabled": true,
+    "excludedCommands": [
+      "gh",
+      "git"
+    ]
+  }
 }
