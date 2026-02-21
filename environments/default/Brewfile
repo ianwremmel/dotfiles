@@ -1,16 +1,33 @@
+brew 'ansible'
+brew 'aws-sam-cli'
+brew 'bats'
+brew 'flyctl'
+brew 'opentofu'
+brew 'uv'
+brew 'yq'
+
+cask 'adobe-creative-cloud'
+cask 'discord'
+cask 'proton-mail'
+cask 'quicken'
+cask 'steam'
+cask 'synology-drive'
+cask 'webstorm'
 # Not including in `all` because many companies may install it through MDM and
 # I don't want to clobber that
 cask 'zoom'
 
-cask 'quicken'
-cask 'steam'
-
-cask 'synology-drive'
-
 mas 'Byword', id: 420_212_497
-
-cask 'discord'
-
 mas 'Tailscale', id: 1_475_387_142
 
-cask 'proton-mail'
+# Homelab
+
+tap 'siderolabs/tap'
+brew 'talosctl'
+brew 'argocd'
+brew 'argo'
+brew 'cilium-cli'
+brew 'helm'
+brew 'k9s'
+brew 'kubectl'
+brew 'talosctl'
