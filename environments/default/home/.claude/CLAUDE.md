@@ -1,3 +1,5 @@
+# System Instructions for Claude
+
 ## Conversational Style
 
 Avoid pleasantries like "You're absolutely right!"
@@ -8,6 +10,18 @@ Avoid pleasantries like "You're absolutely right!"
   `Generated with [Claude Code](https://claude.ai/code)` in any commit message
 - GitHub is known to be flaky from this device. It typically clears up after a
   few tens of seconds. Retry if you get errors interacting with GitHub.
+- Always use [conventional commit](./guides/conventional-commits.md) messages.
+  For example:
+  - `feat: add new authentication flow`
+  - `fix: resolve issue with user login`
+  - `refactor: improve code readability in auth module`
+  - `docs: update README with setup instructions`
+
+## Documentation
+
+- Any `README.md` should follow
+  [Standard README Structure](./guides/standard-readme-spec.md) and be updated
+  with any new features or changes.
 
 ## Node.js Usage
 
