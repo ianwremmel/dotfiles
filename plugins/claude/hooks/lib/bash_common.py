@@ -5,6 +5,7 @@ and rule matching for PreToolUse and PostToolUse hooks.
 """
 
 import os
+import re
 import shlex
 from pathlib import Path
 from typing import Optional
@@ -12,6 +13,18 @@ from typing import Optional
 import bashlex
 import bashlex.errors
 import yaml
+
+
+def _append_explanation(reason: str, explanation: str | None) -> str:
+    """Append explanation to reason string if provided."""
+    if explanation:
+        return f"{reason}. {explanation}"
+    return reason
+
+
+def match_pattern(text: str, pattern: str) -> bool:
+    """Check if text matches a regex pattern."""
+    return bool(re.search(pattern, text))
 
 
 def action_past_tense(action: str) -> str:
@@ -220,13 +233,21 @@ def match_command(parsed: dict, config: dict, is_task_runner: bool = False) -> d
 
             for rule in subcmd_rules:
                 rule_switches = rule.get('switches', [])
-                if match_switches(switches, rule_switches):
+                rule_pattern = rule.get('pattern')
+
+                switches_match = match_switches(switches, rule_switches)
+                pattern_match = match_pattern(parsed['original'], rule_pattern) if rule_pattern else True
+                has_condition = rule_switches or rule_pattern
+
+                if has_condition and switches_match and pattern_match:
                     action = rule.get('action', subcmd_action)
                     switch_str = ', '.join(f"'{s}'" for s in rule_switches)
                     task_runner_suffix = " (via task runner)" if is_task_runner else ""
+                    explanation = rule.get('explanation') or subcmd_config.get('explanation') or cmd_config.get('explanation')
+                    reason = f"Command '{base} {subcommand}' with {switch_str} is {action_past_tense(action)}{task_runner_suffix}"
                     return {
                         'action': action,
-                        'reason': f"Command '{base} {subcommand}' with {switch_str} is {action_past_tense(action)}{task_runner_suffix}",
+                        'reason': _append_explanation(reason, explanation),
                         'matched_rule': {'command': base, 'subcommand': subcommand, 'switches': rule_switches},
                     }
 
@@ -237,36 +258,50 @@ def match_command(parsed: dict, config: dict, is_task_runner: bool = False) -> d
                         required_switches.extend(rule.get('switches', []))
                 if required_switches and subcmd_action == 'deny':
                     switch_str = ', '.join(f"'{s}'" for s in required_switches)
+                    explanation = subcmd_config.get('explanation') or cmd_config.get('explanation')
+                    reason = f"Command '{base} {subcommand}' requires one of: {switch_str}"
                     return {
                         'action': 'deny',
-                        'reason': f"Command '{base} {subcommand}' requires one of: {switch_str}",
+                        'reason': _append_explanation(reason, explanation),
                         'matched_rule': {'command': base, 'subcommand': subcommand, 'requires': required_switches},
                     }
 
             task_runner_suffix = " (via task runner)" if is_task_runner else ""
+            explanation = subcmd_config.get('explanation') or cmd_config.get('explanation')
+            reason = f"Command '{base} {subcommand}' is {action_past_tense(subcmd_action)}{task_runner_suffix}"
             return {
                 'action': subcmd_action,
-                'reason': f"Command '{base} {subcommand}' is {action_past_tense(subcmd_action)}{task_runner_suffix}",
+                'reason': _append_explanation(reason, explanation),
                 'matched_rule': {'command': base, 'subcommand': subcommand},
             }
 
     rules = cmd_config.get('rules', [])
     for rule in rules:
         rule_switches = rule.get('switches', [])
-        if match_switches(switches, rule_switches):
+        rule_pattern = rule.get('pattern')
+
+        switches_match = match_switches(switches, rule_switches)
+        pattern_match = match_pattern(parsed['original'], rule_pattern) if rule_pattern else True
+        has_condition = rule_switches or rule_pattern
+
+        if has_condition and switches_match and pattern_match:
             action = rule.get('action', default_action)
             switch_str = ', '.join(f"'{s}'" for s in rule_switches)
             task_runner_suffix = " (via task runner)" if is_task_runner else ""
+            explanation = rule.get('explanation') or cmd_config.get('explanation')
+            reason = f"Command '{base}' with {switch_str} is {action_past_tense(action)}{task_runner_suffix}"
             return {
                 'action': action,
-                'reason': f"Command '{base}' with {switch_str} is {action_past_tense(action)}{task_runner_suffix}",
+                'reason': _append_explanation(reason, explanation),
                 'matched_rule': {'command': base, 'switches': rule_switches},
             }
 
     task_runner_suffix = " (via task runner)" if is_task_runner else ""
+    explanation = cmd_config.get('explanation')
+    reason = f"Command '{base}' is {action_past_tense(default_action)}{task_runner_suffix}"
     return {
         'action': default_action,
-        'reason': f"Command '{base}' is {action_past_tense(default_action)}{task_runner_suffix}",
+        'reason': _append_explanation(reason, explanation),
         'matched_rule': {'command': base},
     }
 

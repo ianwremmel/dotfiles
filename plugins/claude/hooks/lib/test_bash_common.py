@@ -9,6 +9,7 @@ from bash_common import (
     detect_task_runner,
     match_switches,
     match_command,
+    match_pattern,
     evaluate_command,
     load_config,
 )
@@ -260,6 +261,87 @@ class TestMatchCommand:
         assert result["action"] == "deny"
         assert "--rm" in result["reason"]
 
+    def test_pattern_only_rule(self):
+        config = {
+            "commands": {
+                "cat": {
+                    "action": "allow",
+                    "rules": [
+                        {"pattern": r"<<\S+.*>{1,2}\s", "action": "deny"},
+                    ],
+                },
+            }
+        }
+        parsed = parse_command("cat <<'EOF' > /tmp/file.txt")
+        result = match_command(parsed, config)
+        assert result["action"] == "deny"
+
+    def test_pattern_no_match_falls_through(self):
+        config = {
+            "commands": {
+                "cat": {
+                    "action": "allow",
+                    "rules": [
+                        {"pattern": r"<<\S+.*>{1,2}\s", "action": "deny"},
+                    ],
+                },
+            }
+        }
+        parsed = parse_command("cat file.txt")
+        result = match_command(parsed, config)
+        assert result["action"] == "allow"
+
+    def test_explanation_in_reason_from_rule(self):
+        config = {
+            "commands": {
+                "rg": {
+                    "action": "deny",
+                    "explanation": "Use Grep tool instead",
+                },
+            }
+        }
+        parsed = parse_command("rg pattern file.txt")
+        result = match_command(parsed, config)
+        assert result["action"] == "deny"
+        assert "Use Grep tool instead" in result["reason"]
+
+    def test_explanation_from_command_level(self):
+        config = {
+            "commands": {
+                "cat": {
+                    "action": "allow",
+                    "explanation": "cmd-level explanation",
+                    "rules": [
+                        {"pattern": r"<<\S+.*>{1,2}\s", "action": "deny"},
+                    ],
+                },
+            }
+        }
+        parsed = parse_command("cat <<'EOF' > /tmp/file.txt")
+        result = match_command(parsed, config)
+        assert "cmd-level explanation" in result["reason"]
+
+    def test_explanation_from_rule_overrides_command(self):
+        config = {
+            "commands": {
+                "cat": {
+                    "action": "allow",
+                    "explanation": "cmd-level",
+                    "rules": [
+                        {
+                            "pattern": r"<<\S+.*>{1,2}\s",
+                            "action": "deny",
+                            "explanation": "rule-level",
+                        },
+                    ],
+                },
+            }
+        }
+        parsed = parse_command("cat <<'EOF' > /tmp/file.txt")
+        result = match_command(parsed, config)
+        assert "rule-level" in result["reason"]
+        assert "cmd-level" not in result["reason"]
+
 
 class TestEvaluateCommand:
     """Integration tests for evaluate_command function."""
@@ -325,3 +407,64 @@ taskRunners:
 """)
         config = load_config(config_file)
         assert config["commands"]["test"]["action"] == "allow"
+
+
+class TestMatchPattern:
+    """Tests for match_pattern function."""
+
+    def test_basic_match(self):
+        assert match_pattern("cat <<EOF > file.txt", r"<<\S+") is True
+
+    def test_no_match(self):
+        assert match_pattern("cat file.txt", r"<<\S+") is False
+
+    def test_heredoc_redirect_pattern(self):
+        pattern = r"<<\S+.*>{1,2}\s"
+        assert match_pattern("cat <<'EOF' > /tmp/file.txt", pattern) is True
+        assert match_pattern("cat <<EOF >> /tmp/file.txt", pattern) is True
+        assert match_pattern("cat file.txt", pattern) is False
+        # Piped heredoc without redirect should not match
+        assert match_pattern("cat <<EOF | grep foo", pattern) is False
+
+
+class TestHeredocFallback:
+    """Tests for heredoc commands that fall back to single-segment parsing."""
+
+    def test_heredoc_fallback_matches_pattern_rule(self):
+        """When bashlex fails to parse a heredoc, the fallback path should
+        still match pattern rules via the full command as a single segment."""
+        config = {
+            "taskRunners": {"simple": [], "nested": {}},
+            "commands": {
+                "cat": {
+                    "action": "allow",
+                    "rules": [
+                        {
+                            "pattern": r"<<\S+.*>{1,2}\s",
+                            "action": "deny",
+                            "explanation": "Use Write or Edit tool",
+                        },
+                    ],
+                },
+            },
+        }
+        # Multi-line heredoc — bashlex can't parse this, falls back to single segment
+        command = "cat <<'EOF' > /tmp/file.txt\nhello\nEOF"
+        result = evaluate_command(command, config)
+        assert result["action"] == "deny"
+        assert "Use Write or Edit tool" in result["reason"]
+
+    def test_plain_cat_still_allowed(self):
+        config = {
+            "taskRunners": {"simple": [], "nested": {}},
+            "commands": {
+                "cat": {
+                    "action": "allow",
+                    "rules": [
+                        {"pattern": r"<<\S+.*>{1,2}\s", "action": "deny"},
+                    ],
+                },
+            },
+        }
+        result = evaluate_command("cat file.txt", config)
+        assert result["action"] == "allow"

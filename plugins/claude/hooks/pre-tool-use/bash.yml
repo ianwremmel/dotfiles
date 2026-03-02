@@ -65,6 +65,10 @@ commands:
   # ============================================
   cat:
     action: allow
+    rules:
+      - pattern: '<<\S+.*>{1,2}\s'
+        action: deny
+        explanation: "Use the Write or Edit tool instead of cat with heredoc for file creation"
   head:
     action: allow
   tail:
@@ -99,6 +103,9 @@ commands:
   # ============================================
   grep:
     action: allow
+  rg:
+    action: deny
+    explanation: "Use the built-in Grep tool instead of rg"
   awk:
     action: allow
   sed:

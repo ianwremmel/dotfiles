@@ -245,6 +245,29 @@ fixtures:
     action: allow
     commands: ['grep pattern file.txt']
 
+  # rg denied in favor of Grep tool
+  - input: 'rg pattern file.txt'
+    action: deny
+    commands: ['rg pattern file.txt']
+
+  - input: 'rg -n "function" src/'
+    action: deny
+    commands: ['rg -n "function" src/']
+
+  # cat with heredoc + redirect denied
+  - input: "cat <<'EOF' > /tmp/file.txt\nhello\nEOF"
+    action: deny
+    commands: ["cat <<'EOF' > /tmp/file.txt\nhello\nEOF"]
+
+  - input: "cat <<EOF >> /tmp/file.txt\nhello\nEOF"
+    action: deny
+    commands: ["cat <<EOF >> /tmp/file.txt\nhello\nEOF"]
+
+  # Plain cat still allowed
+  - input: 'cat file.txt'
+    action: allow
+    commands: ['cat file.txt']
+
   - input: "jq '.key' file.json"
     action: allow
     commands: ["jq '.key' file.json"]
