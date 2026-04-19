@@ -1,5 +1,0 @@
-# Runtime dependencies (required for hook execution)
-# python@3 is already in global Brewfile
-
-# Buildtime dependencies (required for testing/development)
-# pytest can be installed via pip: python3 -m pip install pytest
