@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
-export DOTFILES_HOMEDIR_DEPS=('vim')
+# Needs to come after claude because claude has a "build" step
+export DOTFILES_HOMEDIR_DEPS=('claude' 'vim')
 
 dotfiles_homedir_apply () {
   _apply () {

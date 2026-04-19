@@ -35,3 +35,6 @@ fi
 
 # set PATH so it includes user's private bin
 PATH="$HOME/bin:$PATH"
+
+# Make that native Claude binary available
+PATH="$HOME/.local/bin:$PATH"

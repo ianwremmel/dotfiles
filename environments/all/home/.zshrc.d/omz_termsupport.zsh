@@ -17,7 +17,7 @@ local function omz_urlencode() {
   local encoding=$langinfo[CODESET]
   local safe_encodings
   safe_encodings=(UTF-8 utf8 US-ASCII)
-  if [[ -z ${safe_encodings[(r)$encoding]} ]]; then
+  if [[ -n $encoding && -z ${safe_encodings[(r)$encoding]} ]]; then
     str=$(echo -E "$str" | iconv -f $encoding -t UTF-8)
     if [[ $? != 0 ]]; then
       echo "Error converting string from $encoding to UTF-8" >&2

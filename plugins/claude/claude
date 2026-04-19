@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+
+export DOTFILES_CLAUDE_DEPS=()
+
+dotfiles_claude_apply () {
+  local plugin_dir
+  plugin_dir="$(plugin_get_path 'claude')"
+
+  cp "$plugin_dir/CLAUDE_DOT_MD.md" \
+     "$(environment_get_path 'default' 'home/.claude/CLAUDE.md')"
+
+  log "Claude config installed"
+}
