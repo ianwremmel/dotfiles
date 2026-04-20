@@ -10,4 +10,4 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@master
-      - uses: ianwremmel/prevent-nopush-commits@v1.0.2
+      - uses: ianwremmel/prevent-nopush-commits@v1.0.8
