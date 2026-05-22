@@ -13,20 +13,20 @@ proof of the install → build → activate loop.
 
 ## Install
 
-`./apply` runs the `nix` plugin, which installs Nix (via the Determinate Systems
-installer) if absent, then builds and activates `homeConfigurations.<user>`. The
-first `./apply` is therefore the Nix bootstrap.
+`./apply` runs the `nix` plugin, which installs Nix if absent and builds and
+activates `homeConfigurations."<user>@<system>"` for the current machine. The
+flake supports `aarch64-darwin`, `x86_64-linux`, and `aarch64-linux`.
 
-On each run the plugin also writes an untracked `nix/host.nix` containing this
-machine's host-specific values (currently just `{ username = "<whoami>"; }`),
-which the flake imports. It is gitignored so per-host identity stays out of git;
-`home.nix` derives the home directory and config name from it. If you build by
-hand without `./apply`, create `nix/host.nix` yourself first.
+- **macOS:** the full framework runs; Nix is installed via the Determinate
+  Systems installer (daemon-based — macOS SIP requires it).
+- **Linux:** `./apply` runs only the nix step (the macOS-only plugins are
+  skipped). Nix is installed single-user with no daemon via the official
+  installer.
 
 To build/activate by hand after Nix is installed:
 
     out="$(mktemp -d)/result"
-    nix build "path:$PWD#homeConfigurations.ian.activationPackage" --out-link "$out"
+    nix build "path:$PWD#homeConfigurations.\"$(whoami)@$(nix eval --impure --raw --expr builtins.currentSystem)\".activationPackage" --out-link "$out"
     "$out/activate"
 
 ## Usage
