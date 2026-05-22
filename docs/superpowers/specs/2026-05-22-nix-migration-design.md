@@ -74,18 +74,26 @@ independent). On each `./apply`:
    ```
 
    Volume/daemon setup needs sudo, which `apply` already primes.
-2. **Make Nix usable in the current process.** A fresh install only edits
-   `/etc/zshrc` (etc.), so the running `apply` shell cannot see `nix` yet. The
-   plugin sources the daemon profile script
+   The framework runs each plugin's `apply` hook via a non-login `bash -c`
+   subshell, which does **not** source login rc files. So nix is not on `PATH`
+   there even on subsequent runs. The plugin therefore detects an existing
+   install by store path (`/nix/var/nix/profiles/default/bin/nix`), not by
+   `command -v nix`, to avoid re-running the installer.
+2. **Make Nix usable in the current process.** The plugin sources the daemon
+   profile script
    (`/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh`) before
-   continuing.
+   continuing, guarded by `set +u`/`set -u` since that script may touch unset
+   vars.
 3. **Build and activate the home-manager generation** directly from the flake —
-   no separate `home-manager` CLI install required:
+   no separate `home-manager` CLI install required. The `path:` flake reference
+   is used so Nix copies the directory as-is rather than invoking git-tree
+   resolution on the enclosing dotfiles repo:
 
    ```sh
-   nix build "$DOTFILES_ROOT_DIR/nix#homeConfigurations.$(whoami).activationPackage" \
-     --out-link "$tmp/result"
-   "$tmp/result/activate"
+   out="$(mktemp -d)/result"
+   nix build "path:$DOTFILES_ROOT_DIR/nix#homeConfigurations.$(whoami).activationPackage" \
+     --out-link "$out"
+   "$out/activate"
    ```
 
    Pinned via `flake.lock` and idempotent: re-running with no changes is a no-op
@@ -139,17 +147,20 @@ a future phase.
   home.stateVersion = "25.11";          # never bump casually; pins HM behavior
   programs.home-manager.enable = true;  # home-manager manages itself
 
-  home.packages = [ pkgs.bat ];         # the package half of the slice
-
-  programs.bat.config.theme = "ansi";   # writes ~/.config/bat/config (the dotfile half)
+  programs.bat = {
+    enable = true;                      # installs bat (the package half)
+    config.theme = "ansi";              # writes ~/.config/bat/config (the dotfile half)
+  };
 }
 ```
 
 Notes:
 
 - **`programs.bat` vs raw file:** the idiomatic home-manager module is used
-  rather than a raw `xdg.configFile."bat/config"`. It generates the same
-  `~/.config/bat/config` file but demonstrates home-manager's typed-options value.
+  rather than a raw `xdg.configFile."bat/config"`. Enabling it both installs
+  `bat` (so a separate `home.packages` entry is redundant) and generates
+  `~/.config/bat/config`, demonstrating home-manager's typed-options value.
+  `enable = true` is required — without it the module writes nothing.
 - **`25.11`** is the assumed current stable release; confirm the exact latest
   stable branch at implementation time and match `stateVersion` to it.
 
