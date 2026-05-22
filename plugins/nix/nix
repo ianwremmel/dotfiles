@@ -53,6 +53,9 @@ dotfiles_nix_apply () {
   local tmpdir
   tmpdir="$(mktemp -d)"
 
+  # Single-user assumption: the flake exposes one homeConfigurations.<user> and
+  # $(whoami) must match it (currently "ian"). A future phase keys configs by
+  # environment/profile; until then a foreign user fails here in `nix build`.
   log 'Building home-manager configuration'
   nix build "path:$DOTFILES_ROOT_DIR/nix#homeConfigurations.$(whoami).activationPackage" \
     --out-link "$tmpdir/result"
