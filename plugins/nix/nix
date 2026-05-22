@@ -52,7 +52,6 @@ dotfiles_nix_apply () {
 
   local tmpdir
   tmpdir="$(mktemp -d)"
-  trap 'rm -rf "$tmpdir"' EXIT
 
   log 'Building home-manager configuration'
   nix build "path:$DOTFILES_ROOT_DIR/nix#homeConfigurations.$(whoami).activationPackage" \
@@ -60,4 +59,8 @@ dotfiles_nix_apply () {
 
   log 'Activating home-manager configuration'
   "$tmpdir/result/activate"
+
+  # Clean up on the success path. A failed build/activate aborts under `set -e`
+  # before this and leaks one small temp dir, which is an acceptable rare case.
+  rm -rf "$tmpdir"
 }
