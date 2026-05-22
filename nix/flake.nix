@@ -12,16 +12,23 @@
       system = "aarch64-darwin"; # macOS arm64; add other systems when this goes cross-platform
       pkgs = nixpkgs.legacyPackages.${system};
 
-      # The single place a user is declared. home.nix derives everything else
-      # (home directory, etc.) from the username passed here.
+      # Host-specific values (currently just the username) live in an untracked,
+      # plugin-generated nix/host.nix so they never land in git. The `path:`
+      # flake reference the plugin uses copies untracked files, so this resolves.
+      host =
+        if builtins.pathExists ./host.nix
+        then import ./host.nix
+        else throw "nix/host.nix not found — run ./apply (the nix plugin generates it) or create it: { username = \"<you>\"; }";
+
+      # home.nix derives everything else (home directory, etc.) from the username.
       mkHome = username: home-manager.lib.homeManagerConfiguration {
         inherit pkgs;
         modules = [ ./home.nix ];
         extraSpecialArgs = { inherit username; };
       };
     in {
-      # The nix plugin selects homeConfigurations.<$(whoami)>, so the attribute
-      # name and the username must match. Add machines/users with one more line.
-      homeConfigurations.ian = mkHome "ian";
+      # Named after the host's username; the plugin builds homeConfigurations.<$(whoami)>,
+      # which matches because host.nix is generated from $(whoami).
+      homeConfigurations.${host.username} = mkHome host.username;
     };
 }

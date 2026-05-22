@@ -17,6 +17,12 @@ proof of the install → build → activate loop.
 installer) if absent, then builds and activates `homeConfigurations.<user>`. The
 first `./apply` is therefore the Nix bootstrap.
 
+On each run the plugin also writes an untracked `nix/host.nix` containing this
+machine's host-specific values (currently just `{ username = "<whoami>"; }`),
+which the flake imports. It is gitignored so per-host identity stays out of git;
+`home.nix` derives the home directory and config name from it. If you build by
+hand without `./apply`, create `nix/host.nix` yourself first.
+
 To build/activate by hand after Nix is installed:
 
     out="$(mktemp -d)/result"
