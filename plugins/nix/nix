@@ -28,6 +28,10 @@ _dotfiles_nix_load_profile () {
   if ! command -v nix >/dev/null 2>&1 && [ -f "$script" ]; then
     # The profile script may reference unset vars; relax `set -u` while sourcing.
     set +u
+    # The nix.sh profile script guards its PATH setup on both $HOME and $USER
+    # being non-empty. $USER can be absent in minimal containers; supply it.
+    USER="${USER:-$(id -un)}"
+    export USER
     # shellcheck disable=SC1090
     source "$script"
     set -u
@@ -43,9 +47,32 @@ _dotfiles_nix_install () {
     log 'Installing Nix (Determinate Systems installer)'
     curl -fsSL https://install.determinate.systems/nix | sh -s -- install --no-confirm
   else
-    # Single-user, no daemon. The official installer does not need an init system.
+    # Single-user, no daemon. Download then run with stdin detached so the
+    # installer reads the script from the file (not stdin) and cannot block on a
+    # prompt in a non-interactive container.
+    #
+    # When running as root (e.g. in a Docker container), the installer tries to
+    # create /nix via sudo, which may not be present. Pre-create /nix so the
+    # installer skips that step.
+    if [ "$(id -u)" -eq 0 ]; then
+      # Pre-create /nix so the installer doesn't need sudo to create it.
+      [ -d /nix ] || mkdir -m 0755 /nix
+      # Create /etc/nix/nix.conf with build-users-group empty so Nix does not
+      # require the nixbld group when running as root (e.g. in a container).
+      mkdir -p /etc/nix
+      # Match only a real (uncommented) assignment so a commented-out example
+      # line doesn't suppress the write; prepend a newline so the setting can't
+      # concatenate onto a prior line that lacks a trailing newline.
+      if ! grep -Eqs '^[[:space:]]*build-users-group[[:space:]]*=' /etc/nix/nix.conf 2>/dev/null; then
+        printf '\nbuild-users-group =\n' >> /etc/nix/nix.conf
+      fi
+    fi
     log 'Installing Nix (official single-user install, no daemon)'
-    curl -L https://nixos.org/nix/install | sh -s -- --no-daemon --no-channel-add
+    local installer
+    installer="$(mktemp)"
+    curl -fsSL https://nixos.org/nix/install -o "$installer"
+    sh "$installer" --no-daemon --no-channel-add < /dev/null
+    rm -f "$installer"
   fi
 }
 
