@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+
+export DOTFILES_NIX_DEPS=()
+
+# The Determinate installer lays down a daemon profile and a nix binary symlink
+# here. We detect installation by store path rather than `command -v nix`
+# because the framework runs apply hooks in a non-login `bash -c` subshell that
+# does not source login rc files (so nix would not be on PATH even when present).
+_dotfiles_nix_profile_script='/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh'
+_dotfiles_nix_store_binary='/nix/var/nix/profiles/default/bin/nix'
+
+_dotfiles_nix_is_installed () {
+  # command -v handles nix already on PATH (interactive re-apply); the store-path
+  # check handles the normal non-login subshell where PATH lacks nix.
+  command -v nix >/dev/null 2>&1 || [ -e "$_dotfiles_nix_store_binary" ]
+}
+
+_dotfiles_nix_load_profile () {
+  if ! command -v nix >/dev/null 2>&1 && [ -f "$_dotfiles_nix_profile_script" ]; then
+    # The profile script may reference unset vars; relax `set -u` while sourcing.
+    set +u
+    # shellcheck disable=SC1090
+    source "$_dotfiles_nix_profile_script"
+    set -u
+  fi
+}
+
+dotfiles_nix_apply () {
+  if [ "${DOTFILES_NIX_SKIP:-0}" -eq 1 ]; then
+    log 'DOTFILES_NIX_SKIP set; skipping nix'
+    return 0
+  fi
+
+  if [ "${DOTFILES_AIRPLANE_MODE:-0}" -eq 1 ]; then
+    log 'Airplane mode; skipping nix (install and build require network)'
+    return 0
+  fi
+
+  if _dotfiles_nix_is_installed; then
+    debug 'nix already installed'
+  else
+    log 'Installing Nix via the Determinate Systems installer'
+    curl -fsSL https://install.determinate.systems/nix | sh -s -- install --no-confirm
+  fi
+
+  _dotfiles_nix_load_profile
+
+  if ! command -v nix >/dev/null 2>&1; then
+    error 'nix is not available after install; aborting nix plugin'
+    return 1
+  fi
+
+  local tmpdir
+  tmpdir="$(mktemp -d)"
+  trap 'rm -rf "$tmpdir"' EXIT
+
+  log 'Building home-manager configuration'
+  nix build "path:$DOTFILES_ROOT_DIR/nix#homeConfigurations.$(whoami).activationPackage" \
+    --out-link "$tmpdir/result"
+
+  log 'Activating home-manager configuration'
+  "$tmpdir/result/activate"
+}
