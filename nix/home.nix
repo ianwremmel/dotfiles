@@ -1,8 +1,9 @@
-{ ... }:
+{ username, ... }:
 {
-  # single-user repo — update username/homeDirectory (and flake.nix `system`) if you fork
-  home.username = "ian";
-  home.homeDirectory = "/Users/ian";
+  home.username = username;
+  # Derived from username. The /Users prefix is macOS-specific; branch this when
+  # a Linux (e.g. agent) config is added.
+  home.homeDirectory = "/Users/${username}";
   home.stateVersion = "25.11"; # pins home-manager behavior; never bump casually
   programs.home-manager.enable = true; # home-manager manages itself
 
