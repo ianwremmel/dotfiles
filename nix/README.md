@@ -15,7 +15,8 @@ proof of the install → build → activate loop.
 
 `./apply` runs the `nix` plugin, which installs Nix if absent and builds and
 activates `homeConfigurations."<user>@<system>"` for the current machine. The
-flake supports `aarch64-darwin`, `x86_64-linux`, and `aarch64-linux`.
+flake supports `aarch64-darwin`, `x86_64-darwin`, `x86_64-linux`, and
+`aarch64-linux`.
 
 - **macOS:** the full framework runs; Nix is installed via the Determinate
   Systems installer (daemon-based — macOS SIP requires it).
@@ -25,9 +26,14 @@ flake supports `aarch64-darwin`, `x86_64-linux`, and `aarch64-linux`.
 
 To build/activate by hand after Nix is installed:
 
+    flags="--extra-experimental-features 'nix-command flakes'"
     out="$(mktemp -d)/result"
-    nix build "path:$PWD#homeConfigurations.\"$(whoami)@$(nix eval --impure --raw --expr builtins.currentSystem)\".activationPackage" --out-link "$out"
+    sys="$(nix $flags eval --impure --raw --expr builtins.currentSystem)"
+    nix $flags build "path:$PWD#homeConfigurations.\"$(whoami)@$sys\".activationPackage" --out-link "$out"
     "$out/activate"
+
+(On a fresh Linux single-user install flakes are not enabled by default, hence
+the `--extra-experimental-features` flag.)
 
 ## Usage
 
@@ -39,8 +45,11 @@ Edit `home.nix` to add packages (`home.packages`) or program modules
 - **Disable the slice:** set `DOTFILES_NIX_SKIP=1` before `./apply`.
 - **Drop a managed file:** remove its lines from `home.nix` and re-activate;
   home-manager removes only symlinks it created.
-- **Remove Nix entirely:** delete `plugins/nix/` and `nix/`, then run
-  `/nix/nix-installer uninstall`.
+- **Remove Nix entirely:** delete `plugins/nix/` and `nix/`, then uninstall Nix:
+  - **macOS** (Determinate): `/nix/nix-installer uninstall`.
+  - **Linux** (official single-user): `nix-env --uninstall nix`, then
+    `rm -rf ~/.nix-profile ~/.nix-defexpr ~/.nix-channels /nix` and remove the
+    nix lines from your shell rc.
 
 ## License
 

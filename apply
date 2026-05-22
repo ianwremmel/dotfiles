@@ -38,7 +38,6 @@ fi
 # On macOS, run the framework in a subshell so it uses homebrew bash rather than
 # (what may be) the macos system bash.
 if [ "$(uname -s)" = Linux ]; then
-  # On Linux only the nix step applies; the rest of the framework is macOS-specific.
   /usr/bin/env bash -c '
     set -euo pipefail
     export DOTFILES_ROOT_DIR; DOTFILES_ROOT_DIR="$(pwd)"
