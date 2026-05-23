@@ -42,6 +42,13 @@ if [ "$(uname -s)" = Linux ]; then
     set -euo pipefail
     export DOTFILES_ROOT_DIR; DOTFILES_ROOT_DIR="$(pwd)"
     source ./framework/logging
+    source ./framework/config
+    source ./framework/environment
+    # The framework expects ~/.dotfilesrc to exist (config_read/_write).
+    # Mode 0600 matches the framework first-run permissions.
+    [ -f "$HOME/.dotfilesrc" ] || install -m 0600 /dev/null "$HOME/.dotfilesrc"
+    environment_get_current   # may prompt + persist; same call framework_init makes
+    config_load               # exports DOTFILES_ENVIRONMENT etc. from ~/.dotfilesrc
     source ./plugins/nix/nix
     dotfiles_nix_apply
   '
