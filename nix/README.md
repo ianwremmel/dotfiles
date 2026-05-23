@@ -40,6 +40,103 @@ the `--extra-experimental-features` flag.)
 Edit `home.nix` to add packages (`home.packages`) or program modules
 (`programs.*`), then re-run `./apply` (or the manual build/activate above).
 
+## Profiles
+
+Per-machine profiles select which extra modules layer on top of the shared
+base. Selection reuses the framework's `DOTFILES_ENVIRONMENT` value — no new
+variable — and is loaded the same way on both platforms (`./apply` runs
+`environment_get_current` + `config_load` from the framework). The
+plugin-generated `nix/host.nix` carries both `username` and `profile`.
+
+### Public profiles
+
+Public profiles live in this repo at `nix/profiles/<name>/default.nix`. This
+slice ships two:
+
+- `default` — the baseline (matches `DOTFILES_ENVIRONMENT=default`, which is
+  the framework's default value).
+- `agent` — lean, intended for headless / agent boxes.
+
+The public flake exposes them as both a module library
+(`homeModules.{base,default,agent}` + a `lib.mkHome` helper) and as
+ready-made `homeConfigurations."<profile>@<system>"` outputs. When no private
+flake matches the active profile, the plugin builds the matching public
+config directly.
+
+### Private profiles
+
+Private/sensitive profiles live in your separate `custom_environments/` repo
+as **flakes** at `custom_environments/<env>/nix/flake.nix`. The private flake
+consumes the public flake as an input, composes on top of it, and exposes
+`homeConfigurations."<system>"` (one per supported system; no profile prefix
+because the env is implicit in the flake's location).
+
+**Two things to know before authoring one:**
+
+1. **`path:` flake refs require git-tracked files.** When the `nix` plugin
+   builds your private flake, it uses `path:custom_environments/<env>/nix`.
+   Because that path lives inside a git repo (typically your private
+   `custom_environments` repo set up by `framework/customize`), Nix's path
+   fetcher applies git-tree semantics — only files tracked in that repo are
+   visible. **Commit your private flake files** to your private repo before
+   the first `./apply`. (For one-off throwaway testing without the private
+   repo, `git init` inside `custom_environments/<env>/nix/` and commit the
+   files there works.)
+2. **Override public option values with `lib.mkForce`.** If you import
+   `public.homeModules.default` and then want to change something the public
+   module already set (for example,
+   `home.sessionVariables.DOTFILES_PROFILE`), wrap the new value with
+   `lib.mkForce`. Without it, home-manager's module system reports a
+   conflict.
+
+Template:
+
+    {
+      description = "Private profile for <env>";
+
+      inputs = {
+        # Default points at the published public repo so `nix flake check`
+        # works in this private repo standalone. The dotfiles `nix` plugin
+        # overrides this to a local `path:` at apply time, so day-to-day
+        # builds use whatever local public source is current — including
+        # its untracked host.nix.
+        public.url = "github:ianwremmel/dotfiles?dir=nix";
+        nixpkgs.follows      = "public/nixpkgs";
+        home-manager.follows = "public/home-manager";
+      };
+
+      outputs = { self, public, ... }:
+        let
+          host = import (public + "/host.nix");
+          supportedSystems = [ "aarch64-darwin" "x86_64-linux" ];
+          mkConfig = system: public.lib.mkHome {
+            inherit system;
+            inherit (host) username;
+            modules = [
+              public.homeModules.default
+              ./work.nix
+            ];
+          };
+        in {
+          homeConfigurations = builtins.listToAttrs (map
+            (system: { name = system; value = mkConfig system; })
+            supportedSystems);
+        };
+    }
+
+Where `./work.nix` (or any name) is a normal home-manager module living
+alongside `flake.nix` and may import siblings. Example override of a public
+option:
+
+    # ./work.nix
+    { lib, ... }: {
+      home.sessionVariables.DOTFILES_PROFILE = lib.mkForce "work";
+      # …work-specific packages, modules, etc.
+    }
+
+The private flake also has its own `flake.lock` (committed to your private
+repo) for standalone reproducibility.
+
 ## Backout
 
 - **Disable the slice:** set `DOTFILES_NIX_SKIP=1` before `./apply`.
