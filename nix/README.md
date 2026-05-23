@@ -14,8 +14,9 @@ proof of the install → build → activate loop.
 ## Install
 
 `./apply` runs the `nix` plugin, which installs Nix if absent and builds and
-activates `homeConfigurations."<user>@<system>"` for the current machine. The
-flake supports `aarch64-darwin`, `x86_64-darwin`, `x86_64-linux`, and
+activates `homeConfigurations."<profile>@<system>"` for the current machine
+(or a private-flake config if one is set up — see Profiles). The flake
+supports `aarch64-darwin`, `x86_64-darwin`, `x86_64-linux`, and
 `aarch64-linux`.
 
 - **macOS:** the full framework runs; Nix is installed via the Determinate
@@ -29,7 +30,8 @@ To build/activate by hand after Nix is installed:
     flags="--extra-experimental-features 'nix-command flakes'"
     out="$(mktemp -d)/result"
     sys="$(nix $flags eval --impure --raw --expr builtins.currentSystem)"
-    nix $flags build "path:$PWD#homeConfigurations.\"$(whoami)@$sys\".activationPackage" --out-link "$out"
+    profile="${DOTFILES_ENVIRONMENT:-default}"
+    nix $flags build "path:$PWD#homeConfigurations.\"${profile}@${sys}\".activationPackage" --out-link "$out"
     "$out/activate"
 
 (On a fresh Linux single-user install flakes are not enabled by default, hence
@@ -47,6 +49,11 @@ base. Selection reuses the framework's `DOTFILES_ENVIRONMENT` value — no new
 variable — and is loaded the same way on both platforms (`./apply` runs
 `environment_get_current` + `config_load` from the framework). The
 plugin-generated `nix/host.nix` carries both `username` and `profile`.
+
+(Each profile module also sets a `DOTFILES_PROFILE` shell-session variable as
+a runtime sentinel — handy for quick verification with `echo $DOTFILES_PROFILE`
+after activation. It is a Nix-activated reflection of the same value
+`DOTFILES_ENVIRONMENT` holds in `~/.dotfilesrc`, not an independent setting.)
 
 ### Public profiles
 
