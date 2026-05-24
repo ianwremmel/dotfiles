@@ -55,20 +55,24 @@ a runtime sentinel — handy for quick verification with `echo $DOTFILES_PROFILE
 after activation. It is a Nix-activated reflection of the same value
 `DOTFILES_ENVIRONMENT` holds in `~/.dotfilesrc`, not an independent setting.)
 
-### Public profiles
+### Public profiles and layers
 
-Public profiles live in this repo at `nix/profiles/<name>/default.nix`. This
-slice ships two:
+`nix/home.nix` is infrastructure (username, homeDirectory, stateVersion,
+`programs.home-manager.enable`). `lib.mkHome` always composes it with the
+**always-included `all` layer** (shared content every machine gets), plus
+whichever selectable profile is active:
 
-- `default` — the baseline (matches `DOTFILES_ENVIRONMENT=default`, which is
-  the framework's default value).
-- `agent` — lean, intended for headless / agent boxes.
+- `all` — always included via `mkHome`; shared content for every machine
+  regardless of profile or private overlay (currently `bat`).
+- `default` — selectable profile; matches the framework's default
+  `DOTFILES_ENVIRONMENT=default` and adds `ripgrep`.
+- `agent` — selectable profile for headless / agent boxes; lean.
 
-The public flake exposes them as both a module library
-(`homeModules.{base,default,agent}` + a `lib.mkHome` helper) and as
-ready-made `homeConfigurations."<profile>@<system>"` outputs. When no private
-flake matches the active profile, the plugin builds the matching public
-config directly.
+The public flake exposes them as a module library
+(`homeModules.{base,all,default,agent}` + a `lib.mkHome` helper) and as
+ready-made `homeConfigurations."<profile>@<system>"` outputs (one per
+selectable profile × system). When no private flake matches the active
+profile, the plugin builds the matching public config directly.
 
 ### Private profiles
 

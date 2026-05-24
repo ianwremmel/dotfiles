@@ -9,8 +9,8 @@
   home.stateVersion = "25.11"; # pins home-manager behavior; never bump casually
   programs.home-manager.enable = true; # home-manager manages itself
 
-  programs.bat = {
-    enable = true;          # installs bat (the package half of the slice)
-    config.theme = "ansi";  # writes ~/.config/bat/config (the dotfile half)
-  };
+  # Infrastructure only — shared content (universally-installed packages and
+  # programs) lives in `profiles/all/default.nix`, which `lib.mkHome` always
+  # composes alongside this base. Profile-specific additions live under
+  # `profiles/<name>/default.nix`.
 }

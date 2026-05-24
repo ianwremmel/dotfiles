@@ -104,6 +104,7 @@ nix/host.nix                       untracked, plugin-generated:
 nix/flake.nix                      PUBLIC flake — exposes homeModules + lib.mkHome
                                      + homeConfigurations."<profile>@<system>"
 nix/home.nix                       shared base module (bat, home dir) — unchanged
+nix/profiles/all/default.nix       always-included shared content (bat, etc.)
 nix/profiles/default/default.nix   public profile: matches DOTFILES_ENVIRONMENT=default
 nix/profiles/agent/default.nix     public profile: lean for agent envs
 plugins/nix/nix                    resolves profile, writes host.nix, then builds
@@ -165,18 +166,22 @@ content.
         else throw "nix/host.nix not found — run ./apply (generates it) or create it: { username = \"<you>\"; profile = \"default\"; }";
     in {
       # Building blocks — module library a downstream (private) flake can consume.
+      # `base` is infrastructure; `all` is always-included shared content;
+      # `default`/`agent` are selectable profiles.
       homeModules = {
         base    = ./home.nix;
+        all     = ./profiles/all/default.nix;
         default = ./profiles/default/default.nix;
         agent   = ./profiles/agent/default.nix;
       };
 
-      # Helper: build a homeConfiguration with the shared base + caller's extras.
+      # Helper: build a homeConfiguration with the shared base + always-on
+      # `all` layer + caller's extras.
       lib.mkHome = { system, username, modules ? [] }:
         home-manager.lib.homeManagerConfiguration {
           pkgs = nixpkgs.legacyPackages.${system};
           extraSpecialArgs = { inherit username; };
-          modules = [ self.homeModules.base ] ++ modules;
+          modules = [ self.homeModules.base self.homeModules.all ] ++ modules;
         };
 
       # Ready-made configs for the no-private-overlay case, one per public profile × system.
