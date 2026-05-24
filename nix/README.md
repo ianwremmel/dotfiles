@@ -50,11 +50,6 @@ variable — and is loaded the same way on both platforms (`./apply` runs
 `environment_get_current` + `config_load` from the framework). The
 plugin-generated `nix/host.nix` carries both `username` and `profile`.
 
-(Each profile module also sets a `DOTFILES_PROFILE` shell-session variable as
-a runtime sentinel — handy for quick verification with `echo $DOTFILES_PROFILE`
-after activation. It is a Nix-activated reflection of the same value
-`DOTFILES_ENVIRONMENT` holds in `~/.dotfilesrc`, not an independent setting.)
-
 ### Public profiles and layers
 
 `nix/home.nix` is infrastructure (username, homeDirectory, stateVersion,
@@ -93,12 +88,12 @@ because the env is implicit in the flake's location).
    the first `./apply`. (For one-off throwaway testing without the private
    repo, `git init` inside `custom_environments/<env>/nix/` and commit the
    files there works.)
-2. **Override public option values with `lib.mkForce`.** If you import
-   `public.homeModules.default` and then want to change something the public
-   module already set (for example,
-   `home.sessionVariables.DOTFILES_PROFILE`), wrap the new value with
-   `lib.mkForce`. Without it, home-manager's module system reports a
-   conflict.
+2. **Override public option values with `lib.mkForce`.** If you set an option
+   that a layer below (base, `all`, or the public profile you imported) already
+   set to a different scalar value, wrap your value with `lib.mkForce`.
+   Without it, home-manager's module system reports a conflict. (Example: the
+   `all` layer sets `programs.bat.config.theme = "ansi"`; a private profile
+   that wants a different theme uses `lib.mkForce "<other-theme>"`.)
 
 Template:
 
@@ -140,9 +135,11 @@ alongside `flake.nix` and may import siblings. Example override of a public
 option:
 
     # ./work.nix
-    { lib, ... }: {
-      home.sessionVariables.DOTFILES_PROFILE = lib.mkForce "work";
-      # …work-specific packages, modules, etc.
+    { lib, pkgs, ... }: {
+      # Override the bat theme that `all` sets, and add work-specific tools.
+      programs.bat.config.theme = lib.mkForce "Coldark-Dark";
+      home.packages = [ pkgs.awscli2 ];
+      # …more work-specific modules.
     }
 
 The private flake also has its own `flake.lock` (committed to your private

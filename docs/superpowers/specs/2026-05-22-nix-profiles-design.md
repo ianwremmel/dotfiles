@@ -86,10 +86,9 @@ for the same per-host string. No mapping; the value passes through verbatim.
    `nix/profiles/<name>/default.nix`. A private *flake* lives at
    `custom_environments/<env>/nix/` with its own `flake.nix` and whatever
    module files it wants (`default.nix`, helpers, etc.).
-6. **Demonstrator: per-profile packages + a sentinel env var.** Real
-   "what tools" curation comes as plugins migrate; this slice ships a small
-   per-profile package difference plus `home.sessionVariables.DOTFILES_PROFILE`
-   for trivial verification.
+6. **Demonstrator: per-profile packages.** Real "what tools" curation comes
+   as plugins migrate; this slice ships a small per-profile package
+   difference to prove the layer is composed correctly.
 7. **Output naming.** Public flake exposes
    `homeConfigurations."<profile>@<system>"` for each public profile × system.
    Private flakes expose `homeConfigurations."<system>"` (the env is implicit
@@ -363,13 +362,11 @@ Minimal and non-conflicting:
 ```nix
 # nix/profiles/default/default.nix
 { pkgs, ... }: {
-  home.sessionVariables.DOTFILES_PROFILE = "default";
   home.packages = [ pkgs.ripgrep ];
 }
 
 # nix/profiles/agent/default.nix
-{ pkgs, ... }: {
-  home.sessionVariables.DOTFILES_PROFILE = "agent";
+{ ... }: {
   # Intentionally lean: no extra packages beyond the shared base.
 }
 ```
@@ -386,11 +383,11 @@ Add a "Profiles" section covering:
 ## Testing
 
 - **macOS default (this Mac, `DOTFILES_ENVIRONMENT=default`):** run the
-  plugin; expect `host.nix` to read `{ username = "ian"; profile = "default"; }`,
-  the plugin to take the **public-only path** (no `custom_environments/default/nix/flake.nix`
+  plugin; expect the log line `Resolved profile: default`, `host.nix` to read
+  `{ username = "ian"; profile = "default"; }`, the plugin to take the
+  **public-only path** (no `custom_environments/default/nix/flake.nix`
   exists), build `homeConfigurations."default@aarch64-darwin"` from the
-  public flake, activate it. `echo $DOTFILES_PROFILE` in a new shell returns
-  `default`; `ripgrep` resolves on the profile.
+  public flake, activate it. `ripgrep` resolves on the profile.
 - **Force a private profile via a throwaway private flake:** in a scratch
   `custom_environments/throwaway/nix/`, create a `flake.nix` from the
   template, a `throwaway.nix` module imported by the flake, and a sibling
@@ -435,7 +432,7 @@ Add a "Profiles" section covering:
   '
   ```
 
-  Expect profile `agent`, public-only path, lean package set, sentinel `agent`.
+  Expect profile `agent`, public-only path, lean package set.
 - **Regression:** the macOS `./apply` end-to-end keeps working; rsync-managed
   dotfiles remain untouched by home-manager.
 
@@ -467,7 +464,7 @@ write the override path into the private's `flake.lock` itself (via
 `host.nix` carrying `profile`, public flake exposing
 `homeModules` + `lib.mkHome` + `homeConfigurations."<profile>@<system>"`,
 plugin if/else between the public-only and private-overlay paths, two public
-profiles (`default`, `agent`) with the package + sentinel demonstrator, a
+profiles (`default`, `agent`) with the package demonstrator, a
 documented private-flake template, README update, and tests on macOS + an
 aarch64-linux container.
 
