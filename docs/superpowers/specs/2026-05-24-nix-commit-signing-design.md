@@ -1,7 +1,7 @@
 # Nix Commit-Signing Slice Design
 
 **Date:** 2026-05-24
-**Status:** Draft — pending user approval
+**Status:** Implemented
 **Branch:** `nix-commit-signing` (stacks on `nix-git` / PR #64 → `nix-profiles` / PR #63 → `nix-cross-platform` / PR #62)
 
 ## Goal
@@ -345,7 +345,8 @@ Three additions/changes to `nix/README.md`:
    ```
 
 2. **Refresh the Background paragraph** so the "So far this manages …" list
-   includes commit signing (`programs.git.signing` + GPG agent with per-OS
+   includes commit signing (`programs.git.settings.user.signingkey` +
+   `commit.gpgsign` + GPG agent with per-OS
    pinentry).
 
 3. **Refresh the `all`-layer description** in `### Public profiles and
