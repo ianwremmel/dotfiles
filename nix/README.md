@@ -8,7 +8,7 @@ activated automatically by the `nix` plugin during `./apply`.
 
 The repo is mid-migration from the homegrown plugin framework toward Nix. See
 `docs/superpowers/specs/2026-05-22-nix-migration-design.md` for the design and
-planned phases. So far this manages: `bat` (shared in the `all` layer); `ripgrep` (in the `default` profile); the full git config (aliases, body, identity, includes) via `programs.git` plus a one-time activation that retires the legacy rsync-managed `~/.gitconfig`; and commit signing — `programs.gpg` + `services.gpg-agent` with per-OS pinentry (`pinentry-mac` on macOS, `pinentry-tty` on Linux), `programs.git.settings.user.signingkey` + `commit.gpgsign` in the `default` profile, and a one-time activation that retires the old plugin-written `~/.gnupg/*.conf`. See Profiles for the layering and Migrating a private custom environment for the private-side migration steps.
+planned phases. So far this manages: `bat` (shared in the `all` layer); `ripgrep` (in the `default` profile); the full git config (aliases, body, identity, includes) via `programs.git` plus a one-time activation that retires the legacy rsync-managed `~/.gitconfig`; commit signing — `programs.gpg` + `services.gpg-agent` with per-OS pinentry (`pinentry-mac` on macOS, `pinentry-tty` on Linux), `programs.git.settings.user.signingkey` + `commit.gpgsign` in the `default` profile, and a one-time activation that retires the old plugin-written `~/.gnupg/*.conf`; and shell config — bash and zsh via `programs.bash` + `programs.zsh` (with the prior `.zshrc.d/` and `.bash_profile.d/` modular content folded into the relevant typed options), `.inputrc` via `home.file`, and one-time activations that retire the rsync-managed shell dotfiles plus the `shells` plugin's chsh / /etc/shells logic. See Profiles for the layering and Migrating a private custom environment for the private-side migration steps.
 
 ## Install
 
@@ -58,9 +58,9 @@ whichever selectable profile is active:
 
 - `all` — always included via `mkHome`; shared content for every machine
   regardless of profile or private overlay (currently `bat`, the shared
-  git config — aliases, body, includes — via `programs.git`, and GPG/agent
+  git config — aliases, body, includes — via `programs.git`, GPG/agent
   setup with per-OS pinentry: `pinentry-mac` on macOS, `pinentry-tty` on
-  Linux).
+  Linux, AND bash + zsh via `programs.bash` + `programs.zsh` plus `.inputrc` via `home.file`).
 - `default` — selectable profile; matches the framework's default
   `DOTFILES_ENVIRONMENT=default` and adds `ripgrep`.
 - `agent` — selectable profile for headless / agent boxes; lean.
@@ -214,6 +214,51 @@ For the commit-signing slice (`commit_signing` plugin retired;
    pre-existing real `~/.gnupg/gpg.conf` and `~/.gnupg/gpg-agent.conf`
    aside to `.legacy-backup` siblings once. No action needed; `rm ~/.gnupg/gpg.conf.legacy-backup ~/.gnupg/gpg-agent.conf.legacy-backup` when satisfied. Your actual keyring (`pubring.kbx`,
    `private-keys-v1.d/`, `trustdb.gpg`, etc.) is never touched.
+
+For the shells slice (`shells` plugin retired; all rsync-managed shell
+dotfiles migrated; `programs.bash`, `programs.zsh`, `home.file.".inputrc"`
+and two activation scripts take over):
+
+1. **Update your private flake** to append work-specific shell content
+   (extra PATH entries, env vars, tooling init shell hooks) via the
+   `lines`-typed `*Extra` options. These CONCATENATE across layers — no
+   `lib.mkForce` needed:
+
+       { lib, pkgs, ... }: {
+         programs.zsh.initContent = ''
+           # work-specific zsh init: extra PATH entries, tooling init, …
+         '';
+         programs.bash.profileExtra = ''
+           # work-specific bash profile init: same idea
+         '';
+         home.sessionVariables = {
+           # work-specific cross-shell env vars (no overlap with public ones)
+         };
+       }
+
+2. **Delete the now-orphaned rsync sources** from your private repo:
+
+       git rm custom_environments/<env>/home/.zshrc \
+              custom_environments/<env>/home/.zshenv \
+              custom_environments/<env>/home/.zprofile \
+              custom_environments/<env>/home/.bash_profile \
+              custom_environments/<env>/home/.bashrc \
+              custom_environments/<env>/home/.profile \
+              custom_environments/<env>/home/.inputrc
+       git rm -r custom_environments/<env>/home/.zshrc.d \
+                 custom_environments/<env>/home/.bash_profile.d
+       git commit -m "remove rsync'd shell config (now managed via nix)"
+
+3. **First `./apply` after this slice** runs the `migrateLegacyShellConfig`
+   activation, which moves any pre-existing real shell dotfiles aside to
+   `.legacy-backup` siblings once, AND `chshAndEtcShells` activation, which
+   registers `~/.nix-profile/bin/zsh` in `/etc/shells` and chshes the user
+   to it (interactive sudo + password prompts in the apply terminal). The
+   second activation is interactive-tty-aware — it skips on container
+   builds and leaves its marker absent so a later interactive apply can
+   complete it. You can `rm ~/.{zshrc,zshenv,zprofile,bash_profile,bashrc,
+   profile,inputrc}.legacy-backup` and `rm -rf ~/.{zshrc,bash_profile}.d.
+   legacy-backup` whenever you're satisfied with the migration.
 
 The same shape applies to future slices that migrate a plugin or rsync
 source: add the new options to your private flake, delete the now-orphaned
