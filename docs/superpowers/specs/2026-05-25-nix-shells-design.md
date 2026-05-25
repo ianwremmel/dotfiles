@@ -1,8 +1,16 @@
 # Nix Shells Slice Design
 
 **Date:** 2026-05-25
-**Status:** Draft — pending user approval
+**Status:** Implemented
 **Branch:** `nix-shells` (stacks on `nix-commit-signing` / PR #65 → `nix-git` / PR #64 → `nix-profiles` / PR #63 → `nix-cross-platform` / PR #62)
+
+## Post-implementation notes
+
+The shipped implementation differs from this spec in three ways. Code is the source of truth where they conflict:
+
+1. **`programs.zsh.initContent`** replaced the spec's `initExtraFirst` + `initExtra` pair. home-manager 26.05 deprecated the separate options in favor of a single `initContent` lines-typed option. Private-flake authors extending zsh init should use `programs.zsh.initContent`, not `initExtra`.
+2. **`programs.zsh.history.extended = false`** (not `true` as in the spec's pseudocode). The original `.zshrc` had no `setopt extendedhistory`, so `false` is the faithful translation.
+3. **File counts.** The spec arithmetic in places ("22 files total") double-counted `.inputrc`. The actual migration moves 21 rsync sources (7 top-level files including `.inputrc` + 5 `.bash_profile.d/*` + 9 `.zshrc.d/*`) plus the 2 `.d/` directories.
 
 ## Goal
 
