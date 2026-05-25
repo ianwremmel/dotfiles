@@ -378,14 +378,27 @@ in {
     # builds skip cleanly). Sudo prompt goes to the apply terminal.
     # Note: home-manager activation scripts run inline (not in a function),
     # so `return` is not valid — use nested if-blocks for early exits.
+    #
+    # All work runs inside a subshell so the PATH prepend (needed to find
+    # sudo / chsh / dscl / getent / tee, which live in /usr/bin or /bin on
+    # both macOS and Linux but aren't on home-manager's stripped activation
+    # PATH) doesn't leak to subsequent activation steps. Some HM steps
+    # (e.g., checkLinkTargets) rely on the nix-shipped GNU coreutils
+    # winning the PATH race for `readlink -e`; if we prepended globally,
+    # macOS's BSD readlink would shadow it and break those steps.
     if [ ! -e "$HOME/.shells-chsh.hm-migrated" ]; then
       if [ ! -t 0 ]; then
         echo "chshAndEtcShells: non-interactive shell, skipping (run ./apply in a terminal to complete chsh setup)"
       else
-        target="$HOME/.nix-profile/bin/zsh"
-        if [ ! -x "$target" ]; then
-          echo "chshAndEtcShells: $target missing; programs.zsh.enable should have installed it. Skipping."
-        else
+        (
+          PATH="/usr/bin:/bin:$PATH"
+
+          target="$HOME/.nix-profile/bin/zsh"
+          if [ ! -x "$target" ]; then
+            echo "chshAndEtcShells: $target missing; programs.zsh.enable should have installed it. Skipping."
+            exit 0
+          fi
+
           # Register in /etc/shells if absent
           if ! grep -qxF "$target" /etc/shells; then
             echo "chshAndEtcShells: adding $target to /etc/shells (sudo prompt incoming)"
@@ -405,8 +418,8 @@ in {
               ;;
           esac
 
-          run touch "$HOME/.shells-chsh.hm-migrated"
-        fi
+          touch "$HOME/.shells-chsh.hm-migrated"
+        )
       fi
     fi
   '';
