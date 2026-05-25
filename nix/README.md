@@ -145,6 +145,47 @@ option:
 The private flake also has its own `flake.lock` (committed to your private
 repo) for standalone reproducibility.
 
+### Migrating a private custom environment after this slice
+
+When a slice migrates a plugin or rsync-managed file into home-manager,
+machines using a private `custom_environments/<env>/` repo need a one-time
+update: the old rsync-managed file gets superseded by the home-manager-managed
+XDG file, and any per-env overrides that used to live in the rsync'd file
+move into the private flake.
+
+For the git slice (`git` plugin + the rsync'd `.gitconfig` body):
+
+1. **Update your private flake** to add `programs.git`:
+
+       { lib, pkgs, ... }: {
+         programs.git.userName  = lib.mkForce "<your name for this env>";
+         programs.git.userEmail = lib.mkForce "<your email for this env>";
+
+         # Any env-specific git settings that used to live in your private
+         # .gitconfig — enterprise hosts, additional aliases, etc. Use
+         # `extraConfig` for raw settings and `lib.mkForce` only where
+         # overriding a value the public layer set.
+         programs.git.extraConfig = {
+           # …your env's settings here…
+         };
+       }
+
+2. **Delete the rsync'd .gitconfig source from your private repo:**
+   `git rm custom_environments/<env>/home/.gitconfig` in the private repo
+   and commit. home-manager will own `~/.config/git/config` on that machine
+   after the next `./apply`, so the rsync source is no longer needed.
+
+3. **First `./apply` after this slice** runs the
+   `migrateLegacyGitConfig` activation script, which moves any pre-existing
+   `~/.gitconfig` aside to `~/.gitconfig.legacy-backup` once. No action
+   needed; mentioned so you know what the file is if you see it. You can
+   `rm ~/.gitconfig.legacy-backup` whenever you're satisfied with the
+   migration.
+
+The same shape applies to future slices that migrate a plugin or rsync
+source: add the new options to your private flake, delete the now-orphaned
+rsync source from your private repo, and trust the activation cleanup.
+
 ## Backout
 
 - **Disable the slice:** set `DOTFILES_NIX_SKIP=1` before `./apply`.
