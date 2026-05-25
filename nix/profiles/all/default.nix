@@ -89,7 +89,9 @@
          && [ ! -L "$HOME/.gitconfig" ] \
          && [ ! -e "$HOME/.gitconfig.hm-migrated" ]; then
       run mv "$HOME/.gitconfig" "$HOME/.gitconfig.legacy-backup"
-      verboseEcho "Moved legacy ~/.gitconfig → ~/.gitconfig.legacy-backup (one-time migration)"
+      # Use bare echo (not verboseEcho) so this one-time event is visible in
+      # a normal ./apply run without requiring DOTFILES_DEBUG / $VERBOSE.
+      echo "Moved legacy ~/.gitconfig → ~/.gitconfig.legacy-backup (one-time migration)"
     fi
 
     # Record that the one-time migration has run — even on a fresh machine with

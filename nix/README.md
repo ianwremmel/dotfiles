@@ -8,8 +8,11 @@ activated automatically by the `nix` plugin during `./apply`.
 
 The repo is mid-migration from the homegrown plugin framework toward Nix. See
 `docs/superpowers/specs/2026-05-22-nix-migration-design.md` for the design and
-planned phases. Today this manages only the `bat` package and its config, as a
-proof of the install → build → activate loop.
+planned phases. So far this manages: `bat` (shared in the `all` layer);
+`ripgrep` (in the `default` profile); the full git config (aliases, body,
+identity, includes) via `programs.git` plus a one-time activation that retires
+the legacy rsync-managed `~/.gitconfig`. See Profiles for the layering and
+Migrating a private custom environment for the private-side migration steps.
 
 ## Install
 
@@ -58,7 +61,8 @@ plugin-generated `nix/host.nix` carries both `username` and `profile`.
 whichever selectable profile is active:
 
 - `all` — always included via `mkHome`; shared content for every machine
-  regardless of profile or private overlay (currently `bat`).
+  regardless of profile or private overlay (currently `bat` and the shared
+  git config — aliases, body, includes — via `programs.git`).
 - `default` — selectable profile; matches the framework's default
   `DOTFILES_ENVIRONMENT=default` and adds `ripgrep`.
 - `agent` — selectable profile for headless / agent boxes; lean.
@@ -158,17 +162,17 @@ For the git slice (`git` plugin + the rsync'd `.gitconfig` body):
 1. **Update your private flake** to add `programs.git`:
 
        { lib, pkgs, ... }: {
-         programs.git.settings.user = {
-           name  = lib.mkForce "<your name for this env>";
-           email = lib.mkForce "<your email for this env>";
-         };
-
-         # Any env-specific git settings that used to live in your private
-         # .gitconfig — enterprise hosts, additional aliases, etc. Aliases
-         # land under `settings.alias`; raw git config sections become
-         # other `settings.*` attrs. Use `lib.mkForce` only where overriding
-         # a value the public layer set.
          programs.git.settings = {
+           user = {
+             name  = lib.mkForce "<your name for this env>";
+             email = lib.mkForce "<your email for this env>";
+           };
+
+           # Any env-specific git settings that used to live in your private
+           # .gitconfig — enterprise hosts, additional aliases, etc.
+           # Aliases land under `settings.alias`; raw git config sections
+           # become other top-level `settings.*` attrs. Use `lib.mkForce`
+           # only where overriding a value the public layer set.
            # …your env's settings here…
          };
        }
