@@ -8,11 +8,7 @@ activated automatically by the `nix` plugin during `./apply`.
 
 The repo is mid-migration from the homegrown plugin framework toward Nix. See
 `docs/superpowers/specs/2026-05-22-nix-migration-design.md` for the design and
-planned phases. So far this manages: `bat` (shared in the `all` layer);
-`ripgrep` (in the `default` profile); the full git config (aliases, body,
-identity, includes) via `programs.git` plus a one-time activation that retires
-the legacy rsync-managed `~/.gitconfig`. See Profiles for the layering and
-Migrating a private custom environment for the private-side migration steps.
+planned phases. So far this manages: `bat` (shared in the `all` layer); `ripgrep` (in the `default` profile); the full git config (aliases, body, identity, includes) via `programs.git` plus a one-time activation that retires the legacy rsync-managed `~/.gitconfig`; and commit signing — `programs.gpg` + `services.gpg-agent` with per-OS pinentry (`pinentry-mac` on macOS, `pinentry-tty` on Linux), `programs.git.settings.user.signingkey` + `commit.gpgsign` in the `default` profile, and a one-time activation that retires the old plugin-written `~/.gnupg/*.conf`. See Profiles for the layering and Migrating a private custom environment for the private-side migration steps.
 
 ## Install
 
@@ -61,8 +57,10 @@ plugin-generated `nix/host.nix` carries both `username` and `profile`.
 whichever selectable profile is active:
 
 - `all` — always included via `mkHome`; shared content for every machine
-  regardless of profile or private overlay (currently `bat` and the shared
-  git config — aliases, body, includes — via `programs.git`).
+  regardless of profile or private overlay (currently `bat`, the shared
+  git config — aliases, body, includes — via `programs.git`, and GPG/agent
+  setup with per-OS pinentry: `pinentry-mac` on macOS, `pinentry-tty` on
+  Linux).
 - `default` — selectable profile; matches the framework's default
   `DOTFILES_ENVIRONMENT=default` and adds `ripgrep`.
 - `agent` — selectable profile for headless / agent boxes; lean.
@@ -188,6 +186,34 @@ For the git slice (`git` plugin + the rsync'd `.gitconfig` body):
    needed; mentioned so you know what the file is if you see it. You can
    `rm ~/.gitconfig.legacy-backup` whenever you're satisfied with the
    migration.
+
+For the commit-signing slice (`commit_signing` plugin retired;
+`programs.gpg`, `services.gpg-agent`, and
+`programs.git.settings.{user.signingkey,commit.gpgsign}` take over):
+
+1. **Update your private flake** to override the signing key
+   (and explicitly set `commit.gpgsign` if your private flake
+   doesn't import `public.homeModules.default`):
+
+       { lib, pkgs, ... }: {
+         programs.git.settings = {
+           user.signingkey = lib.mkForce "<your env's key id>";
+           # commit.gpgsign already inherited from `default` if your
+           # private flake imports `public.homeModules.default`;
+           # otherwise:
+           # commit.gpgsign = lib.mkForce true;
+         };
+       }
+
+2. **Nothing to delete from your private repo this time.** The old
+   `commit_signing` plugin lived only in the public repo (no rsync
+   source under `custom_environments/<env>/home/`).
+
+3. **First `./apply` after this slice** runs the
+   `migrateLegacyGnupgConfig` activation script, which moves any
+   pre-existing real `~/.gnupg/gpg.conf` and `~/.gnupg/gpg-agent.conf`
+   aside to `.legacy-backup` siblings once. No action needed; `rm ~/.gnupg/gpg.conf.legacy-backup ~/.gnupg/gpg-agent.conf.legacy-backup` when satisfied. Your actual keyring (`pubring.kbx`,
+   `private-keys-v1.d/`, `trustdb.gpg`, etc.) is never touched.
 
 The same shape applies to future slices that migrate a plugin or rsync
 source: add the new options to your private flake, delete the now-orphaned

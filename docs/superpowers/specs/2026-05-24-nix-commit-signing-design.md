@@ -203,7 +203,7 @@ home.activation.migrateLegacyGitConfig = lib.hm.dag.entryAfter [ "writeBoundary"
   # to ~/.gitconfig anymore.
 '';
 
-home.activation.migrateLegacyGnupgConfig = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+home.activation.migrateLegacyGnupgConfig = lib.hm.dag.entryBefore [ "checkLinkTargets" ] ''
   # One-time migration: home-manager wants to symlink ~/.gnupg/gpg.conf and
   # ~/.gnupg/gpg-agent.conf, but it refuses to overwrite real files. The
   # old commit_signing plugin wrote those as real files; move them aside
@@ -213,7 +213,7 @@ home.activation.migrateLegacyGnupgConfig = lib.hm.dag.entryAfter [ "writeBoundar
   if [ ! -e "$HOME/.gnupg.hm-migrated" ]; then
     for f in gpg.conf gpg-agent.conf; do
       if [ -f "$HOME/.gnupg/$f" ] && [ ! -L "$HOME/.gnupg/$f" ]; then
-        run mv "$HOME/.gnupg/$f" "$HOME/.gnupg/$f.legacy-backup"
+        run mv -n "$HOME/.gnupg/$f" "$HOME/.gnupg/$f.legacy-backup"
         echo "Moved legacy ~/.gnupg/$f → ~/.gnupg/$f.legacy-backup (one-time migration)"
       fi
     done
@@ -227,7 +227,9 @@ home.activation.migrateLegacyGnupgConfig = lib.hm.dag.entryAfter [ "writeBoundar
 - **One-time effective.** `~/.gnupg.hm-migrated` marker short-circuits the
   GPG migration after the first run.
 - **Non-destructive.** Both files preserved as `.legacy-backup` siblings
-  inside `~/.gnupg/`. User can `diff` and `rm` whenever.
+  inside `~/.gnupg/`. User can `diff` and `rm` whenever. `mv -n` prevents
+  silent backup-overwrite if a prior activation crashed between the move
+  and the marker touch.
 - **Linux-safe.** The old plugin was macOS-only (`pinentry-mac`-via-brew);
   Linux machines never had real `~/.gnupg/*.conf` from it. Inner per-file
   `[ -f … ] && [ ! -L … ]` guards make the migration a no-op there. The
@@ -237,6 +239,15 @@ home.activation.migrateLegacyGnupgConfig = lib.hm.dag.entryAfter [ "writeBoundar
   loop, so a half-failed run re-tries cleanly next time.
 - **Independent of the Git migration.** Separate activation block with its
   own marker — failures in one don't affect the other.
+- **DAG edge differs from Slice 1's migration.** `migrateLegacyGitConfig`
+  uses `entryAfter [ "writeBoundary" ]`; this one uses
+  `entryBefore [ "checkLinkTargets" ]`. home-manager's `checkLinkTargets`
+  phase runs before `writeBoundary` and aborts if a real file occupies a
+  target path. `programs.gpg` and `services.gpg-agent` place managed
+  symlinks at `~/.gnupg/{gpg.conf,gpg-agent.conf}`, so the real files
+  must move aside before `checkLinkTargets`. Slice 1 didn't face this
+  because home-manager symlinks at `~/.config/git/config`, not at
+  `~/.gitconfig`.
 
 ## Testing
 

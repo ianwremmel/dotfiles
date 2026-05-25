@@ -186,7 +186,7 @@ Expected: the file from Slice 1 — signature `{ lib, ... }:`, `programs.bat` + 
     # nothing else writes to ~/.gitconfig anymore.
   '';
 
-  home.activation.migrateLegacyGnupgConfig = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+  home.activation.migrateLegacyGnupgConfig = lib.hm.dag.entryBefore [ "checkLinkTargets" ] ''
     # One-time migration: home-manager wants to symlink ~/.gnupg/gpg.conf and
     # ~/.gnupg/gpg-agent.conf, but it refuses to overwrite real files. The
     # old commit_signing plugin wrote those as real files; move them aside
@@ -196,7 +196,7 @@ Expected: the file from Slice 1 — signature `{ lib, ... }:`, `programs.bat` + 
     if [ ! -e "$HOME/.gnupg.hm-migrated" ]; then
       for f in gpg.conf gpg-agent.conf; do
         if [ -f "$HOME/.gnupg/$f" ] && [ ! -L "$HOME/.gnupg/$f" ]; then
-          run mv "$HOME/.gnupg/$f" "$HOME/.gnupg/$f.legacy-backup"
+          run mv -n "$HOME/.gnupg/$f" "$HOME/.gnupg/$f.legacy-backup"
           echo "Moved legacy ~/.gnupg/$f → ~/.gnupg/$f.legacy-backup (one-time migration)"
         fi
       done
