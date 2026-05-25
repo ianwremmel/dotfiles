@@ -10,17 +10,21 @@
   programs.git = {
     enable = true;
 
-    aliases = {
-      autosquash = "!GIT_SEQUENCE_EDITOR=true git rebase -i --autosquash";
-      fixup      = "commit --fixup";
-      pfl        = "push --force-with-lease";
-    };
-
     # Preserves `[include] path = .gitconfig.custom` from both source
     # .gitconfigs so user-managed local overrides keep working.
     includes = [ { path = "~/.gitconfig.custom"; } ];
 
-    extraConfig = {
+    # `settings` replaces the older `aliases` + `extraConfig` options
+    # (renamed in home-manager; the old names emit a deprecation warning).
+    # `settings.alias` is the alias subsection; the other top-level attrs
+    # map to git config sections of the same name.
+    settings = {
+      alias = {
+        autosquash = "!GIT_SEQUENCE_EDITOR=true git rebase -i --autosquash";
+        fixup      = "commit --fixup";
+        pfl        = "push --force-with-lease";
+      };
+
       branch = {
         sort = "-committerdate";
         main.rebase = true;

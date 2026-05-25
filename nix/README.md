@@ -158,14 +158,17 @@ For the git slice (`git` plugin + the rsync'd `.gitconfig` body):
 1. **Update your private flake** to add `programs.git`:
 
        { lib, pkgs, ... }: {
-         programs.git.userName  = lib.mkForce "<your name for this env>";
-         programs.git.userEmail = lib.mkForce "<your email for this env>";
+         programs.git.settings.user = {
+           name  = lib.mkForce "<your name for this env>";
+           email = lib.mkForce "<your email for this env>";
+         };
 
          # Any env-specific git settings that used to live in your private
-         # .gitconfig — enterprise hosts, additional aliases, etc. Use
-         # `extraConfig` for raw settings and `lib.mkForce` only where
-         # overriding a value the public layer set.
-         programs.git.extraConfig = {
+         # .gitconfig — enterprise hosts, additional aliases, etc. Aliases
+         # land under `settings.alias`; raw git config sections become
+         # other `settings.*` attrs. Use `lib.mkForce` only where overriding
+         # a value the public layer set.
+         programs.git.settings = {
            # …your env's settings here…
          };
        }
