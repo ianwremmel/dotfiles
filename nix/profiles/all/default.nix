@@ -7,5 +7,6 @@
     ./bat.nix
     ./git.nix
     ./gpg.nix
+    ./shells.nix
   ];
 }

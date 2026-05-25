@@ -1,0 +1,413 @@
+{ lib, ... }:
+
+let
+  # Shared static aliases. Both shells get them as typed attrsets via
+  # programs.{bash,zsh}.shellAliases. Conditional / OS-specific aliases
+  # (md5sum, sha1sum, pbcopy/pbpaste on non-Darwin) live in
+  # programs.bash.profileExtra since the typed option can't express
+  # conditionals.
+  sharedAliases = {
+    psgrep = "ps -A | grep -v /Applications | grep -v /System | grep";
+    xo     = "xargs open";
+    https  = "http --default-scheme=https";
+    r2     = "env /usr/bin/arch -x86_64";
+  };
+
+  # Brew-prefix-and-PATH setup shared between programs.bash.profileExtra
+  # and programs.zsh.profileExtra. Both files used to have a near-identical
+  # block (.bash_profile.d/path and .zprofile); DRY them with a let-binding.
+  brewPathSetup = ''
+    export PATH
+
+    # Add Homebrew. We probably don't have much of a path at this point, so,
+    # start with the brew command, but fall back to its well-known locations
+    # if it can't be found on $PATH.
+    if command -v brew > /dev/null 2>&1; then
+      BREW_PREFIX=$(brew --prefix)
+    elif command -v /opt/homebrew/bin/brew > /dev/null 2>&1; then
+      BREW_PREFIX=$(/opt/homebrew/bin/brew --prefix)
+    elif command -v /usr/local/bin/brew > /dev/null 2>&1; then
+      BREW_PREFIX=$(/usr/local/bin/brew --prefix)
+    else
+      BREW_PREFIX=""
+    fi
+
+    if [ "$BREW_PREFIX" != "" ]; then
+      # Put brew binaries at the start of PATH so they override system binaries
+      PATH=$BREW_PREFIX/bin:$BREW_PREFIX/sbin:$PATH
+
+      # Put all of the gnubin binaries in front of system binaries
+      for FILE in "$BREW_PREFIX"/opt/*/libexec/gnubin; do
+        PATH=$FILE:$PATH
+      done
+    fi
+
+    # Add Java
+    if command -v /usr/libexec/java_home > /dev/null 2>&1 ; then
+      PATH=$PATH:$(/usr/libexec/java_home)/bin
+    fi
+
+    # User-private bin
+    PATH="$HOME/bin:$PATH"
+
+    # Native Claude binary
+    PATH="$HOME/.local/bin:$PATH"
+  '';
+in {
+  # ---------- Cross-shell environment vars (apply to both bash and zsh) ----------
+  home.sessionVariables = {
+    EDITOR                  = "vim";
+    GIT_EDITOR              = "vim";
+    AWS_VAULT_KEYCHAIN_NAME = "login";
+    LANG                    = "en_US.UTF-8";
+    LC_ALL                  = "en_US.UTF-8";
+    CLICOLOR                = "1";
+    # BSD `ls -G` palette (macOS). Note: deliberately NOT setting GNU $LS_COLORS
+    # to this value — it's a different format, and a non-empty $LS_COLORS makes
+    # omz_ls-colors.zsh switch macOS to `gls --color=tty`, which would then
+    # mis-parse this BSD string. Leaving $LS_COLORS unset keeps `ls -G` on macOS
+    # and lets `dircolors` provide GNU defaults on Linux.
+    LSCOLORS                = "Gxfxcxdxbxegedabagacad";
+  };
+
+  # ---------- ~/.inputrc ----------
+  home.file.".inputrc".text = ''
+    # Make Tab autocomplete regardless of filename case
+    set completion-ignore-case off
+
+    # Immediately add a trailing slash when autocompleting symlinks to directories
+    set mark-symlinked-directories on
+
+    # Use the text that has already been typed as the prefix for searching through
+    # commands (i.e. more intelligent Up/Down behavior)
+    "\e[B": history-search-forward
+    "\e[A": history-search-backward
+
+    # Do not autocomplete hidden files unless the pattern explicitly begins with a
+    # dot
+    set match-hidden-files off
+
+    # Show all autocomplete results at once
+    #set page-completions off
+
+    # If there are more than 200 possible completions for a word, ask to show them
+    # all
+    set completion-query-items 200
+
+    # Show extra file information when completing, like `ls -F` does
+    set visible-stats on
+
+    # Be more intelligent when autocompleting by also looking at the text after
+    # the cursor. For example, when the current line is "cd ~/src/mozil", and
+    # the cursor is on the "z", pressing Tab will not autocomplete it to "cd
+    # ~/src/mozillail", but to "cd ~/src/mozilla". (This is supported by the
+    # Readline used by Bash 4.)
+    set skip-completed-text on
+
+    # Allow UTF-8 input and output, instead of showing stuff like $'\0123\0456'
+    set input-meta on
+    set output-meta on
+    set convert-meta off
+
+    # Use Alt/Meta + Delete to delete the preceding word
+    "\e[3;3~": kill-word
+  '';
+
+  # ---------- Bash ----------
+  programs.bash = {
+    enable = true;
+
+    shellAliases = sharedAliases // {
+      # Bash-additional static aliases (from .bash_profile.d/aliases that
+      # don't have shell-side conditionals).
+      sudo   = "sudo ";
+      grep   = "/usr/bin/grep --color=auto";
+      nopush = ''git add . && git commit --allow-empty -m "#no-push" -n && git push && git reset HEAD^'';
+      ubuntu = "docker run -it --rm -v $(pwd):/workspace --workdir=/workspace ubuntu bash";
+    };
+
+    # History (from .bash_profile.d/exports HISTFILESIZE/HISTSIZE/HISTCONTROL/HISTIGNORE).
+    historyControl = [ "ignoreboth" ];
+    historyIgnore  = [ "ls" "pwd" "date" "git reset HEAD^" ];
+    # Empty HISTFILESIZE/HISTSIZE = unlimited in bash. Set both HM options to
+    # null so HM emits no HISTFILESIZE/HISTSIZE line at all; our exports below
+    # (in bashrcExtra, which runs after HM's generated block) set them to empty
+    # (= unlimited). profileExtra exports are redundant for interactive shells
+    # but kept for non-interactive login shells.
+    historyFileSize = null;
+    historySize     = null;
+
+    # .bash_profile body (excluding the load_profile_file function and the
+    # FILES loop — those are gone since nothing lives in .bash_profile.d/
+    # anymore). Includes: ulimit, ssh-add, nvm-load, histappend, shopt
+    # autocd/globstar, rbenv. Plus PATH from .bash_profile.d/path. Plus the
+    # remaining shell-logic exports from .bash_profile.d/exports (HISTFILESIZE,
+    # HISTSIZE empty for unlimited; GPG_TTY).
+    profileExtra = brewPathSetup + ''
+
+      # ---- from .bash_profile body ----
+
+      # Set a reasonable ulimit because Apple
+      ulimit -n 8192
+
+      # Load SSH keys
+      ssh-add --apple-use-keychain > /dev/null 2> /dev/null
+
+      # ---- from .bash_profile.d/exports — shell-logic exports ----
+
+      # bash empty = unlimited; home-manager's typed historySize/historyFileSize
+      # don't have an unlimited sentinel so we set them here.
+      export HISTFILESIZE=
+      export HISTSIZE=
+
+      # GPG_TTY needs shell logic; can't live in home.sessionVariables.
+      export GPG_TTY
+      GPG_TTY=$(tty)
+
+      # ---- conditional macOS-only aliases (from .bash_profile.d/aliases) ----
+
+      # OS X has no `md5sum`, so use `md5` as a fallback
+      command -v md5sum > /dev/null || alias md5sum='md5'
+      # macOS has no `sha1sum`, so use `shasum` as a fallback
+      command -v sha1sum > /dev/null || alias sha1sum="shasum"
+
+      # Non-Darwin clipboard aliases
+      if [ "$(uname)" != 'Darwin' ]; then
+        alias pbcopy='xsel --clipboard --input'
+        alias pbpaste='xsel --clipboard --output'
+      fi
+
+      # ---- non-interactive tail of .bash_profile (interactive guard below) ----
+
+      # Setup nvm and node so prompt can use it
+      if [ -d "$HOME/.nvm" ]; then
+        source "$HOME/.nvm/nvm.sh"
+      fi
+
+      # If not interactive, stop further processing
+      [ -z "$PS1" ] && return
+
+      # Append rather than overwrite bash history
+      shopt -s histappend
+
+      # Enable some Bash 4 features when possible:
+      # * `autocd` — `**/qux` enters `./foo/bar/baz/qux`
+      # * Recursive globbing — `echo **/*.txt`
+      for option in autocd globstar; do
+        shopt -s "$option" 2> /dev/null
+      done
+
+      # Configure rbenv
+      if command -v rbenv >/dev/null 2>&1; then
+        eval "$(rbenv init -)"
+      fi
+    '';
+
+    # .bashrc + .bash_profile.d/{completion,prompt}. Interactive content;
+    # lands in ~/.bashrc.
+    bashrcExtra = ''
+      [ -n "$PS1" ] || return
+
+      # ---- from .bash_profile.d/completion ----
+    '' + (builtins.readFile ./bash-completion.bash) + ''
+
+      # ---- from .bash_profile.d/prompt ----
+    '' + (builtins.readFile ./bash-prompt.bash) + ''
+
+      # Bash empty = unlimited history. We set historyFileSize/historySize to
+      # null above so HM emits no HISTFILESIZE/HISTSIZE; these exports at the
+      # end of bashrcExtra guarantee the unlimited values survive for every
+      # interactive shell (login and non-login alike).
+      export HISTFILESIZE=
+      export HISTSIZE=
+    '';
+  };
+
+  # ---------- Zsh ----------
+  programs.zsh = {
+    enable = true;
+
+    shellAliases = sharedAliases;  # Just the 4 shared aliases; no zsh-specific ones.
+
+    # History settings (from .zshrc body).
+    history = {
+      size          = 10000;
+      save          = 10000;
+      path          = "$HOME/.zsh_history";
+      extended      = false;
+      ignoreAllDups = true;
+      share         = true;  # shares history across terminals (sharehistory)
+      append        = true;  # appends, doesn't overwrite (appendhistory)
+    };
+
+    # Anything from .zshenv with shell logic (GPG_TTY). The static .zshenv
+    # vars live in home.sessionVariables above.
+    envExtra = ''
+      # Avoid issues with gpg as installed via Homebrew.
+      # https://stackoverflow.com/a/42265848/96656
+      export GPG_TTY
+      GPG_TTY=$(tty)
+    '';
+
+    # Case-insensitive completion (improvement over the original .zshrc which
+    # only set the OMZ-style CASE_SENSITIVE="true" variable that did nothing
+    # without oh-my-zsh actually installed).
+    completionInit = ''
+      zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}'
+      autoload -Uz compinit && compinit
+    '';
+
+    # .zprofile content (PATH setup; macOS-specific brew + Java + ~/bin).
+    profileExtra = brewPathSetup;
+
+    # Full .zshrc content: p10k instant prompt first (must be top of file),
+    # then the .zshrc body, then all 9 .zshrc.d/* files in alphabetical order
+    # (matches the original `for FILE ($HOME/.zshrc.d/*)` glob order).
+    # Each block is commented with its origin file.
+    # initExtraFirst / initExtra were deprecated in favour of initContent.
+    # Since this module owns all the zsh init content, ordering is not needed.
+    initContent = ''
+      # ---- Powerlevel10k instant prompt — MUST be at the very top of .zshrc.
+      # The original .zshrc gates this on ~/powerlevel10k existing; preserved.
+      # Slice 6 (prompt) will replace this when p10k moves to home-manager.
+      if [ -d "$HOME/powerlevel10k" ]; then
+        # Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
+        # Initialization code that may require console input (password prompts, [y/n]
+        # confirmations, etc.) must go above this block; everything else may go below.
+        if [[ -r "''${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-''${(%):-%n}.zsh" ]]; then
+          source "''${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-''${(%):-%n}.zsh"
+        fi
+      fi
+
+      # ---- from .zshrc body ----
+
+      # extendedglob: support **/* globs
+      setopt extendedglob
+      # error on unmatched globs
+      setopt nomatch
+      # unbreak git caret selector caused by 'nomatch'
+      setopt no_nomatch
+      # Don't beep
+      unsetopt autocd beep notify
+      # emacs keybindings (turns out that's what I've been using for years)
+      bindkey -e
+
+      # ---- from .zshrc.d/aliases.zsh (handled via shellAliases above) ----
+
+      # ---- from .zshrc.d/omz_keybindings.zsh ----
+    '' + (builtins.readFile ./omz_keybindings.zsh) + ''
+
+      # ---- from .zshrc.d/omz_ls-colors.zsh ----
+    '' + (builtins.readFile ./omz_ls-colors.zsh) + ''
+
+      # ---- from .zshrc.d/omz_nvm.sh (8 lines; retired in Slice 7) ----
+      # Set NVM_DIR if it isn't already defined
+      [[ -z "$NVM_DIR" ]] && export NVM_DIR="$HOME/.nvm"
+      # Load nvm if it exists
+      [[ -f "$NVM_DIR/nvm.sh" ]] && source "$NVM_DIR/nvm.sh"
+
+      # ---- from .zshrc.d/omz_termsupport.zsh ----
+    '' + (builtins.readFile ./omz_termsupport.zsh) + ''
+
+      # ---- from .zshrc.d/prompt.zsh (replaced in Slice 6) ----
+    '' + (builtins.readFile ./zshrc-d-prompt.zsh) + ''
+
+      # ---- from .zshrc.d/rbenv.zsh ----
+      if command -v rbenv >/dev/null 2>&1; then
+        eval "$(rbenv init --no-rehash - zsh)"
+      fi
+
+      # ---- from .zshrc.d/ssh.zsh ----
+      ssh-add --apple-use-keychain > /dev/null 2> /dev/null
+
+      # ---- from .zshrc.d/ulimit.zsh ----
+      # Set a reasonable ulimit because Apple
+      ulimit -n 8192
+
+      # ---- p10k tail of .zshrc (replaced in Slice 6) ----
+      if [ -d "$HOME/powerlevel10k" ]; then
+        source ~/powerlevel10k/powerlevel10k.zsh-theme
+      fi
+
+      # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
+      [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
+    '';
+  };
+
+  # ---------- Activation: legacy-backup migration ----------
+  home.activation.migrateLegacyShellConfig = lib.hm.dag.entryBefore [ "checkLinkTargets" ] ''
+    # One-time migration: move pre-existing rsync'd shell-config files
+    # (and the .bash_profile.d/ and .zshrc.d/ modular-config dirs) aside so
+    # programs.bash / programs.zsh / home.file can take over those paths.
+    # Marker is a sibling to ~/ (not inside any 0700-mode tree).
+    if [ ! -e "$HOME/.shell-config.hm-migrated" ]; then
+      # Top-level files
+      for f in .zshrc .zshenv .zprofile .bash_profile .bashrc .profile .inputrc; do
+        if [ -f "$HOME/$f" ] && [ ! -L "$HOME/$f" ]; then
+          # Don't use `mv -n`: it silently no-ops if a .legacy-backup already
+          # exists, yet the marker below would still be written — leaving the
+          # real file to fail checkLinkTargets forever with no retry. Fail
+          # loudly so a pre-existing backup is resolved by hand.
+          if [ -e "$HOME/$f.legacy-backup" ]; then
+            echo "ERROR: $HOME/$f.legacy-backup already exists; refusing to overwrite. Move it aside, then re-run ./apply." >&2
+            exit 1
+          fi
+          run mv "$HOME/$f" "$HOME/$f.legacy-backup"
+          echo "Moved legacy ~/$f → ~/$f.legacy-backup (one-time migration)"
+        fi
+      done
+      # Modular-config directories: move the whole dir aside.
+      for d in .bash_profile.d .zshrc.d; do
+        if [ -d "$HOME/$d" ] && [ ! -L "$HOME/$d" ]; then
+          if [ -e "$HOME/$d.legacy-backup" ]; then
+            echo "ERROR: $HOME/$d.legacy-backup already exists; refusing to overwrite. Move it aside, then re-run ./apply." >&2
+            exit 1
+          fi
+          run mv "$HOME/$d" "$HOME/$d.legacy-backup"
+          echo "Moved legacy ~/$d/ → ~/$d.legacy-backup/ (one-time migration)"
+        fi
+      done
+      run touch "$HOME/.shell-config.hm-migrated"
+    fi
+  '';
+
+  # ---------- Activation: chsh + /etc/shells ----------
+  home.activation.chshAndEtcShells = lib.hm.dag.entryBefore [ "checkLinkTargets" ] ''
+    # One-time chsh + /etc/shells setup replacing the retired `shells` plugin.
+    # Marker-gated. Interactive-tty-aware (so non-interactive container
+    # builds skip cleanly). Sudo prompt goes to the apply terminal.
+    # Note: home-manager activation scripts run inline (not in a function),
+    # so `return` is not valid — use nested if-blocks for early exits.
+    if [ ! -e "$HOME/.shells-chsh.hm-migrated" ]; then
+      if [ ! -t 0 ]; then
+        echo "chshAndEtcShells: non-interactive shell, skipping (run ./apply in a terminal to complete chsh setup)"
+      else
+        target="$HOME/.nix-profile/bin/zsh"
+        if [ ! -x "$target" ]; then
+          echo "chshAndEtcShells: $target missing; programs.zsh.enable should have installed it. Skipping."
+        else
+          # Register in /etc/shells if absent
+          if ! grep -qxF "$target" /etc/shells; then
+            echo "chshAndEtcShells: adding $target to /etc/shells (sudo prompt incoming)"
+            echo "$target" | sudo tee -a /etc/shells >/dev/null
+          fi
+
+          # chsh only if current login shell is a system default OR brew's zsh
+          # (preserves explicit user choices)
+          current="$(dscl . -read "/Users/$USER" UserShell 2>/dev/null | awk '{print $2}' || getent passwd "$USER" | cut -d: -f7)"
+          case "$current" in
+            /bin/zsh|/bin/bash|/opt/homebrew/bin/zsh|/usr/local/bin/zsh)
+              echo "chshAndEtcShells: changing login shell from $current to $target"
+              chsh -s "$target"
+              ;;
+            *)
+              echo "chshAndEtcShells: login shell already user-managed ($current); leaving alone"
+              ;;
+          esac
+
+          run touch "$HOME/.shells-chsh.hm-migrated"
+        fi
+      fi
+    fi
+  '';
+}
