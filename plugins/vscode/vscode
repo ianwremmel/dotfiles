@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 
-export DOTFILES_VSCODE_DEPS=('homebrew')
+# Previously depended on the `homebrew` plugin (for `brew --prefix`); that
+# plugin retired in the nix-darwin slice. The body still calls `brew --prefix`
+# at runtime — brew is now a pre-nix prerequisite installed by framework/compat,
+# so the path resolves fine; we just don't depend on the plugin existing.
+export DOTFILES_VSCODE_DEPS=()
 
 dotfiles_vscode_apply () {
   local code_helper_path

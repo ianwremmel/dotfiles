@@ -146,4 +146,38 @@ dotfiles_nix_apply () {
   # Clean up on the success path. A failed build/activate aborts under `set -e`
   # before this and leaks one small temp dir, which is an acceptable rare case.
   rm -rf "$tmpdir"
+
+  # nix-darwin: macOS-only system layer. Runs after home-manager so the
+  # user-level setup is in place when nix-darwin tries to resolve user
+  # shells, etc. $system was set above (line ~116); reuse it rather than
+  # re-evaluating `builtins.currentSystem` via a second nix subprocess.
+  if [ "$(uname -s)" = "Darwin" ]; then
+    # The public flake only exposes darwinConfigurations."default@<system>"
+    # (darwinProfiles = [ "default" ]); there is no per-environment darwin
+    # profile yet. Pin to default@ so a non-default $DOTFILES_ENVIRONMENT
+    # (e.g. "work") doesn't fail with an opaque `attribute 'work@…' missing`.
+    # Revisit when a private-darwin branch lands.
+    local darwin_target="default@${system}"
+
+    # `sudo -H` resets $HOME to root's home (/var/root) for the duration of
+    # the elevated command. Without it, nix-darwin sees $HOME=/Users/<user>
+    # (inherited from the calling shell), warns "not owned by you", and
+    # falls back to writing state (Nix config dir, etc.) under /var/root.
+    # The fallback can cause repeated warnings and state drift across
+    # applies — not strictly broken, but worth avoiding.
+    #
+    # `path:${DOTFILES_ROOT_DIR}/nix#…` on both flake refs (same as the
+    # home-manager build above): the `path:` prefix tells nix to use a
+    # non-git fetcher that includes the untracked host.nix. Plain
+    # `${DOTFILES_ROOT_DIR}/nix#…` would use git-tree semantics and miss
+    # host.nix entirely.
+    if ! command -v darwin-rebuild >/dev/null 2>&1; then
+      log "Bootstrapping nix-darwin (first apply on this machine; sudo required)"
+      sudo -H nix "${nixflags[@]}" run \
+        nix-darwin -- switch --flake "path:${DOTFILES_ROOT_DIR}/nix#${darwin_target}"
+    else
+      log "Activating nix-darwin (sudo required)"
+      sudo -H darwin-rebuild switch --flake "path:${DOTFILES_ROOT_DIR}/nix#${darwin_target}"
+    fi
+  fi
 }

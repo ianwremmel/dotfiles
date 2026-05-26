@@ -13,52 +13,6 @@ let
     r2     = "env /usr/bin/arch -x86_64";
   };
 
-  # Brew-prefix-and-PATH setup shared between programs.bash.profileExtra
-  # and programs.zsh.profileExtra. Both files used to have a near-identical
-  # block (.bash_profile.d/path and .zprofile); DRY them with a let-binding.
-  brewPathSetup = ''
-    export PATH
-
-    # Add Homebrew. We probably don't have much of a path at this point, so,
-    # start with the brew command, but fall back to its well-known locations
-    # if it can't be found on $PATH.
-    if command -v brew > /dev/null 2>&1; then
-      BREW_PREFIX=$(brew --prefix)
-    elif command -v /opt/homebrew/bin/brew > /dev/null 2>&1; then
-      BREW_PREFIX=$(/opt/homebrew/bin/brew --prefix)
-    elif command -v /usr/local/bin/brew > /dev/null 2>&1; then
-      BREW_PREFIX=$(/usr/local/bin/brew --prefix)
-    else
-      BREW_PREFIX=""
-    fi
-
-    if [ "$BREW_PREFIX" != "" ]; then
-      # Put brew binaries at the start of PATH so they override system binaries
-      PATH=$BREW_PREFIX/bin:$BREW_PREFIX/sbin:$PATH
-
-      # (The previous `for FILE in $BREW_PREFIX/opt/*/libexec/gnubin` loop is
-      # gone: GNU coreutils/findutils/sed/grep moved from brew to nix in the
-      # brew-formulas slice. nix's versions live in ~/.nix-profile/bin/, which
-      # is already at the front of PATH, so they shadow macOS's BSD variants
-      # without the gnubin PATH-shim. The glob also failed under zsh's
-      # `setopt nomatch` once the brew formulas providing those libexec/gnubin
-      # dirs were uninstalled.)
-    fi
-
-    # (The previous `/usr/libexec/java_home` PATH-shim is gone: brew's
-    # openjdk used to register itself system-wide via
-    # /Library/Java/JavaVirtualMachines/, which `java_home` would find.
-    # nix's pkgs.openjdk ships `java` directly at ~/.nix-profile/bin/java
-    # without registering. The old shim's `command -v` check only
-    # verified the binary existed — invoking it on a system without a
-    # registered Java errors with "Unable to locate a Java Runtime".)
-
-    # User-private bin
-    PATH="$HOME/bin:$PATH"
-
-    # Native Claude binary
-    PATH="$HOME/.local/bin:$PATH"
-  '';
 in {
   # ---------- Cross-shell environment vars (apply to both bash and zsh) ----------
   home.sessionVariables = {
@@ -150,8 +104,7 @@ in {
     # remaining shell-logic exports from .bash_profile.d/exports (HISTFILESIZE,
     # HISTSIZE empty for unlimited; GPG_TTY). (Slice 6 had `nvm-load` here too;
     # Slice 8 retired nvm in favour of fnm — see below.)
-    profileExtra = brewPathSetup + ''
-
+    profileExtra = ''
       # ---- from .bash_profile body ----
 
       # Set a reasonable ulimit because Apple
@@ -264,8 +217,9 @@ in {
       autoload -Uz compinit && compinit
     '';
 
-    # .zprofile content (PATH setup; macOS-specific brew + Java + ~/bin).
-    profileExtra = brewPathSetup;
+    # .zprofile content (PATH setup). Brew binaries are now on PATH system-wide
+    # via nix-darwin's environment.systemPath; this no longer needs to set them.
+    profileExtra = "";
 
     # Full .zshrc content: the .zshrc body followed by the surviving
     # .zshrc.d/* content in alphabetical order (matches the original
@@ -371,59 +325,6 @@ in {
         fi
       done
       run touch "$HOME/.shell-config.hm-migrated"
-    fi
-  '';
-
-  # ---------- Activation: chsh + /etc/shells ----------
-  home.activation.chshAndEtcShells = lib.hm.dag.entryBefore [ "checkLinkTargets" ] ''
-    # One-time chsh + /etc/shells setup replacing the retired `shells` plugin.
-    # Marker-gated. Interactive-tty-aware (so non-interactive container
-    # builds skip cleanly). Sudo prompt goes to the apply terminal.
-    # Note: home-manager activation scripts run inline (not in a function),
-    # so `return` is not valid — use nested if-blocks for early exits.
-    #
-    # All work runs inside a subshell so the PATH prepend (needed to find
-    # sudo / chsh / dscl / getent / tee, which live in /usr/bin or /bin on
-    # both macOS and Linux but aren't on home-manager's stripped activation
-    # PATH) doesn't leak to subsequent activation steps. Some HM steps
-    # (e.g., checkLinkTargets) rely on the nix-shipped GNU coreutils
-    # winning the PATH race for `readlink -e`; if we prepended globally,
-    # macOS's BSD readlink would shadow it and break those steps.
-    if [ ! -e "$HOME/.shells-chsh.hm-migrated" ]; then
-      if [ ! -t 0 ]; then
-        echo "chshAndEtcShells: non-interactive shell, skipping (run ./apply in a terminal to complete chsh setup)"
-      else
-        (
-          PATH="/usr/bin:/bin:$PATH"
-
-          target="$HOME/.nix-profile/bin/zsh"
-          if [ ! -x "$target" ]; then
-            echo "chshAndEtcShells: $target missing; programs.zsh.enable should have installed it. Skipping."
-            exit 0
-          fi
-
-          # Register in /etc/shells if absent
-          if ! grep -qxF "$target" /etc/shells; then
-            echo "chshAndEtcShells: adding $target to /etc/shells (sudo prompt incoming)"
-            echo "$target" | sudo tee -a /etc/shells >/dev/null
-          fi
-
-          # chsh only if current login shell is a system default OR brew's zsh
-          # (preserves explicit user choices)
-          current="$(dscl . -read "/Users/$USER" UserShell 2>/dev/null | awk '{print $2}' || getent passwd "$USER" | cut -d: -f7)"
-          case "$current" in
-            /bin/zsh|/bin/bash|/opt/homebrew/bin/zsh|/usr/local/bin/zsh)
-              echo "chshAndEtcShells: changing login shell from $current to $target"
-              chsh -s "$target"
-              ;;
-            *)
-              echo "chshAndEtcShells: login shell already user-managed ($current); leaving alone"
-              ;;
-          esac
-
-          touch "$HOME/.shells-chsh.hm-migrated"
-        )
-      fi
     fi
   '';
 
