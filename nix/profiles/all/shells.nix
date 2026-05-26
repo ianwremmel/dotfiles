@@ -260,25 +260,15 @@ in {
     # .zprofile content (PATH setup; macOS-specific brew + Java + ~/bin).
     profileExtra = brewPathSetup;
 
-    # Full .zshrc content: p10k instant prompt first (must be top of file),
-    # then the .zshrc body, then all 9 .zshrc.d/* files in alphabetical order
-    # (matches the original `for FILE ($HOME/.zshrc.d/*)` glob order).
-    # Each block is commented with its origin file.
+    # Full .zshrc content: the .zshrc body followed by the surviving
+    # .zshrc.d/* content in alphabetical order (matches the original
+    # `for FILE ($HOME/.zshrc.d/*)` glob order). Each block is commented
+    # with its origin file. Starship's prompt setup is injected by
+    # home-manager separately (via programs.starship.enableZshIntegration)
+    # so we don't need to source it here.
     # initExtraFirst / initExtra were deprecated in favour of initContent.
     # Since this module owns all the zsh init content, ordering is not needed.
     initContent = ''
-      # ---- Powerlevel10k instant prompt — MUST be at the very top of .zshrc.
-      # The original .zshrc gates this on ~/powerlevel10k existing; preserved.
-      # Slice 6 (prompt) will replace this when p10k moves to home-manager.
-      if [ -d "$HOME/powerlevel10k" ]; then
-        # Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
-        # Initialization code that may require console input (password prompts, [y/n]
-        # confirmations, etc.) must go above this block; everything else may go below.
-        if [[ -r "''${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-''${(%):-%n}.zsh" ]]; then
-          source "''${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-''${(%):-%n}.zsh"
-        fi
-      fi
-
       # ---- from .zshrc body ----
 
       # extendedglob: support **/* globs
@@ -309,9 +299,6 @@ in {
       # ---- from .zshrc.d/omz_termsupport.zsh ----
     '' + (builtins.readFile ./omz_termsupport.zsh) + ''
 
-      # ---- from .zshrc.d/prompt.zsh (replaced in Slice 6) ----
-    '' + (builtins.readFile ./zshrc-d-prompt.zsh) + ''
-
       # ---- from .zshrc.d/rbenv.zsh ----
       if command -v rbenv >/dev/null 2>&1; then
         eval "$(rbenv init --no-rehash - zsh)"
@@ -324,14 +311,18 @@ in {
       # Set a reasonable ulimit because Apple
       ulimit -n 8192
 
-      # ---- p10k tail of .zshrc (replaced in Slice 6) ----
-      if [ -d "$HOME/powerlevel10k" ]; then
-        source ~/powerlevel10k/powerlevel10k.zsh-theme
-      fi
-
-      # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
-      [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
     '';
+  };
+
+  # ---------- Starship prompt ----------
+  programs.starship = {
+    enable = true;
+    # No settings overrides — opt in to starship's defaults. The default
+    # prompt shows directory + git status + character on one line; works
+    # cleanly with both bash and zsh; ~10ms init overhead. Iterate post-
+    # merge if a default module is undesirable (override via the typed
+    # `settings` attrset, which serializes to ~/.config/starship.toml).
+    settings = { };
   };
 
   # ---------- Activation: legacy-backup migration ----------
@@ -421,6 +412,29 @@ in {
           touch "$HOME/.shells-chsh.hm-migrated"
         )
       fi
+    fi
+  '';
+
+  # ---------- Activation: legacy .p10k.zsh backup (prompt slice) ----------
+  home.activation.migrateLegacyP10kConfig = lib.hm.dag.entryBefore [ "checkLinkTargets" ] ''
+    # One-time migration: starship replaces p10k. The old rsync'd ~/.p10k.zsh
+    # is no longer sourced; move it aside as a backup. ~/powerlevel10k/ (the
+    # cloned theme repo) is left in place — inert without sourcing; user can
+    # `rm -rf` it manually.
+    if [ ! -e "$HOME/.p10k.hm-migrated" ]; then
+      if [ -f "$HOME/.p10k.zsh" ] && [ ! -L "$HOME/.p10k.zsh" ]; then
+        # Don't use `mv -n`: it silently no-ops if a .legacy-backup already
+        # exists, yet the marker below would still be written — leaving the
+        # real file in place. Fail loudly so a pre-existing backup is resolved
+        # by hand. (Matches the migrateLegacyShellConfig hardening.)
+        if [ -e "$HOME/.p10k.zsh.legacy-backup" ]; then
+          echo "ERROR: $HOME/.p10k.zsh.legacy-backup already exists; refusing to overwrite. Move it aside, then re-run ./apply." >&2
+          exit 1
+        fi
+        run mv "$HOME/.p10k.zsh" "$HOME/.p10k.zsh.legacy-backup"
+        echo "Moved legacy ~/.p10k.zsh → ~/.p10k.zsh.legacy-backup (one-time migration)"
+      fi
+      run touch "$HOME/.p10k.hm-migrated"
     fi
   '';
 }
