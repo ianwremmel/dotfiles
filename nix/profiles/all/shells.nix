@@ -1,4 +1,4 @@
-{ lib, ... }:
+{ lib, pkgs, ... }:
 
 let
   # Shared static aliases. Both shells get them as typed attrsets via
@@ -139,10 +139,11 @@ in {
 
     # .bash_profile body (excluding the load_profile_file function and the
     # FILES loop — those are gone since nothing lives in .bash_profile.d/
-    # anymore). Includes: ulimit, ssh-add, nvm-load, histappend, shopt
+    # anymore). Includes: ulimit, ssh-add, histappend, shopt
     # autocd/globstar, rbenv. Plus PATH from .bash_profile.d/path. Plus the
     # remaining shell-logic exports from .bash_profile.d/exports (HISTFILESIZE,
-    # HISTSIZE empty for unlimited; GPG_TTY).
+    # HISTSIZE empty for unlimited; GPG_TTY). (Slice 6 had `nvm-load` here too;
+    # Slice 8 retired nvm in favour of fnm — see below.)
     profileExtra = brewPathSetup + ''
 
       # ---- from .bash_profile body ----
@@ -178,11 +179,6 @@ in {
       fi
 
       # ---- non-interactive tail of .bash_profile (interactive guard below) ----
-
-      # Setup nvm and node so prompt can use it
-      if [ -d "$HOME/.nvm" ]; then
-        source "$HOME/.nvm/nvm.sh"
-      fi
 
       # If not interactive, stop further processing
       [ -z "$PS1" ] && return
@@ -220,6 +216,11 @@ in {
       # interactive shell (login and non-login alike).
       export HISTFILESIZE=
       export HISTSIZE=
+
+      # ---- fnm (Node.js version manager) ----
+      # `--use-on-cd` auto-switches the active node version when entering a
+      # directory containing .nvmrc or .node-version.
+      eval "$(${pkgs.fnm}/bin/fnm env --use-on-cd --shell bash)"
     '';
   };
 
@@ -290,12 +291,6 @@ in {
       # ---- from .zshrc.d/omz_ls-colors.zsh ----
     '' + (builtins.readFile ./omz_ls-colors.zsh) + ''
 
-      # ---- from .zshrc.d/omz_nvm.sh (8 lines; retired in Slice 8) ----
-      # Set NVM_DIR if it isn't already defined
-      [[ -z "$NVM_DIR" ]] && export NVM_DIR="$HOME/.nvm"
-      # Load nvm if it exists
-      [[ -f "$NVM_DIR/nvm.sh" ]] && source "$NVM_DIR/nvm.sh"
-
       # ---- from .zshrc.d/omz_termsupport.zsh ----
     '' + (builtins.readFile ./omz_termsupport.zsh) + ''
 
@@ -311,6 +306,11 @@ in {
       # Set a reasonable ulimit because Apple
       ulimit -n 8192
 
+      # ---- fnm (Node.js version manager) ----
+      # `--use-on-cd` auto-switches the active node version when entering a
+      # directory containing .nvmrc or .node-version.
+      eval "$(${pkgs.fnm}/bin/fnm env --use-on-cd --shell zsh)"
+
     '';
   };
 
@@ -324,6 +324,12 @@ in {
     # `settings` attrset, which serializes to ~/.config/starship.toml).
     settings = { };
   };
+
+  # ---------- fnm (Node.js version manager) ----------
+  # home-manager release-26.05 does not ship a programs.fnm module, so we
+  # install fnm via home.packages. Shell integration is added directly in the
+  # programs.bash.bashrcExtra and programs.zsh.initContent blocks above.
+  home.packages = [ pkgs.fnm ];
 
   # ---------- Activation: legacy-backup migration ----------
   home.activation.migrateLegacyShellConfig = lib.hm.dag.entryBefore [ "checkLinkTargets" ] ''
@@ -435,6 +441,27 @@ in {
         echo "Moved legacy ~/.p10k.zsh → ~/.p10k.zsh.legacy-backup (one-time migration)"
       fi
       run touch "$HOME/.p10k.hm-migrated"
+    fi
+  '';
+
+  # ---------- Activation: bootstrap default LTS node via fnm ----------
+  home.activation.installFnmDefaultNode = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    # One-time bootstrap: install the LTS node version via fnm so a fresh
+    # machine has node available without manual `fnm install`. Marker-gated.
+    # Activation scripts run with a stripped PATH; use the absolute store
+    # path for fnm to avoid PATH gymnastics. Network call; failures leave
+    # the marker absent so a later apply can retry.
+    if [ ! -e "$HOME/.fnm-default-node.hm-migrated" ]; then
+      # Prefix with $DRY_RUN_CMD so `home-manager switch -n` doesn't actually
+      # download the LTS or move the `default` alias (the surrounding `run`
+      # helpers already honor dry-run, but these two were invoked directly).
+      if $DRY_RUN_CMD ${pkgs.fnm}/bin/fnm install --lts && \
+         $DRY_RUN_CMD ${pkgs.fnm}/bin/fnm default lts-latest; then
+        run touch "$HOME/.fnm-default-node.hm-migrated"
+        echo "Installed default LTS node via fnm (one-time bootstrap)"
+      else
+        echo "fnm bootstrap failed; will retry on next ./apply"
+      fi
     fi
   '';
 }
