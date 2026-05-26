@@ -8,7 +8,7 @@ activated automatically by the `nix` plugin during `./apply`.
 
 The repo is mid-migration from the homegrown plugin framework toward Nix. See
 `docs/superpowers/specs/2026-05-22-nix-migration-design.md` for the design and
-planned phases. So far this manages: `bat` (shared in the `all` layer); `ripgrep` (in the `default` profile); the full git config (aliases, body, identity, includes) via `programs.git` plus a one-time activation that retires the legacy rsync-managed `~/.gitconfig`; commit signing — `programs.gpg` + `services.gpg-agent` with per-OS pinentry (`pinentry-mac` on macOS, `pinentry-tty` on Linux), `programs.git.settings.user.signingkey` + `commit.gpgsign` in the `default` profile, and a one-time activation that retires the old plugin-written `~/.gnupg/*.conf`; and shell config — bash and zsh via `programs.bash` + `programs.zsh` (with the prior `.zshrc.d/` and `.bash_profile.d/` modular content folded into the relevant typed options), `.inputrc` via `home.file`, and one-time activations that retire the rsync-managed shell dotfiles plus the `shells` plugin's chsh / /etc/shells logic. See Profiles for the layering and Migrating a private custom environment for the private-side migration steps.
+planned phases. So far this manages: `bat` (shared in the `all` layer); `ripgrep` (in the `default` profile); the full git config (aliases, body, identity, includes) via `programs.git` plus a one-time activation that retires the legacy rsync-managed `~/.gitconfig`; commit signing — `programs.gpg` + `services.gpg-agent` with per-OS pinentry (`pinentry-mac` on macOS, `pinentry-tty` on Linux), `programs.git.settings.user.signingkey` + `commit.gpgsign` in the `default` profile, and a one-time activation that retires the old plugin-written `~/.gnupg/*.conf`; and shell config — bash and zsh via `programs.bash` + `programs.zsh` (with the prior `.zshrc.d/` and `.bash_profile.d/` modular content folded into the relevant typed options), `.inputrc` via `home.file`, and one-time activations that retire the rsync-managed shell dotfiles plus the `shells` plugin's chsh / /etc/shells logic; and a prompt — starship via `programs.starship` (replacing the retired `powerlevel` plugin and its rsync'd `.p10k.zsh`). See Profiles for the layering and Migrating a private custom environment for the private-side migration steps.
 
 ## Install
 
@@ -60,7 +60,7 @@ whichever selectable profile is active:
   regardless of profile or private overlay (currently `bat`, the shared
   git config — aliases, body, includes — via `programs.git`, GPG/agent
   setup with per-OS pinentry: `pinentry-mac` on macOS, `pinentry-tty` on
-  Linux, AND bash + zsh via `programs.bash` + `programs.zsh` plus `.inputrc` via `home.file`).
+  Linux, bash + zsh via `programs.bash` + `programs.zsh` plus `.inputrc` via `home.file`, AND starship as the prompt).
 - `default` — selectable profile; matches the framework's default
   `DOTFILES_ENVIRONMENT=default` and adds `ripgrep`.
 - `agent` — selectable profile for headless / agent boxes; lean.
@@ -259,6 +259,34 @@ and two activation scripts take over):
    complete it. You can `rm ~/.{zshrc,zshenv,zprofile,bash_profile,bashrc,
    profile,inputrc}.legacy-backup` and `rm -rf ~/.{zshrc,bash_profile}.d.
    legacy-backup` whenever you're satisfied with the migration.
+
+For the prompt slice (`powerlevel` plugin retired; `.p10k.zsh` dropped;
+starship via `programs.starship.enable` takes over):
+
+1. If your private flake had a `custom_environments/<env>/home/.p10k.zsh`
+   override (none in the public template), `git rm` it from your private
+   repo and commit. Starship reads no such file; the rsync source is
+   orphaned.
+
+2. To customize starship per-environment, add to your private flake:
+
+       { lib, pkgs, ... }: {
+         programs.starship.settings = lib.mkForce {
+           # …your starship.toml content as a Nix attrset…
+         };
+       }
+
+   Use `lib.mkForce` because the public profile sets `settings = { };` —
+   the typed attrset would conflict without it. Alternatively, use
+   `lib.recursiveUpdate` if you want to merge with potential future
+   public defaults.
+
+3. **First `./apply` after this slice** runs `migrateLegacyP10kConfig`,
+   which moves any pre-existing `~/.p10k.zsh` aside to
+   `~/.p10k.zsh.legacy-backup`. The cloned `~/powerlevel10k/` repo is
+   left in place (228-entry inert directory); `rm -rf ~/powerlevel10k`
+   when satisfied. You can also `rm ~/.p10k.zsh.legacy-backup` whenever
+   you're done with the migration.
 
 The same shape applies to future slices that migrate a plugin or rsync
 source: add the new options to your private flake, delete the now-orphaned
