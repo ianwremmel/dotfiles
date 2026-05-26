@@ -1,5 +1,10 @@
-{ pkgs, ... }: {
-  home.packages = [ pkgs.ripgrep ];
+{ ... }: {
+  # The `default` profile is the personal-machine profile (vs. `agent` which
+  # stays lean). cli-tools.nix carries personal-machine CLI installs that
+  # don't belong on agent boxes.
+  imports = [
+    ./cli-tools.nix
+  ];
 
   # `settings.user.{name,email,signingkey}` is the current home-manager
   # option path. (`name` and `email` replace the deprecated

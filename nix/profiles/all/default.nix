@@ -4,7 +4,7 @@
   # *every* machine should get goes here. Split into per-feature submodules
   # so each feature stays focused and reviewable.
   imports = [
-    ./bat.nix
+    ./cli-tools.nix
     ./git.nix
     ./gpg.nix
     ./shells.nix

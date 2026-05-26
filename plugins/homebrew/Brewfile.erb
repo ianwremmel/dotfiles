@@ -5,17 +5,18 @@
 
 cask_args appdir: '/Applications'
 
+# bash + bash-completion@2 stay here AND in nix (see Decision 4 in the
+# nix-brew-formulas spec): the framework's bash-5 bootstrap (framework/compat)
+# needs brew's bash before nix is installed on a fresh machine. Nix's bash
+# coexists for interactive use via ~/.nix-profile/bin/bash.
 brew 'bash'
 brew 'bash-completion@2'
 
-# Enable Mac App Store (`mas`) entries in Brewfile
+# Enable Mac App Store (`mas`) entries in Brewfile.
+# Stays here (not in nix) because mas is only useful while brew owns
+# cask/mas installs; once nix-darwin's homebrew.masApps takes over, this
+# line goes away too.
 brew 'mas'
-
-# Needed for the environment helper
-brew 'coreutils'
-
-# Needed for the customize helper
-brew 'gh'
 
 <%# DOTFILES_HOMEBREW_CONFIG_BREWFILES must contain full paths %>
 <% ENV.fetch('DOTFILES_HOMEBREW_CONFIG_BREWFILES').split(' ').each do |filename| %>
@@ -23,4 +24,3 @@ brew 'gh'
 <%= File.read(filename) %>
 # end <%= filename %>
 <% end %>
-

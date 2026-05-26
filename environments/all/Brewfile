@@ -1,5 +1,3 @@
-tap 'wata727/tflint'
-
 ##
 ## Strongly Recommended
 ##
@@ -7,41 +5,18 @@ tap 'wata727/tflint'
 ## without these upgrades
 ##
 
-brew 'wget'
-
-# Install GNU core utilities (those that come with macOS are outdated).
-# Don't forget to add `$(brew --prefix coreutils)/libexec/gnubin` to `$PATH`.
-brew 'coreutils'
-# Install GNU `find`, `locate`, `updatedb`, and `xargs`, `g`-prefixed.
-brew 'findutils'
-# Install GNU `sed`, overwriting the built-in `sed`.
-brew 'gnu-sed'
-
-##
-## Recommended
-##
-## You can probably do without these, but without a specific reason to skip
-## them, they should probably stay
-##
-
-# Install more recent versions of some macOS tools.
-brew 'grep'
-brew 'git'
-brew 'make'
-brew 'screen'
-brew 'vim'
-
-# Support large file with git
-brew 'git-lfs'
+# CLI formulas migrated to nix (see nix/profiles/all/cli-tools.nix).
+# Casks, mas, and taps remain here until the nix-darwin slice migrates them.
+# NOTE: brew 'watchman' retained here because watchman's folly C++ dep fails to
+# build on aarch64-darwin with the current nixpkgs version.
+# Re-evaluate on next nixpkgs bump.
+brew 'watchman'
 
 ##
 ## AWS Tools
 ##
 
-brew 'awscli'
 cask 'aws-vault'
-brew 'chamber'
-
 
 ##
 ## User
@@ -56,25 +31,14 @@ cask 'elgato-control-center'
 cask 'elgato-stream-deck'
 cask 'fork'
 cask 'firefox'
-brew 'gh'
 cask 'gitup'
 cask 'gpg-suite'
 cask 'grandperspective'
-brew 'httpie'
-brew 'java'
 cask 'ngrok'
 cask 'obsidian'
-brew 'shellcheck'
-brew 'terraform'
-brew 'tflint'
-brew 'tree'
 cask 'visual-studio-code'
 cask 'vlc'
-brew 'watch'
 cask 'xquartz'
-
-# Install language interpreters
-brew 'python'
 
 # Install App Store packages
 # for some reason, Keynote, Numbers, and Pages insist on being reinstalled on
@@ -84,11 +48,3 @@ brew 'python'
 # mas 'Pages', id: 409_201_541
 mas 'Magnet', id: 441_258_766
 mas 'Slack', id: 803_453_959
-
-# Install zsh
-brew 'zsh'
-brew 'zsh-completions'
-
-# Enough libraries just assume watchman is installed, we might as well just have
-# it by default
-brew 'watchman'
