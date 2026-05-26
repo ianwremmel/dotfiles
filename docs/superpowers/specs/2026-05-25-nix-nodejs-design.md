@@ -1,14 +1,20 @@
 # Nix Node.js Slice Design
 
 **Date:** 2026-05-25
-**Status:** Draft — pending user approval
+**Status:** Implemented
 **Branch:** `nix-nodejs` (stacks on `nix-prompt` / PR #67 → `nix-shells` / PR #66 → `nix-commit-signing` / PR #65 → `nix-git` / PR #64 → `nix-profiles` / PR #63 → `nix-cross-platform` / PR #62)
 
 ## Goal
 
 Retire `plugins/nvm/` and `plugins/node/` by switching Node.js version management from nvm (curl-installed bash script + dynamic GitHub-API version polling) to fnm (Rust-based, packaged in nixpkgs, declaratively managed via home-manager's `programs.fnm`). A marker-gated home-manager activation installs the LTS Node version on first apply so fresh-bootstrap machines have a working `node` without manual intervention. The two temporary `nvm.sh`-load blocks Slice 6 left in `nix/profiles/all/shells.nix` are removed.
 
-This is **Slice 8** in the Nix migration and the final slice of the shell ecosystem. Together with Slices 6 (shells), 7 (prompt), and this slice, the entire interactive-shell stack lives in home-manager.
+This is **Slice 8** in the Nix migration and the final slice of the shell ecosystem.
+
+## Post-implementation notes
+
+The shipped implementation differs from this spec in one notable way:
+
+- **`programs.fnm` doesn't exist in home-manager 26.05.** The spec assumed it did. The implementation correctly adapted by using `home.packages = [ pkgs.fnm ]` plus manual `eval "$(${pkgs.fnm}/bin/fnm env --use-on-cd --shell <shell>)"` injection into `programs.bash.bashrcExtra` and `programs.zsh.initContent`. Functionally equivalent to what a `programs.fnm.enable = true` would have produced. Private-flake overrides set fnm-specific env vars (`FNM_NODE_DIST_MIRROR`, etc.) via `programs.{bash,zsh}.{profileExtra,envExtra}` rather than via typed `programs.fnm.*` options. Together with Slices 6 (shells), 7 (prompt), and this slice, the entire interactive-shell stack lives in home-manager.
 
 ## Decisions (locked)
 
