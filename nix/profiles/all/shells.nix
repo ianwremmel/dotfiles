@@ -290,7 +290,7 @@ in {
       # ---- from .zshrc.d/omz_ls-colors.zsh ----
     '' + (builtins.readFile ./omz_ls-colors.zsh) + ''
 
-      # ---- from .zshrc.d/omz_nvm.sh (8 lines; retired in Slice 7) ----
+      # ---- from .zshrc.d/omz_nvm.sh (8 lines; retired in Slice 8) ----
       # Set NVM_DIR if it isn't already defined
       [[ -z "$NVM_DIR" ]] && export NVM_DIR="$HOME/.nvm"
       # Load nvm if it exists
