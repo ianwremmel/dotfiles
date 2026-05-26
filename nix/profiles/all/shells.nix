@@ -36,10 +36,13 @@ let
       # Put brew binaries at the start of PATH so they override system binaries
       PATH=$BREW_PREFIX/bin:$BREW_PREFIX/sbin:$PATH
 
-      # Put all of the gnubin binaries in front of system binaries
-      for FILE in "$BREW_PREFIX"/opt/*/libexec/gnubin; do
-        PATH=$FILE:$PATH
-      done
+      # (The previous `for FILE in $BREW_PREFIX/opt/*/libexec/gnubin` loop is
+      # gone: GNU coreutils/findutils/sed/grep moved from brew to nix in the
+      # brew-formulas slice. nix's versions live in ~/.nix-profile/bin/, which
+      # is already at the front of PATH, so they shadow macOS's BSD variants
+      # without the gnubin PATH-shim. The glob also failed under zsh's
+      # `setopt nomatch` once the brew formulas providing those libexec/gnubin
+      # dirs were uninstalled.)
     fi
 
     # Add Java
