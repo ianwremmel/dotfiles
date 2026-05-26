@@ -8,7 +8,7 @@ activated automatically by the `nix` plugin during `./apply`.
 
 The repo is mid-migration from the homegrown plugin framework toward Nix. See
 `docs/superpowers/specs/2026-05-22-nix-migration-design.md` for the design and
-planned phases. So far this manages: `bat` (shared in the `all` layer); `ripgrep` (in the `default` profile); the full git config (aliases, body, identity, includes) via `programs.git` plus a one-time activation that retires the legacy rsync-managed `~/.gitconfig`; commit signing — `programs.gpg` + `services.gpg-agent` with per-OS pinentry (`pinentry-mac` on macOS, `pinentry-tty` on Linux), `programs.git.settings.user.signingkey` + `commit.gpgsign` in the `default` profile, and a one-time activation that retires the old plugin-written `~/.gnupg/*.conf`; and shell config — bash and zsh via `programs.bash` + `programs.zsh` (with the prior `.zshrc.d/` and `.bash_profile.d/` modular content folded into the relevant typed options), `.inputrc` via `home.file`, and one-time activations that retire the rsync-managed shell dotfiles plus the `shells` plugin's chsh / /etc/shells logic; and a prompt — starship via `programs.starship` (replacing the retired `powerlevel` plugin and its rsync'd `.p10k.zsh`). See Profiles for the layering and Migrating a private custom environment for the private-side migration steps.
+planned phases. So far this manages: `bat` (shared in the `all` layer); `ripgrep` (in the `default` profile); the full git config (aliases, body, identity, includes) via `programs.git` plus a one-time activation that retires the legacy rsync-managed `~/.gitconfig`; commit signing — `programs.gpg` + `services.gpg-agent` with per-OS pinentry (`pinentry-mac` on macOS, `pinentry-tty` on Linux), `programs.git.settings.user.signingkey` + `commit.gpgsign` in the `default` profile, and a one-time activation that retires the old plugin-written `~/.gnupg/*.conf`; and shell config — bash and zsh via `programs.bash` + `programs.zsh` (with the prior `.zshrc.d/` and `.bash_profile.d/` modular content folded into the relevant typed options), `.inputrc` via `home.file`, and one-time activations that retire the rsync-managed shell dotfiles plus the `shells` plugin's chsh / /etc/shells logic; and a prompt — starship via `programs.starship` (replacing the retired `powerlevel` plugin and its rsync'd `.p10k.zsh`); and Node.js — fnm via `pkgs.fnm` + shell init injection (replacing the retired `nvm` and `node` plugins), with a one-time activation that installs the LTS version on first apply. See Profiles for the layering and Migrating a private custom environment for the private-side migration steps.
 
 ## Install
 
@@ -60,7 +60,7 @@ whichever selectable profile is active:
   regardless of profile or private overlay (currently `bat`, the shared
   git config — aliases, body, includes — via `programs.git`, GPG/agent
   setup with per-OS pinentry: `pinentry-mac` on macOS, `pinentry-tty` on
-  Linux, bash + zsh via `programs.bash` + `programs.zsh` plus `.inputrc` via `home.file`, AND starship as the prompt).
+  Linux, bash + zsh via `programs.bash` + `programs.zsh` plus `.inputrc` via `home.file`, AND starship as the prompt, AND fnm for Node.js version management).
 - `default` — selectable profile; matches the framework's default
   `DOTFILES_ENVIRONMENT=default` and adds `ripgrep`.
 - `agent` — selectable profile for headless / agent boxes; lean.
@@ -287,6 +287,52 @@ starship via `programs.starship.enable` takes over):
    left in place (228-entry inert directory); `rm -rf ~/powerlevel10k`
    when satisfied. You can also `rm ~/.p10k.zsh.legacy-backup` whenever
    you're done with the migration.
+
+For the nodejs slice (`nvm` and `node` plugins retired; fnm via
+`home.packages = [ pkgs.fnm ]` + inline `eval "$(fnm env --use-on-cd --shell …)"`
+in the bash/zsh init blocks; `home.activation.installFnmDefaultNode`
+auto-installs the LTS node on first apply):
+
+1. **No private flake changes needed** unless you want a different node
+   version or different fnm behavior. home-manager 26.05 does NOT ship a
+   typed `programs.fnm` module, so per-environment overrides are done by
+   extending the same `home.packages` and shell-init blocks the public
+   layer uses:
+
+       { lib, pkgs, ... }: {
+         # To use a different fnm build (e.g., a pinned version), add the
+         # package and your own init lines; the public layer's defaults
+         # still apply unless you remove them.
+         home.packages = [ pkgs.fnm ];
+
+         # To override the `--use-on-cd` behavior or use a different
+         # `nodeDistMirror`, set FNM_NODE_DIST_MIRROR before the init line
+         # via programs.zsh.envExtra / programs.bash.profileExtra:
+         programs.zsh.envExtra = ''
+           export FNM_NODE_DIST_MIRROR="https://your.mirror/dist/"
+         '';
+       }
+
+2. **Optional cleanup after first apply:**
+
+       rm -rf ~/.nvm           # the cloned nvm repo + installed node versions
+       brew uninstall jq       # if you don't otherwise need jq
+
+3. **To upgrade past the originally-installed LTS** (when Node 26
+   becomes LTS, etc.):
+
+       rm ~/.fnm-default-node.hm-migrated
+       ./apply
+       # OR interactively:
+       fnm install --lts
+       fnm default lts-latest
+
+4. **To pin a different default version per environment**, post-apply:
+
+       fnm install <version>
+       fnm default <version>
+
+   The marker file prevents the activation from re-overriding this.
 
 The same shape applies to future slices that migrate a plugin or rsync
 source: add the new options to your private flake, delete the now-orphaned
