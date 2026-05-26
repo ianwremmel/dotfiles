@@ -3,6 +3,7 @@
 
 cask 'adobe-creative-cloud'
 cask 'discord'
+cask 'iterm2'
 cask 'proton-mail'
 cask 'quicken'
 cask 'steam'
