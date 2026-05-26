@@ -45,10 +45,13 @@ let
       # dirs were uninstalled.)
     fi
 
-    # Add Java
-    if command -v /usr/libexec/java_home > /dev/null 2>&1 ; then
-      PATH=$PATH:$(/usr/libexec/java_home)/bin
-    fi
+    # (The previous `/usr/libexec/java_home` PATH-shim is gone: brew's
+    # openjdk used to register itself system-wide via
+    # /Library/Java/JavaVirtualMachines/, which `java_home` would find.
+    # nix's pkgs.openjdk ships `java` directly at ~/.nix-profile/bin/java
+    # without registering. The old shim's `command -v` check only
+    # verified the binary existed — invoking it on a system without a
+    # registered Java errors with "Unable to locate a Java Runtime".)
 
     # User-private bin
     PATH="$HOME/bin:$PATH"
