@@ -8,7 +8,7 @@ activated automatically by the `nix` plugin during `./apply`.
 
 The repo is mid-migration from the homegrown plugin framework toward Nix. See
 `docs/superpowers/specs/2026-05-22-nix-migration-design.md` for the design and
-planned phases. So far this manages: `bat` (shared in the `all` layer); `ripgrep` (in the `default` profile); the full git config (aliases, body, identity, includes) via `programs.git` plus a one-time activation that retires the legacy rsync-managed `~/.gitconfig`; commit signing — `programs.gpg` + `services.gpg-agent` with per-OS pinentry (`pinentry-mac` on macOS, `pinentry-tty` on Linux), `programs.git.settings.user.signingkey` + `commit.gpgsign` in the `default` profile, and a one-time activation that retires the old plugin-written `~/.gnupg/*.conf`; and shell config — bash and zsh via `programs.bash` + `programs.zsh` (with the prior `.zshrc.d/` and `.bash_profile.d/` modular content folded into the relevant typed options), `.inputrc` via `home.file`, and one-time activations that retire the rsync-managed shell dotfiles plus the `shells` plugin's chsh / /etc/shells logic; and a prompt — starship via `programs.starship` (replacing the retired `powerlevel` plugin and its rsync'd `.p10k.zsh`); and Node.js — fnm via `pkgs.fnm` + shell init injection (replacing the retired `nvm` and `node` plugins), with a one-time activation that installs the LTS version on first apply. See Profiles for the layering and Migrating a private custom environment for the private-side migration steps.
+planned phases. So far this manages: the full git config (aliases, body, identity, includes) via `programs.git` plus a one-time activation that retires the legacy rsync-managed `~/.gitconfig`; commit signing — `programs.gpg` + `services.gpg-agent` with per-OS pinentry (`pinentry-mac` on macOS, `pinentry-tty` on Linux), `programs.git.settings.user.signingkey` + `commit.gpgsign` in the `default` profile, and a one-time activation that retires the old plugin-written `~/.gnupg/*.conf`; and shell config — bash and zsh via `programs.bash` + `programs.zsh` (with the prior `.zshrc.d/` and `.bash_profile.d/` modular content folded into the relevant typed options), `.inputrc` via `home.file`, and one-time activations that retire the rsync-managed shell dotfiles plus the `shells` plugin's chsh / /etc/shells logic; and a prompt — starship via `programs.starship` (replacing the retired `powerlevel` plugin and its rsync'd `.p10k.zsh`); and Node.js — fnm via `pkgs.fnm` + shell init injection (replacing the retired `nvm` and `node` plugins), with a one-time activation that installs the LTS version on first apply; and CLI tools — most brew formulas migrated to `home.packages` (casks, mas, and taps still managed by the legacy `plugins/homebrew` until a later nix-darwin slice). See Profiles for the layering and Migrating a private custom environment for the private-side migration steps.
 
 ## Install
 
@@ -57,12 +57,14 @@ plugin-generated `nix/host.nix` carries both `username` and `profile`.
 whichever selectable profile is active:
 
 - `all` — always included via `mkHome`; shared content for every machine
-  regardless of profile or private overlay (currently `bat`, the shared
+  regardless of profile or private overlay (currently the shared
   git config — aliases, body, includes — via `programs.git`, GPG/agent
   setup with per-OS pinentry: `pinentry-mac` on macOS, `pinentry-tty` on
-  Linux, bash + zsh via `programs.bash` + `programs.zsh` plus `.inputrc` via `home.file`, AND starship as the prompt, AND fnm for Node.js version management).
+  Linux, bash + zsh via `programs.bash` + `programs.zsh` plus `.inputrc` via `home.file`, AND starship as the prompt, AND fnm for Node.js version management, AND a curated set of CLI tools via `home.packages`).
 - `default` — selectable profile; matches the framework's default
-  `DOTFILES_ENVIRONMENT=default` and adds `ripgrep`.
+  `DOTFILES_ENVIRONMENT=default` and adds personal-machine CLI tools
+  (cloud tooling, scripting languages, kubernetes utilities) via
+  `nix/profiles/default/cli-tools.nix`.
 - `agent` — selectable profile for headless / agent boxes; lean.
 
 The public flake exposes them as a module library
@@ -94,8 +96,9 @@ because the env is implicit in the flake's location).
    that a layer below (base, `all`, or the public profile you imported) already
    set to a different scalar value, wrap your value with `lib.mkForce`.
    Without it, home-manager's module system reports a conflict. (Example: the
-   `all` layer sets `programs.bat.config.theme = "ansi"`; a private profile
-   that wants a different theme uses `lib.mkForce "<other-theme>"`.)
+   `all` layer sets `programs.starship.settings = { };` (opt in to defaults);
+   a private profile that wants a custom starship layout uses
+   `programs.starship.settings = lib.mkForce { add_newline = false; … };`.)
 
 Template:
 
@@ -138,8 +141,9 @@ option:
 
     # ./work.nix
     { lib, pkgs, ... }: {
-      # Override the bat theme that `all` sets, and add work-specific tools.
-      programs.bat.config.theme = lib.mkForce "Coldark-Dark";
+      # Override the empty starship settings that `all` sets, and add
+      # work-specific tools.
+      programs.starship.settings = lib.mkForce { add_newline = false; };
       home.packages = [ pkgs.awscli2 ];
       # …more work-specific modules.
     }
@@ -333,6 +337,38 @@ auto-installs the LTS node on first apply):
        fnm default <version>
 
    The marker file prevents the activation from re-overriding this.
+
+For the brew-formulas slice (most CLI formulas migrated from Brewfiles to
+`home.packages` via `nix/profiles/{all,default}/cli-tools.nix`; casks,
+mas, and taps stay in Brewfiles until a later nix-darwin slice):
+
+1. **Update your private flake** to add any of YOUR brew formulas that
+   have nix equivalents to `home.packages` in a private module:
+
+       { pkgs, ... }: {
+         home.packages = with pkgs; [
+           # …your private CLI tools…
+         ];
+       }
+
+2. **Delete the corresponding `brew '<name>'` lines** from your private
+   Brewfile. Keep cask, mas, and tap entries (those move in a later slice).
+
+3. **First `./apply` after this slice** runs the brew step against your
+   slimmed Brewfile; `brew bundle cleanup --force` uninstalls the formulas
+   that no longer appear there, and the nix-installed versions take over
+   via PATH precedence.
+
+4. **Formulas without a nix equivalent** (e.g., custom-tap formulas from
+   work-specific taps) STAY in your private Brewfile. The `homebrew.brews`
+   option in a future nix-darwin slice will give you a declarative way to
+   manage these.
+
+5. **`bat` and `ripgrep` were proof-of-concept demo packages** added in
+   the first nix slices to prove the migration was working. They're
+   removed in this slice. If you actually want either, add them to
+   `nix/profiles/<profile>/cli-tools.nix` (or your private flake) as
+   ordinary `home.packages` entries.
 
 The same shape applies to future slices that migrate a plugin or rsync
 source: add the new options to your private flake, delete the now-orphaned
