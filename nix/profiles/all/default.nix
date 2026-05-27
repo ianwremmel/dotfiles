@@ -9,5 +9,6 @@
     ./git.nix
     ./gpg.nix
     ./shells.nix
+    ./vim.nix
   ];
 }

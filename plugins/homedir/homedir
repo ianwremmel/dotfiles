@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Needs to come after claude because claude has a "build" step
-export DOTFILES_HOMEDIR_DEPS=('claude' 'vim')
+export DOTFILES_HOMEDIR_DEPS=('claude')
 
 dotfiles_homedir_apply () {
   _apply () {

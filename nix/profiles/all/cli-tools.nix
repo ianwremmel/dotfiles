@@ -18,7 +18,7 @@
     git
     git-lfs
     gh
-    vim
+    # vim: provided by programs.vim
     shellcheck
     tree
     watch
