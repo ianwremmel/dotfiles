@@ -1,4 +1,6 @@
 { pkgs, username, ... }: {
+  imports = [ ./defaults.nix ];
+
   # System state version — pins nix-darwin's behavior. Never bump casually.
   system.stateVersion = 5;
 

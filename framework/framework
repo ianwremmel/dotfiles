@@ -9,7 +9,6 @@ set -euo pipefail
 source ./framework/config
 source ./framework/customize
 source ./framework/environment
-source ./framework/firstrun
 source ./framework/logging
 source ./framework/util
 
@@ -25,8 +24,6 @@ framework_apply () {
   framework_init
 
   plugin_run_plugins
-
-  firstrun_main
 }
 
 framework_init () {

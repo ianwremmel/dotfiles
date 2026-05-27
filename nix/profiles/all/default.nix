@@ -5,6 +5,7 @@
   # so each feature stays focused and reviewable.
   imports = [
     ./cli-tools.nix
+    ./dotfilesrc-cleanup.nix
     ./git.nix
     ./gpg.nix
     ./shells.nix
