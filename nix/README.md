@@ -451,11 +451,55 @@ nix-darwin; bash plugins retire):
    prevent the cleanup policy from removing it (nix-darwin doesn't
    add `mas` implicitly as a `masApps` dependency).
 
-5. **Set iTerm's font** to "MesloLGS Nerd Font" (or another Nerd Font)
-   once after the cask installs: iTerm → Settings → Profiles → Text →
-   Font. This fixes the placeholder glyph in starship's prompt. The
-   cask installs to `~/Library/Fonts/` (user-level), not
+5. **Set iTerm's font** manually to "MesloLGS Nerd Font" once after
+   the cask installs: iTerm → Settings → Profiles → Text → Font.
+   Same for Terminal.app if you use it. The slice-11 declarative pin
+   (`com.googlecode.iterm2`/`com.apple.terminal` in `nix/darwin/defaults.nix`)
+   writes a plain-string font name, but both apps store fonts as
+   binary-encoded `NSFont` data and ignore the string form. The Nerd
+   Font cask installs to `~/Library/Fonts/` (user-level), not
    `/Library/Fonts/`; both are visible to apps.
+
+For the nix-firstrun slice (`firstrun` plugin retired; macOS `defaults` writes migrated to nix-darwin's `system.defaults` + `CustomUserPreferences` + activation scripts):
+
+This slice migrates `environments/all/firstrun` (the macOS preferences script)
+into nix-darwin's declarative system layer. The bash framework's `firstrun`
+plugin is fully retired.
+
+**One-time apply notes:**
+
+- Mail, Safari, Messages, Photos, Activity Monitor, Address Book, Calendar,
+  Contacts, and iCal may need a one-time relaunch after this slice's first
+  `./apply` for their new preferences to take effect. nix-darwin already
+  kicks `cfprefsd`, `Dock`, `SystemUIServer`, and `Finder` automatically.
+
+- The `FIRSTRUN_APPLIED=1` entry in your `~/.dotfilesrc` is now vestigial and
+  is automatically removed by a home-manager activation on next `./apply`.
+  The rest of your config file is untouched.
+
+- iTerm and Terminal.app store font preferences as binary-encoded `NSFont`
+  data, not plain strings. The slice writes a plain-string `Normal Font` value
+  to `com.googlecode.iterm2` via `CustomUserPreferences`, but this does NOT
+  control what iTerm or Terminal.app actually use on launch (confirmed empirically).
+  The keys are preserved as a placeholder. Set the font manually: iTerm/Terminal
+  → Settings → Profiles → Text → Font → "MesloLGS Nerd Font". A follow-up slice
+  could capture the binary `NSFont` bytes from a working machine and write them
+  via `defaults write -data` to close this for real.
+
+- Contacts.app name-display preferences (`ABNameDisplay`, `ABNameSortingFormat`)
+  are NOT declaratively managed. macOS's TCC system blocks scripted writes
+  to `com.apple.addressbook` from nix-darwin's activation context. If you
+  want last-name-first sorting, set it manually in Contacts → Settings →
+  General.
+
+**Private flake update (only if you have one):**
+
+If your private flake extends `darwinConfigurations` with additional
+`system.defaults.*` or `CustomUserPreferences` entries, no changes are
+required — Nix module merging handles additive private prefs on top of the
+public baseline. If your private flake conflicts with a key set in the
+public `nix/darwin/defaults.nix`, override it with `lib.mkForce` in the
+private module.
 
 The same shape applies to future slices that migrate a plugin or rsync
 source: add the new options to your private flake, delete the now-orphaned

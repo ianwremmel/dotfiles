@@ -305,12 +305,13 @@
       };
 
       # ----- iTerm 2 -----
-      # Pin the Nerd Font for the default profile so starship's git-branch
-      # glyph renders. iTerm reads `Normal Font` on launch. If iTerm ignored
-      # this entry (because it expects a binary-encoded NSFont rather than
-      # a plain string), the visible font won't change — falling back to a
-      # binary `-data` write captured from a working machine would be the
-      # next step.
+      # iTerm stores `Normal Font` as binary-encoded NSFont data, not a
+      # plain string. Writing the string form here is a placeholder — iTerm
+      # ignores it on launch. The Nerd Font itself is installed by the
+      # nix-darwin slice's cask; the actual font selection is a manual
+      # one-time step (iTerm → Settings → Profiles → Text → Font). To make
+      # this declarative for real, a future slice can capture the binary
+      # bytes from a working machine and write them via `defaults write -data`.
       "com.googlecode.iterm2" = {
         "Normal Font"        = "MesloLGS-NF-Regular 14";
         "Non Ascii Font"     = "MesloLGS-NF-Regular 14";
