@@ -8,7 +8,7 @@ activated automatically by the `nix` plugin during `./apply`.
 
 The repo is mid-migration from the homegrown plugin framework toward Nix. See
 `docs/superpowers/specs/2026-05-22-nix-migration-design.md` for the design and
-planned phases. So far this manages: the full git config (aliases, body, identity, includes) via `programs.git` plus a one-time activation that retires the legacy rsync-managed `~/.gitconfig`; commit signing — `programs.gpg` + `services.gpg-agent` with per-OS pinentry (`pinentry-mac` on macOS, `pinentry-tty` on Linux), `programs.git.settings.user.signingkey` + `commit.gpgsign` in the `default` profile, and a one-time activation that retires the old plugin-written `~/.gnupg/*.conf`; and shell config — bash and zsh via `programs.bash` + `programs.zsh` (with the prior `.zshrc.d/` and `.bash_profile.d/` modular content folded into the relevant typed options), `.inputrc` via `home.file`, and one-time activations that retire the rsync-managed shell dotfiles plus the `shells` plugin's chsh / /etc/shells logic; and a prompt — starship via `programs.starship` (replacing the retired `powerlevel` plugin and its rsync'd `.p10k.zsh`); and Node.js — fnm via `pkgs.fnm` + shell init injection (replacing the retired `nvm` and `node` plugins), with a one-time activation that installs the LTS version on first apply; and CLI tools — most brew formulas migrated to `home.packages` (casks, mas, and taps still managed by the legacy `plugins/homebrew` until a later nix-darwin slice). See Profiles for the layering and Migrating a private custom environment for the private-side migration steps.
+planned phases. So far this manages: the full git config (aliases, body, identity, includes) via `programs.git` plus a one-time activation that retires the legacy rsync-managed `~/.gitconfig`; commit signing — `programs.gpg` + `services.gpg-agent` with per-OS pinentry (`pinentry-mac` on macOS, `pinentry-tty` on Linux), `programs.git.settings.user.signingkey` + `commit.gpgsign` in the `default` profile, and a one-time activation that retires the old plugin-written `~/.gnupg/*.conf`; and shell config — bash and zsh via `programs.bash` + `programs.zsh` (with the prior `.zshrc.d/` and `.bash_profile.d/` modular content folded into the relevant typed options), `.inputrc` via `home.file`, and one-time activations that retire the rsync-managed shell dotfiles plus the `shells` plugin's chsh / /etc/shells logic; and a prompt — starship via `programs.starship` (replacing the retired `powerlevel` plugin and its rsync'd `.p10k.zsh`); and Node.js — fnm via `pkgs.fnm` + shell init injection (replacing the retired `nvm` and `node` plugins), with a one-time activation that installs the LTS version on first apply; and CLI tools — most brew formulas migrated to `home.packages` (a handful of escape-hatched formulas without nix equivalents stay as `homebrew.brews` in nix-darwin); and a system-level layer via nix-darwin managing brew casks (including a Nerd Font for starship), mas-installed apps (including Xcode), the login-shell declaration, and Xcode license acceptance. See Profiles for the layering and Migrating a private custom environment for the private-side migration steps.
 
 ## Install
 
@@ -60,7 +60,7 @@ whichever selectable profile is active:
   regardless of profile or private overlay (currently the shared
   git config — aliases, body, includes — via `programs.git`, GPG/agent
   setup with per-OS pinentry: `pinentry-mac` on macOS, `pinentry-tty` on
-  Linux, bash + zsh via `programs.bash` + `programs.zsh` plus `.inputrc` via `home.file`, AND starship as the prompt, AND fnm for Node.js version management, AND a curated set of CLI tools via `home.packages`).
+  Linux, bash + zsh via `programs.bash` + `programs.zsh` plus `.inputrc` via `home.file`, AND starship as the prompt, AND fnm for Node.js version management, AND a curated set of CLI tools via `home.packages`, AND a system-level layer via nix-darwin managing brew casks (a Nerd Font included), mas apps (including Xcode), the login shell declaration, and Xcode license acceptance).
 - `default` — selectable profile; matches the framework's default
   `DOTFILES_ENVIRONMENT=default` and adds personal-machine CLI tools
   (cloud tooling, scripting languages, kubernetes utilities) via
@@ -72,6 +72,32 @@ The public flake exposes them as a module library
 ready-made `homeConfigurations."<profile>@<system>"` outputs (one per
 selectable profile × system). When no private flake matches the active
 profile, the plugin builds the matching public config directly.
+
+### Darwin configurations (macOS system layer)
+
+In addition to home-manager (user-level), this flake exposes
+`darwinConfigurations.<profile>@<system>` outputs (system-level, macOS-only)
+via nix-darwin. The active profile selects which module from
+`nix/darwin/<profile>/` is included alongside the universal `nix/darwin/base.nix`.
+
+Currently only `default` has a darwin module (`nix/darwin/default/homebrew.nix`).
+The `agent` profile is Linux-only and has no darwin counterpart.
+
+System-level concerns owned by nix-darwin (not home-manager):
+
+- Homebrew casks, mas apps, and escape-hatched brews — `homebrew.{casks,masApps,brews}`
+- Login shell declaration — `users.users.<name>.shell` + `environment.shells`
+- System PATH baseline including `/opt/homebrew/{bin,sbin}` — `environment.systemPath`
+- Xcode license acceptance — `system.activationScripts.xcodeLicense`
+
+Note: `nix.enable = false` in the base config — Determinate's nix installer
+manages its own daemon and refuses to coexist with nix-darwin's native nix
+management. nix-darwin still does everything else.
+
+nix-darwin activations are sudo-required and managed by the `nix` plugin
+(macOS-only branch). On a fresh machine the plugin auto-bootstraps via
+`sudo -H nix run nix-darwin -- switch …`; on subsequent applies it uses
+`sudo -H darwin-rebuild switch …`.
 
 ### Private profiles
 
@@ -340,7 +366,8 @@ auto-installs the LTS node on first apply):
 
 For the brew-formulas slice (most CLI formulas migrated from Brewfiles to
 `home.packages` via `nix/profiles/{all,default}/cli-tools.nix`; casks,
-mas, and taps stay in Brewfiles until a later nix-darwin slice):
+mas, and taps subsequently moved to nix-darwin's `homebrew.*` options
+in the following slice):
 
 1. **Update your private flake** to add any of YOUR brew formulas that
    have nix equivalents to `home.packages` in a private module:
@@ -352,7 +379,8 @@ mas, and taps stay in Brewfiles until a later nix-darwin slice):
        }
 
 2. **Delete the corresponding `brew '<name>'` lines** from your private
-   Brewfile. Keep cask, mas, and tap entries (those move in a later slice).
+   Brewfile. Keep cask, mas, and tap entries (those move in the nix-darwin
+   slice — see that slice's sub-block below).
 
 3. **First `./apply` after this slice** runs the brew step against your
    slimmed Brewfile; `brew bundle cleanup --force` uninstalls the formulas
@@ -360,15 +388,74 @@ mas, and taps stay in Brewfiles until a later nix-darwin slice):
    via PATH precedence.
 
 4. **Formulas without a nix equivalent** (e.g., custom-tap formulas from
-   work-specific taps) STAY in your private Brewfile. The `homebrew.brews`
-   option in a future nix-darwin slice will give you a declarative way to
-   manage these.
+   work-specific taps) STAY in your private Brewfile until the nix-darwin
+   slice (next), which adds `homebrew.brews` as a declarative way to manage
+   these.
 
 5. **`bat` and `ripgrep` were proof-of-concept demo packages** added in
    the first nix slices to prove the migration was working. They're
    removed in this slice. If you actually want either, add them to
    `nix/profiles/<profile>/cli-tools.nix` (or your private flake) as
    ordinary `home.packages` entries.
+
+For the nix-darwin slice (homebrew + system-level state move into
+nix-darwin; bash plugins retire):
+
+1. **Bootstrap nix-darwin on each macOS machine** (one-time). The first
+   `./apply` after this slice detects `darwin-rebuild` is absent and
+   bootstraps automatically (sudo required; the framework's keep-alive
+   covers it). If running outside `./apply`:
+
+       sudo -H nix run nix-darwin -- switch --flake "path:$PWD/nix#default@aarch64-darwin"
+
+   Subsequent applies use `sudo -H darwin-rebuild switch --flake …`
+   automatically via the nix plugin. Note: if `/etc/shells` already
+   exists with non-nix-darwin content (e.g., from slice 6's
+   chshAndEtcShells activation), nix-darwin refuses to overwrite it.
+   Rename it once: `sudo mv /etc/shells /etc/shells.before-nix-darwin`
+   and re-run `./apply`. If you use Determinate's nix installer (the
+   default on this repo), the base config has `nix.enable = false`
+   already so nix-darwin doesn't try to manage the Nix daemon.
+
+2. **Private darwin profiles are not wired up yet.** The `nix` plugin
+   always builds nix-darwin from the public flake
+   (`darwinConfigurations.<profile>@<system>`); it does not yet check for
+   a per-env private darwin flake the way it does for home-manager. And
+   with the bash `homebrew` plugin retired, nothing in the framework
+   consumes a `Brewfile` anymore — your private
+   `custom_environments/<env>/Brewfile` is inert. Until a follow-up slice
+   adds the private-darwin branch:
+
+   - Personal-machine casks/mas/brews already live in
+     `nix/darwin/default/homebrew.nix` (public). Add additional ones
+     there if they're not sensitive.
+   - Sensitive or work-specific casks/mas/brews have NO declarative path
+     yet. Options: install them imperatively after `./apply` (knowing the
+     next apply's `cleanup = "uninstall"` will remove them again), keep
+     them as uncommitted local edits in `nix/darwin/<profile>/`, or wait
+     for the follow-up slice. `homebrew.onActivation.cleanup = "uninstall"`
+     in `nix/darwin/base.nix` removes any brew package not declared in
+     `homebrew.{casks,brews,masApps}` — there is no Brewfile escape hatch
+     anymore.
+
+3. **The `chshAndEtcShells` activation from slice 6 is gone.** nix-darwin's
+   `users.users.<name>.shell` + `environment.shells` handle login-shell
+   selection declaratively. No marker file; no interactive prompt. The
+   `~/.shells-chsh.hm-migrated` marker on existing machines is harmless
+   leftover state; you can `rm` it if you want.
+
+4. **Xcode license** is accepted automatically via
+   `system.activationScripts.xcodeLicense`. The Xcode app itself
+   installs via `homebrew.masApps.Xcode = 497799835;` in
+   `nix/darwin/base.nix`. `mas` is declared in `homebrew.brews` to
+   prevent the cleanup policy from removing it (nix-darwin doesn't
+   add `mas` implicitly as a `masApps` dependency).
+
+5. **Set iTerm's font** to "MesloLGS Nerd Font" (or another Nerd Font)
+   once after the cask installs: iTerm → Settings → Profiles → Text →
+   Font. This fixes the placeholder glyph in starship's prompt. The
+   cask installs to `~/Library/Fonts/` (user-level), not
+   `/Library/Fonts/`; both are visible to apps.
 
 The same shape applies to future slices that migrate a plugin or rsync
 source: add the new options to your private flake, delete the now-orphaned
@@ -384,6 +471,10 @@ rsync source from your private repo, and trust the activation cleanup.
   - **Linux** (official single-user): `nix-env --uninstall nix`, then
     `rm -rf ~/.nix-profile ~/.nix-defexpr ~/.nix-channels /nix` and remove the
     nix lines from your shell rc.
+- **Remove nix-darwin entirely:** more involved than home-manager rollback.
+  - `sudo darwin-rebuild --rollback` reverts to the previous nix-darwin generation but doesn't uninstall.
+  - To fully uninstall: `sudo /nix/var/nix/profiles/system/sw/bin/darwin-uninstaller`. This removes `/etc/static/` symlinks and the system profile; it does NOT touch your installed casks/mas (manage those via brew directly).
+  - `git revert` of this slice's commits restores the bash plugins (homebrew/homebrew_core/xcode) but does NOT revert nix-darwin's system-state changes. Manual `/etc/passwd`/`/etc/shells` cleanup may be needed (look for `/etc/shells.before-nix-darwin` — that's nix-darwin's pre-takeover backup).
 
 ## License
 
