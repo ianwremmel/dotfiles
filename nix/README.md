@@ -501,6 +501,48 @@ public baseline. If your private flake conflicts with a key set in the
 public `nix/darwin/defaults.nix`, override it with `lib.mkForce` in the
 private module.
 
+For the nix-vim slice (`vim` plugin retired; `~/.vimrc` content + plugins now home-manager managed via `programs.vim`):
+
+This slice migrates the bash `vim` plugin (which `git clone`d three pathogen
+bundles at apply time) and the rsynced `~/.vimrc` + `~/.vim/` content into
+home-manager's `programs.vim`. Plugins now come from nixpkgs at build time:
+`vim-javascript` (pangloss — replaces unmaintained `jelera/vim-javascript-syntax`),
+`vim-colors-solarized`, `editorconfig-vim`. Pathogen is no longer used; vim's
+native `packpath` mechanism handles plugin loading.
+
+home-manager's `programs.vim` does NOT create `~/.vimrc` or `~/.vim/vimrc`.
+The vimrc body lives inside the Nix store, and `~/.nix-profile/bin/vim` is a
+wrapper script that invokes vim with `-u <store-path-vimrc>`. This means
+`~/.vimrc` simply doesn't exist after this slice — editing it has no effect.
+To change vim config, edit `nix/profiles/all/vim.nix` and run `./apply`.
+
+**One-time apply notes:**
+
+- On first apply, the activation moves your existing `~/.vimrc` to
+  `~/.vimrc.legacy-backup`, `~/.vim/autoload/` (containing the old
+  `pathogen.vim`) to `~/.vim/autoload.legacy-backup/`, and `~/.vim/bundle/`
+  (the three git-cloned plugins) to `~/.vim/bundle.legacy-backup/`. Once
+  you've confirmed vim still works the way you want, you can delete the
+  `.legacy-backup` paths at your leisure.
+
+- `~/.vim/{backups,swaps,undo}/` are NOT touched by the migration. They
+  contain real vim state (backup copies of files you've edited, swap files
+  for recovery, undo history). The slice creates these directories
+  declaratively via `home.file` `.keep` placeholders so a fresh machine
+  has them, but never manages their contents.
+
+- If you had local edits to `~/.vimrc` or any of the bundle plugins, look
+  for them in the `.legacy-backup` paths and reapply manually if needed —
+  the slice's `programs.vim.extraConfig` matches the legacy `.vimrc` body
+  minus the `pathogen#infect()` line.
+
+**Private flake update (only if you have one):**
+
+If your private flake adds `programs.vim.plugins` or `programs.vim.extraConfig`
+entries, Nix module merging handles them additively on top of the public
+baseline. Conflicting keys (e.g., overriding the colorscheme) need
+`lib.mkForce` in the private module.
+
 The same shape applies to future slices that migrate a plugin or rsync
 source: add the new options to your private flake, delete the now-orphaned
 rsync source from your private repo, and trust the activation cleanup.
