@@ -14,6 +14,17 @@ let
   };
 
 in {
+  # ---------- Cross-shell PATH additions ----------
+  # User-private bin dirs. `~/.local/bin` is where the native Claude Code
+  # installer drops its `claude` symlink; `~/bin` is the historical "personal
+  # scripts" dir. Both were prepended by the retired .bash_profile.d/path and
+  # .zprofile files; home.sessionPath restores them via hm-session-vars.sh
+  # (sourced from .zshenv / .bash_profile).
+  home.sessionPath = [
+    "$HOME/bin"
+    "$HOME/.local/bin"
+  ];
+
   # ---------- Cross-shell environment vars (apply to both bash and zsh) ----------
   home.sessionVariables = {
     EDITOR                  = "vim";
