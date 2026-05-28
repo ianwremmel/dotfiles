@@ -303,20 +303,6 @@
       "com.apple.dt.Xcode" = {
         DVTTextTabKeyIndentBehavior = "Always";
       };
-
-      # ----- iTerm 2 -----
-      # iTerm stores `Normal Font` as binary-encoded NSFont data, not a
-      # plain string. Writing the string form here is a placeholder — iTerm
-      # ignores it on launch. The Nerd Font itself is installed by the
-      # nix-darwin slice's cask; the actual font selection is a manual
-      # one-time step (iTerm → Settings → Profiles → Text → Font). To make
-      # this declarative for real, a future slice can capture the binary
-      # bytes from a working machine and write them via `defaults write -data`.
-      "com.googlecode.iterm2" = {
-        "Normal Font"        = "MesloLGS-NF-Regular 14";
-        "Non Ascii Font"     = "MesloLGS-NF-Regular 14";
-        "Use Non-ASCII Font" = false;
-      };
     };
   };
 
