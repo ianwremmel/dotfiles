@@ -3,6 +3,7 @@
   # stays lean). cli-tools.nix carries personal-machine CLI installs that
   # don't belong on agent boxes.
   imports = [
+    ./claude.nix
     ./cli-tools.nix
   ];
 

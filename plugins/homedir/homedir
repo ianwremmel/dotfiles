@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
-# Needs to come after claude because claude has a "build" step
-export DOTFILES_HOMEDIR_DEPS=('claude')
+export DOTFILES_HOMEDIR_DEPS=()
 
 dotfiles_homedir_apply () {
   _apply () {
