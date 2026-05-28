@@ -603,6 +603,38 @@ cask. The plugin is deleted with no replacement — Homebrew owns the symlink.
   use VS Code's "Shell Command: Install 'code' command in PATH" from the command
   palette.
 
+For the nix-homedir slice (`environments/all/home/` rsync content → home-manager; the homedir plugin stays for custom_environments):
+
+This slice migrates the universal rsync dotfiles into home-manager: the global
+gitignore (`programs.git.ignores`), `.screenrc` (`programs.screen`), `.gemrc` /
+`.wgetrc` / `.hushlogin` (`home.file`), the `~/bin/git-*` helper scripts
+(`home.file`, executable, per-file so `~/bin` stays writable), and `~/.ssh/config`
+(`home.file` with the macOS-only `UseKeychain` gated by platform).
+
+The `homedir` bash plugin is NOT retired — it still rsyncs
+`custom_environments/<env>/home/`. It retires in a later slice once
+custom_environments is migrated.
+
+**One-time apply notes:**
+
+- On first apply, an activation deletes the now-vestigial rsynced copies of
+  these files from `$HOME` (`.gemrc`, `.wgetrc`, `.screenrc`, `.hushlogin`,
+  `.gitignore`, `.ssh/config`, and the `~/bin/git-*` scripts) so home-manager
+  can link the managed versions. No backup is kept — they were exact copies of
+  tracked repo content. Your non-managed `~/bin` entries, `~/.ssh` keys, and
+  `known_hosts` are untouched.
+
+- The global gitignore moved from `~/.gitignore` to `~/.config/git/ignore`
+  (git reads `~/.config/git/ignore` natively as its XDG default — no
+  `core.excludesFile` needed, which is why this slice drops it). A pre-existing
+  `~/.config/git/ignore` pattern (`**/.claude/settings.local.json`) was folded
+  into `programs.git.ignores`, so it's preserved.
+
+**Private flake update (only if you have one):**
+
+If your private flake adds `home.file` entries or `programs.git.ignores`, Nix
+module merging handles additive entries; conflicting keys need `lib.mkForce`.
+
 The same shape applies to future slices that migrate a plugin or rsync
 source: add the new options to your private flake, delete the now-orphaned
 rsync source from your private repo, and trust the activation cleanup.
