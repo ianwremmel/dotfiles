@@ -588,6 +588,21 @@ If your private flake adds `home.file.".claude/..."` entries or overrides
 settings keys, Nix module merging handles additive entries; conflicting keys
 need `lib.mkForce`.
 
+For the nix-vscode slice (`vscode` plugin retired; `code` CLI now provided by the cask):
+
+The bash `vscode` plugin only symlinked VS Code's `code` CLI helper onto PATH.
+That's now redundant: the `visual-studio-code` cask (declared in nix-darwin since
+the nix-darwin slice) lists `code` and `code-tunnel` as binary artifacts, so
+Homebrew links them into `/opt/homebrew/bin/` (on PATH) when it installs the
+cask. The plugin is deleted with no replacement — Homebrew owns the symlink.
+
+**One-time apply notes:**
+
+- No action needed. If `code` ever goes missing after a VS Code reinstall, run
+  `brew reinstall --cask visual-studio-code` to relink the binary artifacts, or
+  use VS Code's "Shell Command: Install 'code' command in PATH" from the command
+  palette.
+
 The same shape applies to future slices that migrate a plugin or rsync
 source: add the new options to your private flake, delete the now-orphaned
 rsync source from your private repo, and trust the activation cleanup.
