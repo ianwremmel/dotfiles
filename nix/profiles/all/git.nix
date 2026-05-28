@@ -6,6 +6,21 @@
     # .gitconfigs so user-managed local overrides keep working.
     includes = [ { path = "~/.gitconfig.custom"; } ];
 
+    ignores = [
+      # Editor temp files
+      "*.orig" "*.swp" "*~" ".*.swo" "*.pyc"
+      # Archives
+      "*.dmg" "*.gz" "*.iso" "*.rar" "*.tar" "*.zip"
+      # Logs and databases
+      "*.log" "*.sql" "*.sqlite"
+      # OS generated files
+      ".DS_Store" ".DS_Store?" ".Spotlight-V100" ".Trashes" "._*" "Icon?" "Thumbs.db" "Desktop.ini"
+      # Eclipse/Aptana
+      ".settings" ".project"
+      # Claude Code local settings (never commit per-project local overrides)
+      "**/.claude/settings.local.json"
+    ];
+
     # `settings` replaces the older `aliases` + `extraConfig` options
     # (renamed in home-manager; the old names emit a deprecation warning).
     # `settings.alias` is the alias subsection; the other top-level attrs
@@ -32,7 +47,6 @@
 
       core = {
         attributesfile    = "~/.gitattributes";
-        excludesfile      = "~/.gitignore";
         precomposeunicode = false;
         trustctime        = false;
         whitespace        = "space-before-tab,indent-with-non-tab,trailing-space";

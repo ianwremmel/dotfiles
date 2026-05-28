@@ -8,6 +8,7 @@
     ./dotfilesrc-cleanup.nix
     ./git.nix
     ./gpg.nix
+    ./home-files.nix
     ./shells.nix
     ./vim.nix
   ];
