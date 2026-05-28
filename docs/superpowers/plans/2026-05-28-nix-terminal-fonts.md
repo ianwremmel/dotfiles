@@ -1,5 +1,18 @@
 # Nix Terminal Fonts Slice Implementation Plan
 
+> **REVISED DURING IMPLEMENTATION — approach pivoted.** The dynamic-profile +
+> `Default Bookmark Guid` mechanism described in Task 1 Steps 3–10 below was
+> abandoned: dynamic profiles create *parallel* profiles that don't auto-take-over
+> the default/tmux roles (the `Default Bookmark Guid` pref is clobbered by a
+> running iTerm, and tmux isn't GUID-pinned). The shipped approach patches the
+> font onto the **existing** Default/tmux iTerm profiles and Terminal's Homebrew
+> profile **in place**, via a Python `plistlib` `defaults export → modify →
+> import` round-trip (`nix/profiles/default/patch-terminal-fonts.py`). See the
+> design spec's **Decision 1** for the rationale. The steps below are retained
+> for historical context; the spec is authoritative. The key constraint
+> (**quit iTerm + Terminal.app during `./apply`**) and the file-removal of the
+> stale `com.googlecode.iterm2` block (Task 1 Step 5) still hold.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans. Steps use checkbox (`- [ ]`) syntax.
 
 **Goal:** Make iTerm2 (Default + tmux profiles) and Terminal.app (Homebrew profile) render `MesloLGSNF-Regular 14` declaratively. iTerm via two Dynamic Profiles inheriting the existing profiles + `Default Bookmark Guid`; Terminal.app via a stored NSFont blob injected by a `defaults export → plutil -replace → defaults import` activation. Remove the stale, ignored iTerm font keys the nix-firstrun slice added to `nix/darwin/defaults.nix`.
