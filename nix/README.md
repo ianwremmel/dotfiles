@@ -635,6 +635,29 @@ custom_environments is migrated.
 If your private flake adds `home.file` entries or `programs.git.ignores`, Nix
 module merging handles additive entries; conflicting keys need `lib.mkForce`.
 
+For the nix-terminal-fonts slice (iTerm2 + Terminal.app Nerd Font, declarative):
+
+Closes the terminal-font deferral. The nix-firstrun attempt wrote a top-level
+`Normal Font` pref (ignored — the font lives per-profile) with a typo'd
+PostScript name. This slice patches the font onto your EXISTING profiles in
+place via a Python plistlib `defaults export → modify → import` round-trip
+(`nix/profiles/default/patch-terminal-fonts.py`, run from a home-manager
+activation):
+
+- **iTerm2** — the `Default` and `tmux` profiles get `Normal Font` /
+  `Non Ascii Font` set to `MesloLGSNF-Regular 14` ("MesloLGS Nerd Font").
+- **Terminal.app** — the `Homebrew` profile's `Font` (a binary NSFont blob,
+  generated once via Swift and stored with a regen comment) is set.
+
+**CONSTRAINT: quit iTerm2 and Terminal.app before `./apply`.** Both rewrite
+their prefs on quit, so a running app reverts the change. Relaunch them after
+applying to see the font. The patch is idempotent.
+
+**Changing the font:** edit `font` in `nix/profiles/default/terminal-fonts.nix`.
+For Terminal.app, also regenerate the NSFont blob (the Swift one-liner is in the
+file's comment). The font itself is installed by the `font-meslo-lg-nerd-font`
+cask (nix-darwin slice), not here.
+
 The same shape applies to future slices that migrate a plugin or rsync
 source: add the new options to your private flake, delete the now-orphaned
 rsync source from your private repo, and trust the activation cleanup.
