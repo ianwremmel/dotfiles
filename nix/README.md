@@ -543,6 +543,51 @@ entries, Nix module merging handles them additively on top of the public
 baseline. Conflicting keys (e.g., overriding the colorscheme) need
 `lib.mkForce` in the private module.
 
+For the nix-claude slice (`claude` plugin retired; `~/.claude/` config now home-manager managed):
+
+This slice migrates the bash `claude` plugin (which "built" `~/.claude/CLAUDE.md`
+from a renamed source then rsynced it) into home-manager. The personal Claude
+Code config — `CLAUDE.md`, `settings.json`, and `guides/` — is now managed
+declaratively in the `default` profile. `settings.json` is generated from a Nix
+attrset (`pkgs.formats.json`); `CLAUDE.md` and the guides are sourced from
+`nix/profiles/default/claude/`.
+
+**Individual files, not directories.** `~/.claude/` holds a lot of live Claude
+Code state (projects, plugins, sessions, history, auto-memory). The slice
+manages only the specific files it owns and never symlinks a whole directory,
+so your state and any ad-hoc content (e.g. a hand-written `~/.claude/commands/`
+entry) are left untouched.
+
+**Adding agents, skills, commands, or rules.** Drop a file under the matching
+directory in the repo and run `./apply`:
+
+- `nix/profiles/default/claude/agents/<name>.md` → `~/.claude/agents/<name>.md`
+- `nix/profiles/default/claude/skills/<name>/SKILL.md` → `~/.claude/skills/<name>/SKILL.md`
+- `nix/profiles/default/claude/commands/<name>.md` → `~/.claude/commands/<name>.md`
+- `nix/profiles/default/claude/rules/<name>.md` → `~/.claude/rules/<name>.md`
+
+The Nix module auto-discovers every file under those directories. The target
+dirs stay writable, so Claude-Code-authored files alongside your managed ones
+coexist.
+
+**One-time apply notes:**
+
+- On first apply, the activation moves your existing rsynced `~/.claude/CLAUDE.md`,
+  `~/.claude/settings.json`, and `~/.claude/guides/*.md` to `*.legacy-backup`
+  siblings, then home-manager links the Nix-managed versions. Delete the
+  `.legacy-backup` files once you've confirmed everything's in order.
+
+- `settings.json` is now generated from `nix/profiles/default/claude.nix`. To
+  change a setting, edit the Nix attrset and run `./apply` — editing
+  `~/.claude/settings.json` directly has no lasting effect (it's a symlink into
+  the Nix store).
+
+**Private flake update (only if you have one):**
+
+If your private flake adds `home.file.".claude/..."` entries or overrides
+settings keys, Nix module merging handles additive entries; conflicting keys
+need `lib.mkForce`.
+
 The same shape applies to future slices that migrate a plugin or rsync
 source: add the new options to your private flake, delete the now-orphaned
 rsync source from your private repo, and trust the activation cleanup.
