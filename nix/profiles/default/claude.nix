@@ -74,10 +74,17 @@ in
       elif ${pkgs.jq}/bin/jq -e . "$settings" >/dev/null 2>&1; then
         # Claude owns a valid file: re-assert the static keys without clobbering
         # what Claude wrote (recursive merge; right operand wins on conflicts).
-        tmp="$settings.nix-merge"
-        ${pkgs.jq}/bin/jq -s '.[0] * .[1]' "$settings" ${settingsDefaults} > "$tmp"
-        run install -m 0644 "$tmp" "$settings"
-        run rm -f "$tmp"
+        # The merge writes a temp file via redirection, which `run`/$DRY_RUN_CMD
+        # can't gate (the shell opens the redirect before the command runs), so
+        # skip the whole write under `home-manager switch -n`.
+        if [ -z "$DRY_RUN_CMD" ]; then
+          tmp="$settings.nix-merge"
+          ${pkgs.jq}/bin/jq -s '.[0] * .[1]' "$settings" ${settingsDefaults} > "$tmp"
+          install -m 0644 "$tmp" "$settings"
+          rm -f "$tmp"
+        else
+          echo "would merge ${settingsDefaults} into $settings"
+        fi
       else
         # Unparseable JSON: replace with a clean writable copy.
         run install -m 0644 ${settingsDefaults} "$settings"
