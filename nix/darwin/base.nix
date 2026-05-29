@@ -44,8 +44,9 @@
   #
   # `reattach` adds pam_reattach.so so the Touch ID prompt also works
   # inside tmux/screen sessions — without it, sudo inside `screen`
-  # (see home-files/screenrc) silently falls back to password entry
-  # because the GUI prompt can't attach to the detached session.
+  # (see nix/profiles/all/home-files/screenrc) silently falls back to
+  # password entry because the GUI prompt can't attach to the detached
+  # session.
   security.pam.services.sudo_local = {
     touchIdAuth = true;
     reattach    = true;
