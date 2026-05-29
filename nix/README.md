@@ -109,12 +109,12 @@ because the env is implicit in the flake's location).
 
 **Two things to know before authoring one:**
 
-1. **`path:` flake refs require git-tracked files.** When the `nix` plugin
+1. **`path:` flake refs require git-tracked files.** When `lib/nix`
    builds your private flake, it uses `path:custom_environments/<env>/nix`.
    Because that path lives inside a git repo (typically your private
-   `custom_environments` repo set up by `framework/customize`), Nix's path
-   fetcher applies git-tree semantics — only files tracked in that repo are
-   visible. **Commit your private flake files** to your private repo before
+   `custom_environments` repo, cloned manually into `custom_environments/`),
+   Nix's path fetcher applies git-tree semantics — only files tracked in that
+   repo are visible. **Commit your private flake files** to your private repo before
    the first `./apply`. (For one-off throwaway testing without the private
    repo, `git init` inside `custom_environments/<env>/nix/` and commit the
    files there works.)
@@ -658,6 +658,34 @@ For Terminal.app, also regenerate the NSFont blob (the Swift one-liner is in the
 file's comment). The font itself is installed by the `font-meslo-lg-nerd-font`
 cask (nix-darwin slice), not here.
 
+For the framework-collapse slice (the homegrown plugin framework retired; `./apply` now runs on stock Bash 3.2.57):
+
+Closes the last public-side deferral — the bash-bootstrap chicken-and-egg.
+Instead of bootstrapping a modern Bash before Nix, the plugin framework (which
+was the only thing needing Bash 4+) is collapsed: `./apply` is now a flat,
+Bash-3.2-safe script and the nix logic moved to `lib/nix`.
+`framework/{framework,plugin,util,customize}` and the `plugins/` tree are
+deleted. The per-environment `home/` rsync (the old `homedir` plugin) is also
+gone — public `home/` content already migrated to home-manager, and any
+`custom_environments/<env>/home/` content should now be managed by that env's
+private flake (`custom_environments/<env>/nix`).
+
+- **No private-flake change needed for the public profiles.** This slice
+  restructures the public bootstrap. **If your private env relied on the
+  `home/` rsync** (e.g. a `custom_environments/work/home/` overlay), move those
+  files into your private flake's `nix/files/home/` tree — `./apply` no longer
+  rsyncs them.
+- **First `./apply` after this slice:** nix-darwin's `cleanup = "uninstall"`
+  removes the now-undeclared `bash` and `bash-completion@2` Homebrew formulas.
+  General-purpose Bash 5 is provided by the nixpkgs `bash` in `home.packages`
+  (`~/.nix-profile/bin/bash`); bash completion is wired by home-manager's
+  `programs.bash.enableCompletion` (default), sourcing the nixpkgs
+  `bash-completion`. Open a fresh shell afterward and confirm `bash --version`
+  is 5.x and tab-completion still works.
+- **`custom_environments` is now cloned/updated manually** — the `customize`
+  helper that auto-cloned it was removed. `git clone` your private repo into
+  `custom_environments/` once; `./apply` discovers it from there as before.
+
 The same shape applies to future slices that migrate a plugin or rsync
 source: add the new options to your private flake, delete the now-orphaned
 rsync source from your private repo, and trust the activation cleanup.
@@ -667,7 +695,7 @@ rsync source from your private repo, and trust the activation cleanup.
 - **Disable the slice:** set `DOTFILES_NIX_SKIP=1` before `./apply`.
 - **Drop a managed file:** remove its lines from `home.nix` and re-activate;
   home-manager removes only symlinks it created.
-- **Remove Nix entirely:** delete `plugins/nix/` and `nix/`, then uninstall Nix:
+- **Remove Nix entirely:** delete `lib/nix` and `nix/`, then uninstall Nix:
   - **macOS** (Determinate): `/nix/nix-installer uninstall`.
   - **Linux** (official single-user): `nix-env --uninstall nix`, then
     `rm -rf ~/.nix-profile ~/.nix-defexpr ~/.nix-channels /nix` and remove the

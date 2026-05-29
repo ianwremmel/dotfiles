@@ -27,20 +27,11 @@ if [ -d "$HOME/.bash_completion.d" ]; then
 	done
 fi
 
-# Homebrew bash completion
-if hash brew 2>/dev/null ; then
-  BREW_PREFIX=$(brew --prefix)
-
-  if [ -f "$BREW_PREFIX/etc/bash_completion" ]; then
-    # shellcheck disable=SC1090
-   source "$BREW_PREFIX/etc/bash_completion"
-  fi
-
-  if [ -f "$BREW_PREFIX/share/bash-completion/bash_completion" ]; then
-    # shellcheck disable=SC1090
-    source "$BREW_PREFIX/share/bash-completion/bash_completion"
-  fi
-fi
+# The bash-completion framework itself is loaded by home-manager's
+# programs.bash.enableCompletion (default true), which sources the nixpkgs
+# `bash-completion` package — so no manual sourcing is needed here. (The old
+# Homebrew `brew --prefix` block was removed in the framework-collapse slice
+# when brew's bash-completion@2 was dropped.)
 
 if hash npm 2> /dev/null; then
   # shellcheck disable=SC2046 disable=SC2034 disable=SC2162

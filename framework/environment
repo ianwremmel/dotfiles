@@ -23,8 +23,12 @@ environment_get_current () {
     non_default_envs+="$env "
   done
 
-  if [ "$non_default_envs" == 'default ' ]; then
-    debug 'no custom environments have been detected, choosing default'
+  # Default when the only environment is `default`, OR when none exist at all
+  # (the public `environments/` tree was fully migrated into nix/, so a fresh
+  # machine with no custom_environments has nothing to choose from — fall back
+  # to `default` rather than presenting an empty `select` prompt).
+  if [ "$non_default_envs" == 'default ' ] || [ "$non_default_envs" == '' ]; then
+    debug 'no selectable environments detected, choosing default'
     echo 'default'
     return 0
   fi
@@ -41,130 +45,22 @@ environment_get_current () {
 }
 
 #
-# Given an environment and a relative path, outputs the full path to that file
+# Lists every environment that exists (public + custom), excluding `all`.
+# Used by environment_get_current to decide whether to prompt.
 #
-environment_get_path () {
-  usage='usage: environment_get_path <env> <filename>'
-  local env=$1
-  local filename=$2
-
-  if [ "$env" == '' ]; then
-    error "$usage"
-    return 1
-  fi
-
-  if [ "$filename" == '' ]; then
-    error "$usage"
-    return 1
-  fi
-
-  echo "$(environment_get_base_path "$env")/$filename"
-}
-
-#
-# Given an environment, outputs the full puth of that environment folder
-#
-environment_get_base_path () {
-  usage='usage: environment_get_base_path <env>'
-  local env=$1
-
-  if [ "$env" == '' ]; then
-    error "$usage"
-    return 1
-  fi
-
-  if [ -d "$DOTFILES_ROOT_DIR/custom_environments/$env" ]; then
-    echo "$DOTFILES_ROOT_DIR/custom_environments/$env"
-    return 0
-  fi
-
-  echo "$DOTFILES_ROOT_DIR/environments/$env"
-}
-
-#
-# Given a filename, outputs the full path of that file for the most relevant
-# environment (be it `$current`, `default`, or `all`)
-#
-environment_get_item_path () {
-  usage='usage: environment_get_item_path <filename>'
-  local filename=$1
-
-  if [ "$filename" == '' ]; then
-    error "$usage"
-    return 1
-  fi
-
-  error "filename=$filename"
-
-  for env in $(environment_list_environments); do
-
-    local candidate
-    candidate="$(environment_get_base_path "$env")/$filename"
-    error "candidate=$candidate"
-
-    if [ -f "$candidate" ] || [ -f "$candidate" ]; then
-      echo "$candidate"
-      return 0
-    fi
-  done
-
-  return 1
-}
-
-#
-# Lists all relevant environments, from most relevant to least relevant
-#
-environment_list_environments () {
-  if [ -d "$(environment_get_base_path "$(environment_get_current)")" ]; then
-    debug "current env is $(environment_get_current)"
-    environment_get_current
-  elif [ -d "$(environment_get_base_path default)" ]; then
-    debug "current env is default"
-    echo 'default'
-  fi
-
-  if [ -d "$(environment_get_base_path 'all')" ]; then
-    echo 'all'
-  fi
-}
-
 environment_list_all_environments () {
   # shellcheck disable=SC2012
-  envs=$(ls "$DOTFILES_ROOT_DIR/environments" | sort)
-  if [ -d "$DOTFILES_ROOT_DIR/environments" ]; then
-    # This looks weird, but the quote-wrapped-linebreak is intentional
-    envs+="
-"
-    if [ -d "$DOTFILES_ROOT_DIR/custom_environments" ]; then
-      envs+=$(ls "$DOTFILES_ROOT_DIR/custom_environments")
-    fi
+  local envs=''
+  # The public `environments/` tree no longer exists (its content migrated into
+  # nix/); guard the listing so a missing dir doesn't print a spurious `ls`
+  # error. Only `custom_environments/<env>` remains as a real source.
+  [ -d "$DOTFILES_ROOT_DIR/environments" ] && envs="$(ls "$DOTFILES_ROOT_DIR/environments")"
+  if [ -d "$DOTFILES_ROOT_DIR/custom_environments" ]; then
+    envs="$envs
+$(ls "$DOTFILES_ROOT_DIR/custom_environments")"
   fi
 
-  echo "$envs" | sort | uniq | grep -v all
-}
-
-#
-# Given a function name, runs that function in each relevant environment folder
-# with the globals `CURRENT_ENVIRONMENT`, `CURRENT_ENVIRONMENT_PATH`,
-# `ENVIRONEMENTS`. First, the `all` environment is run, then the `$current`
-# environment (which may be `default`)
-#
-environment_map_func () {
-  usage='usage: environment_map_func <func_name>'
-  local func_name=$1
-
-  if [ "$func_name" == '' ]; then
-    error "$usage"
-    return 1
-  fi
-
-  for env in $(environment_list_environments | tac); do
-    (
-      cd "$(environment_get_base_path "$env")" || return
-      ENVIRONEMENTS="$(environment_list_environments | tac)" \
-      CURRENT_ENVIRONMENT="$env" \
-      CURRENT_ENVIRONMENT_PATH=$(environment_get_base_path "$env") \
-      $func_name
-    )
-  done
+  # -vx: exact whole-line match, so an env whose name merely contains "all"
+  # (e.g. "fallback") isn't filtered out with the real "all". Drop blank lines.
+  printf '%s\n' "$envs" | sort | uniq | grep -vx all | grep -v '^$'
 }

@@ -10,7 +10,7 @@
   system.primaryUser = username;
 
   # Do NOT let nix-darwin manage the Nix installation: Determinate's nix
-  # installer (used by the `plugins/nix` bootstrap) owns its own daemon
+  # installer (used by the `lib/nix` bootstrap) owns its own daemon
   # and refuses to coexist with nix-darwin's native nix management. With
   # this set to false, nix-darwin still does everything else (homebrew,
   # login shell, Xcode license, system activations); the `nix.*` options
@@ -112,11 +112,10 @@
       # because the folly C++ dep doesn't build on aarch64-darwin in
       # the current nixpkgs.
       "watchman"
-      # Bash bootstrap helpers — stay on brew per memory
-      # nix-bootstrap-bash-deferred. The framework's compat layer needs
-      # brew's bash before nix is installed on a fresh machine.
-      "bash"
-      "bash-completion@2"
+      # (The `bash` + `bash-completion@2` bootstrap helpers were dropped in
+      # the framework-collapse slice — ./apply now runs on stock Bash 3.2.57
+      # and Nix provides the general-purpose Bash 5 via home.packages.
+      # cleanup = "uninstall" removes the old brew bash on the next activation.)
     ];
   };
 }

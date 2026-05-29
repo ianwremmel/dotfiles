@@ -44,8 +44,8 @@
     python3
 
     # Shell extras (the zsh binary itself is provided by programs.zsh.enable)
-    bash             # also stays in Brewfile per Decision 4 (bash-5 bootstrap)
-    bash-completion  # nixpkgs `bash-completion` is the v2 series (brew name: bash-completion@2); also stays in Brewfile per Decision 4
+    bash             # general-purpose Bash 5 on PATH (~/.nix-profile/bin/bash)
+    bash-completion  # nixpkgs `bash-completion` is the v2 series (brew name: bash-completion@2)
     zsh-completions
   ];
 }

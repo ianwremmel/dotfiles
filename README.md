@@ -62,30 +62,24 @@ Environments are are defined in two place:
   separate repo that you checkout to this folder. If you create a folder called
   e.g. `all` in `custom_environments`, it will be used exclusively in place of
   the `all` in `environments`. If that folder is empty, you'll be working from a
-  completely clean slate (other than the work done by plugins)
+  completely clean slate (other than the Nix-managed configuration)
 
-## Plugins
+## How it works
 
-Plugins do the bulk of the work here. Plugins are just bash scripts that
-implement one or more [lifecycle hooks](#lifecycle-hooks). They're executued
-automatically by `./apply`.
+`./apply` is a thin bootstrapper. It:
 
-When authoring plugins, keep in mind that they're sourced into the framework
-process, so there's no need to e.g. `set -euo pipefail`.
+1. Resolves the active environment (prompting once when more than one exists) and
+   persists it to `~/.dotfilesrc`. The environment selects the home-manager
+   profile and any private flake under `custom_environments/<env>/nix`.
+2. On macOS, ensures Homebrew is present (nix-darwin's homebrew module needs it).
+3. Installs Nix (if needed), generates `nix/host.nix`, then builds and activates
+   the home-manager configuration and — on macOS — the nix-darwin system layer.
+   This is where the configuration lives (see `nix/`).
 
-> Though unnecessary, it's fine to put `export` in from of e.g.
-> `$DOTFILES_*_CONFIG` in order to prevent shellcheck from complaining about
-> unused vars.
-
-### Lifecycle Hooks
-
-- `$DOTFILES_*_CONFIG` - an array containing the unprefixed names of the
-  plugin's config variables
-- `$DOTFILES_*_DEPS` - an array of plugin names that must execute before this
-  plugin can be applied
-- `dotfiles_*_apply ()` - does the plugin's work
-- `dotfiles_*_prompt_string ()` - function that accepts a (non-namespaced) var
-  name and echos the prompt string for `read` to present to the user
+The bootstrap logic lives in `apply` plus a few small sourced helpers under
+`framework/` (`logging`, `config`, `environment`, `compat`) and `lib/nix`. The
+homegrown plugin framework that predated the Nix migration has been retired; new
+configuration belongs in `nix/`.
 
 ## Conventions
 
@@ -93,11 +87,10 @@ process, so there's no need to e.g. `set -euo pipefail`.
 - Environment variables and globals are all caps, with underscores as
   separaters.
 - Functions and local variables are snake case.
-- Shell scripts (including plugins, though technically only the plugin
-  _entrypoint_ need be bash) are written for bash >= 4. At time of writing, this
-  means bash 5. While you may choose any shell you wish as your default, the
-  majority of the script files are loading by sourcing them into the current
-  process. Moreover shellcheck supports bash, but not zsh.
+- `apply` and the `framework/*` helpers are sourced/run as a single process and
+  must work on stock macOS Bash 3.2.57 — no Bash-4-only features (`local -n`
+  namerefs, `${var^^}` case modification, associative arrays, etc.). Nix provides
+  a general-purpose Bash 5 for everything else. shellcheck supports bash, not zsh.
 
 ## Contributing
 

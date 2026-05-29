@@ -1,46 +1,53 @@
 #!/usr/bin/env bash
 
+# Flat, Bash-3.2-safe entrypoint. Runs start-to-finish in the invoking shell
+# (no self re-exec) so it works under stock macOS /bin/bash 3.2.57 — the plugin
+# framework that needed Bash 5 was collapsed in the framework-collapse slice.
+# Nix still provides a general-purpose Bash 5 via home.packages.
+
 set -euo pipefail
 
-# Load the compat helpers. These ensure that we have a modern version of bash
-# installed
-source ./framework/compat
+export DOTFILES_ROOT_DIR
+DOTFILES_ROOT_DIR="$(cd "$(dirname "$0")" >/dev/null 2>&1 && pwd)"
 
-export DOTFILES_AIRPLANE_MODE
-DOTFILES_AIRPLANE_MODE=0
-
-while getopts "Ah?" opt; do
+while getopts "h?" opt; do
   case $opt in
-    A)
-        DOTFILES_AIRPLANE_MODE=1
-        ;;
     ?)  echo "Usage: $(basename "$0") [-h|-?]"
         echo "-h|-?   Print this help and exit"
         exit 2;;
   esac
 done
 
-# On Linux, run only the nix step (the rest of the framework is macOS-specific).
-# On macOS, run the framework in a subshell so it uses homebrew bash rather than
-# (what may be) the macos system bash.
-if [ "$(uname -s)" = Linux ]; then
-  /usr/bin/env bash -c '
-    set -euo pipefail
-    export DOTFILES_ROOT_DIR; DOTFILES_ROOT_DIR="$(pwd)"
-    source ./framework/logging
-    source ./framework/config
-    source ./framework/environment
-    # The framework expects ~/.dotfilesrc to exist (config_read/_write).
-    # Mode 0600 matches the framework first-run permissions.
-    [ -f "$HOME/.dotfilesrc" ] || install -m 0600 /dev/null "$HOME/.dotfilesrc"
-    environment_get_current   # may prompt + persist; same call framework_init makes
-    config_load               # exports DOTFILES_ENVIRONMENT etc. from ~/.dotfilesrc
-    source ./plugins/nix/nix
-    dotfiles_nix_apply
-  '
-else
-  /usr/bin/env bash -c 'source ./framework/framework && framework_apply'
+source ./framework/logging
+source ./framework/config
+source ./framework/environment
+source ./lib/nix
+
+# The framework helpers expect ~/.dotfilesrc to exist (config_read/_write).
+# Mode 0600 matches the historical first-run permissions.
+[ -f "$HOME/.dotfilesrc" ] || install -m 0600 /dev/null "$HOME/.dotfilesrc"
+
+# Resolve (and, when multiple environments exist, prompt for + persist) the
+# active environment, then export it (and anything else in ~/.dotfilesrc).
+environment_get_current
+config_load
+
+if [ "$(uname -s)" = Darwin ]; then
+  echo 'Many of the following commands will need root access'
+  echo 'Please enter your password to (hopefully) only be prompted once'
+  sudo -v
+  # Keep-alive: refresh the sudo timestamp until this script exits.
+  while true; do sudo -n true; sleep 30; kill -0 "$$" || exit; done 2>/dev/null &
+
+  # nix-darwin's homebrew module runs `brew bundle` on activate but does NOT
+  # install brew itself — ensure it is present first.
+  source ./framework/compat
+  compat_ensure_homebrew
 fi
+
+# Install nix, generate nix/host.nix, build + activate home-manager, and (on
+# macOS) activate nix-darwin.
+dotfiles_nix_apply
 
 echo ''
 echo 'Please reload your shell to apply changes'

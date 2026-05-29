@@ -1,32 +1,36 @@
 # Dotfiles Repository
 
-Plugin-driven, environment-aware dotfiles management system.
+Environment-aware dotfiles management. Configuration is declarative via
+Nix + home-manager + nix-darwin (see `nix/`); `./apply` is a thin bootstrapper
+that resolves the active environment, installs Nix, and activates those
+configurations.
 
 ## Structure
 
-- `framework/` - Core framework (plugin lifecycle, config, environment detection)
-- `plugins/` - Individual plugins (homebrew, shells, git, vim, nvm, etc.)
+- `apply` - Flat entry script (Bash-3.2-safe; no plugin framework)
+- `lib/nix` - Nix install + home-manager / nix-darwin activation logic (sourced by `apply`)
+- `framework/` - Small sourced helpers: `logging`, `config` (`~/.dotfilesrc`), `environment` (resolve/persist the active environment), `compat` (ensure Homebrew on macOS)
+- `nix/` - The declarative configuration (flake, home-manager profiles, nix-darwin system layer)
 - `environments/` - Repo-managed environments (`all/` shared, `default/` machine-specific)
-- `custom_environments/` - Git-ignored user customizations
-- `apply` - Main entry script
+- `custom_environments/` - Git-ignored user customizations (private flake + `home/` overlay)
 
 ## Running
 
 ```bash
 ./apply              # Full application
-./apply -B           # Skip homebrew bundle
-./apply -A           # Airplane mode (offline)
 DOTFILES_DEBUG=1 ./apply  # Verbose logging
 ```
 
 ## Conventions
 
-- Bash 5+ required
-- Plugin functions: `dotfiles_<plugin>_apply()`, `dotfiles_<plugin>_prompt_string()`
-- Plugin dependencies: `DOTFILES_<plugin>_DEPS` array
-- Plugin config: `DOTFILES_<plugin>_CONFIG` array
-- Config persisted to `~/.dotfilesrc`
+- `apply` and `framework/*` must run on stock macOS Bash 3.2.57 (no Bash-4-only
+  features: no `local -n` namerefs, no `${var^^}` case modification, etc.). Nix
+  provides a general-purpose Bash 5 for everything else.
+- Config persisted to `~/.dotfilesrc` (`DOTFILES_ENVIRONMENT`, …).
+- New configuration belongs in `nix/` (home-manager / nix-darwin), not in new
+  shell plugins — the plugin framework was retired.
 
 ## Testing
 
-No automated tests. Manual testing via `./apply`.
+No automated tests. Manual testing via `./apply` (and `/bin/bash -n` parse-checks
+under the 3.2 parser for the shell files).
