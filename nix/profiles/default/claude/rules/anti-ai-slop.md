@@ -6,9 +6,8 @@ docs, design notes, and issue/ticket text. They are derived from the patterns
 catalogued in Wikipedia's [Signs of AI
 writing](https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing).
 
-The goal is plain, direct, information-dense prose. No single tell below is
-fatal on its own, but they cluster — and the cluster is the giveaway. When in
-doubt, cut words and state facts.
+The goal is plain, direct, information-dense prose. No single tell is fatal
+alone; the cluster is the giveaway. When in doubt, cut words and state facts.
 
 ## 1. Don't editorialize importance
 
