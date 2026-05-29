@@ -226,6 +226,13 @@ in {
     completionInit = ''
       zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}'
       autoload -Uz compinit && compinit
+
+      # zsh's bundled `_git` completion does NOT auto-discover custom
+      # `git-<cmd>` executables on $PATH (e.g. ~/bin/git-superprune) — unlike
+      # git's own bash completion. Register them as git subcommands via the
+      # documented user-commands style so `git <cmd><TAB>` completes them.
+      # The expansion takes every `git-*` on $PATH and strips the `git-` prefix.
+      zstyle ':completion:*:*:git:*' user-commands ''${''${(M)''${(k)commands}:#git-*}/git-/}
     '';
 
     # .zprofile content (PATH setup). Brew binaries are now on PATH system-wide
