@@ -72,7 +72,8 @@ with `/bin/bash -n <file>`.
 ## Env vars
 
 `DOTFILES_ENVIRONMENT` (persisted; selects profile), `DOTFILES_DEBUG` (verbose
-logging), `DOTFILES_NIX_SKIP=1` (skip Nix entirely), `DOTFILES_ROOT_DIR` (set
-by `apply`).
+logging), `DOTFILES_NIX_SKIP=1` (skip Nix entirely), `DOTFILES_DARWIN_FORCE=1`
+(force a nix-darwin switch even when the built system matches the running one),
+`DOTFILES_ROOT_DIR` (set by `apply`).
 
 New configuration belongs in `nix/`, not here — see `../nix/CLAUDE.md`.

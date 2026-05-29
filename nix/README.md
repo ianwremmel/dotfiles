@@ -98,6 +98,13 @@ everything else. Activations are sudo-required (handled by `lib/nix`): a fresh
 machine auto-bootstraps via `sudo -H nix run nix-darwin -- switch …`, later
 applies use `sudo -H darwin-rebuild switch …`.
 
+To skip the per-apply churn (sudo prompt, `brew bundle`, Dock restart), `lib/nix`
+builds the system derivation first and only switches when it differs from
+`/run/current-system`. An unchanged config is a no-op. Set `DOTFILES_DARWIN_FORCE=1`
+to switch anyway and re-assert declarative state — for example after changing a
+managed default by hand, which leaves the derivation identical so the switch is
+otherwise skipped.
+
 ## Private profiles
 
 Private/sensitive config lives in your separate `custom_environments/` repo as a
