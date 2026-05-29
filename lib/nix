@@ -173,8 +173,30 @@ dotfiles_nix_apply () {
       sudo -H nix "${nixflags[@]}" run \
         nix-darwin -- switch --flake "path:${DOTFILES_ROOT_DIR}/nix#${darwin_target}"
     else
-      log "Activating nix-darwin (sudo required)"
-      sudo -H darwin-rebuild switch --flake "path:${DOTFILES_ROOT_DIR}/nix#${darwin_target}"
+      # `darwin-rebuild switch` always re-runs the whole activation: it prompts
+      # for sudo, re-runs `brew bundle`, and restarts the Dock (nix-darwin's
+      # user-defaults script kills the Dock whenever any dock default is set,
+      # regardless of whether a dock value actually changed). To avoid that
+      # churn on the common no-op apply, build the system derivation first
+      # (unprivileged and cached, so cheap) and only switch when the result
+      # differs from the running system. The build is deterministic and not
+      # path-dependent, so an unchanged config reproduces /run/current-system
+      # exactly.
+      local built current
+      built="$(nix "${nixflags[@]}" build --no-link --print-out-paths \
+        "path:${DOTFILES_ROOT_DIR}/nix#darwinConfigurations.\"${darwin_target}\".system")"
+      # /run/current-system is a direct symlink to the active system's store
+      # path (nix-darwin resolves it with `readlink -f` before linking), so a
+      # single-level `readlink` returns the canonical path that matches
+      # `nix build --print-out-paths`. Avoids `readlink -f`, which BSD readlink
+      # (macOS /usr/bin) does not support.
+      current="$(readlink /run/current-system 2>/dev/null || true)"
+      if [ "$built" = "$current" ]; then
+        log "nix-darwin system unchanged; skipping switch (no sudo, no Dock restart)"
+      else
+        log "Activating nix-darwin (sudo required)"
+        sudo -H darwin-rebuild switch --flake "path:${DOTFILES_ROOT_DIR}/nix#${darwin_target}"
+      fi
     fi
   fi
 }
