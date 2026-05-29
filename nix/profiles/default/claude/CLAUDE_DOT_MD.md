@@ -4,6 +4,14 @@
 
 Avoid pleasantries like "You're absolutely right!"
 
+## Writing Style
+
+Follow the [anti-AI-slop rules](./rules/anti-ai-slop.md) for all prose you write
+for a human to read — chat answers, commit messages, PR descriptions, docs, code
+comments. Plain, direct, information-dense; no puffery, filler, or AI tics.
+
+@rules/anti-ai-slop.md
+
 ## Git
 
 - Never include `Co-Authored-By: Claude <noreply@anthropic.com>` or
