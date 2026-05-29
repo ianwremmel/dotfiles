@@ -38,6 +38,21 @@
     shell = "/Users/${username}/.nix-profile/bin/zsh";
   };
 
+  # Touch ID for sudo. nix-darwin's sudo_local module writes
+  # /etc/pam.d/sudo_local (the Apple-sanctioned drop-in that survives OS
+  # upgrades, unlike editing /etc/pam.d/sudo directly), inserting
+  # pam_tid.so so any `sudo` in a terminal pops the native Touch ID
+  # dialog and falls back to a password if the fingerprint fails.
+  #
+  # `reattach` adds pam_reattach.so so the Touch ID prompt also works
+  # inside tmux/screen sessions — without it, sudo inside `screen`
+  # (see home-files/screenrc) silently falls back to password entry
+  # because the GUI prompt can't attach to the detached session.
+  security.pam.services.sudo_local = {
+    touchIdAuth = true;
+    reattach    = true;
+  };
+
   # Xcode license acceptance (replaces plugins/xcode/xcode's license logic).
   # Runs as root during activation; xcodebuild short-circuits if the license
   # is already accepted, so it's idempotent. The `|| true` ensures activation
