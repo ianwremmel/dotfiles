@@ -21,7 +21,8 @@
     };
 
     brews = [
-      # Escape-hatched (slice 9): pkgs.argo absent from nixpkgs 26.05.
+      # argo: a brew rather than a nix package because pkgs.argo is absent
+      # from nixpkgs 26.05.
       "argo"
     ];
   };

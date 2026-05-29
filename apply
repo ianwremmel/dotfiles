@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
 
 # Flat, Bash-3.2-safe entrypoint. Runs start-to-finish in the invoking shell
-# (no self re-exec) so it works under stock macOS /bin/bash 3.2.57 — the plugin
-# framework that needed Bash 5 was collapsed in the framework-collapse slice.
-# Nix still provides a general-purpose Bash 5 via home.packages.
+# (no self re-exec) so it works under stock macOS /bin/bash 3.2.57. Nix
+# provides a general-purpose Bash 5 via home.packages for everything else.
 
 set -euo pipefail
 
@@ -33,12 +32,6 @@ environment_get_current
 config_load
 
 if [ "$(uname -s)" = Darwin ]; then
-  echo 'Many of the following commands will need root access'
-  echo 'Please enter your password to (hopefully) only be prompted once'
-  sudo -v
-  # Keep-alive: refresh the sudo timestamp until this script exits.
-  while true; do sudo -n true; sleep 30; kill -0 "$$" || exit; done 2>/dev/null &
-
   # nix-darwin's homebrew module runs `brew bundle` on activate but does NOT
   # install brew itself — ensure it is present first.
   source ./framework/compat

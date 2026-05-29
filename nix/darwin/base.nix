@@ -22,13 +22,11 @@
   # System-wide PATH for brew binaries. Casks ship CLI tools under
   # /opt/homebrew/bin/ (e.g., 1password-cli, aws-vault). The user's
   # ~/.nix-profile/bin/ stays ahead in PATH for interactive shells; this
-  # is the system baseline. Replaces the brewPathSetup let-binding from
-  # the previous shells.nix.
+  # is the system baseline.
   environment.systemPath = [ "/opt/homebrew/bin" "/opt/homebrew/sbin" ];
 
-  # Declarative login-shell management (replaces the chshAndEtcShells
-  # home-manager activation). nix-darwin writes /etc/passwd via dscl and
-  # ensures the shell is in /etc/shells. No marker file; no interactive
+  # Declarative login-shell management. nix-darwin writes /etc/passwd via dscl
+  # and ensures the shell is in /etc/shells. No marker file; no interactive
   # prompt; idempotent.
   environment.shells = [
     "/Users/${username}/.nix-profile/bin/zsh"
@@ -38,11 +36,26 @@
     shell = "/Users/${username}/.nix-profile/bin/zsh";
   };
 
-  # Xcode license acceptance (replaces plugins/xcode/xcode's license logic).
-  # Runs as root during activation; xcodebuild short-circuits if the license
-  # is already accepted, so it's idempotent. The `|| true` ensures activation
-  # continues if Xcode isn't installed yet (e.g., first apply before
-  # masApps.Xcode finishes downloading).
+  # Touch ID for sudo. nix-darwin's sudo_local module writes
+  # /etc/pam.d/sudo_local (the Apple-sanctioned drop-in that survives OS
+  # upgrades, unlike editing /etc/pam.d/sudo directly), inserting
+  # pam_tid.so so any `sudo` in a terminal pops the native Touch ID
+  # dialog and falls back to a password if the fingerprint fails.
+  #
+  # `reattach` adds pam_reattach.so so the Touch ID prompt also works
+  # inside tmux/screen sessions — without it, sudo inside `screen`
+  # (see nix/profiles/all/home-files/screenrc) silently falls back to
+  # password entry because the GUI prompt can't attach to the detached
+  # session.
+  security.pam.services.sudo_local = {
+    touchIdAuth = true;
+    reattach    = true;
+  };
+
+  # Xcode license acceptance. Runs as root during activation; xcodebuild
+  # short-circuits if the license is already accepted, so it's idempotent. The
+  # `|| true` ensures activation continues if Xcode isn't installed yet (e.g.,
+  # first apply before masApps.Xcode finishes downloading).
   system.activationScripts.xcodeLicense.text = ''
     if [ -x /usr/bin/xcodebuild ]; then
       /usr/bin/xcodebuild -license accept 2>/dev/null || true
@@ -85,18 +98,15 @@
       "visual-studio-code"
       "vlc"
       "xquartz"
-      # New: Nerd Font for starship's git-branch glyph (per memory
-      # starship-glyph-fix-deferred). After install, set this as iTerm's
-      # font in Settings → Profiles → Text → Font.
+      # Nerd Font for starship's git-branch glyph. After install, set this as
+      # iTerm's font in Settings → Profiles → Text → Font.
       "font-meslo-lg-nerd-font"
     ];
 
     masApps = {
-      # From environments/all/Brewfile
       Magnet = 441258766;
       Slack  = 803453959;
-      # From plugins/xcode/Brewfile
-      Xcode = 497799835;
+      Xcode  = 497799835;
     };
 
     brews = [
@@ -108,14 +118,10 @@
       # masApp would fail because the `mas` binary is gone. Declare it
       # explicitly here so cleanup respects it.
       "mas"
-      # Escape-hatched (slice 9): nix's pkgs.watchman fails to compile
-      # because the folly C++ dep doesn't build on aarch64-darwin in
-      # the current nixpkgs.
+      # watchman: a brew rather than a nix package because pkgs.watchman fails
+      # to compile — its folly C++ dep doesn't build on aarch64-darwin in the
+      # current nixpkgs.
       "watchman"
-      # (The `bash` + `bash-completion@2` bootstrap helpers were dropped in
-      # the framework-collapse slice — ./apply now runs on stock Bash 3.2.57
-      # and Nix provides the general-purpose Bash 5 via home.packages.
-      # cleanup = "uninstall" removes the old brew bash on the next activation.)
     ];
   };
 }

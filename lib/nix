@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 
-# Nix install + activation logic, sourced directly by ./apply. (Formerly the
-# `nix` plugin; the plugin framework was collapsed in the framework-collapse
-# slice.) Depends only on framework/logging (log/debug/error) and the
+# Nix install + activation logic, sourced directly by ./apply. Depends only on
+# framework/logging (log/debug/error) and the
 # DOTFILES_{ROOT_DIR,ENVIRONMENT,NIX_SKIP} globals.
 
 # Nix install/profile locations differ by OS: macOS uses the multi-user daemon
