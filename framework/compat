@@ -4,10 +4,6 @@
 # mas apps / a few escape-hatched brews via `brew bundle`, but it does not
 # install brew itself, so ./apply sources this and calls compat_ensure_homebrew
 # on macOS before activating nix-darwin.
-#
-# (This file used to also bootstrap a modern Bash via `brew install bash`. That
-# is gone — the framework-collapse slice made ./apply run on stock Bash 3.2.57,
-# and Nix now provides the general-purpose Bash 5.)
 
 compat_ensure_homebrew () {
   if ! command -v brew >/dev/null 2>&1; then

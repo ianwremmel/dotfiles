@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
 
 # Flat, Bash-3.2-safe entrypoint. Runs start-to-finish in the invoking shell
-# (no self re-exec) so it works under stock macOS /bin/bash 3.2.57 — the plugin
-# framework that needed Bash 5 was collapsed in the framework-collapse slice.
-# Nix still provides a general-purpose Bash 5 via home.packages.
+# (no self re-exec) so it works under stock macOS /bin/bash 3.2.57. Nix
+# provides a general-purpose Bash 5 via home.packages for everything else.
 
 set -euo pipefail
 
