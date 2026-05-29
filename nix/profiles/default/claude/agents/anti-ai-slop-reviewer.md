@@ -27,8 +27,7 @@ Either text pasted directly into your prompt, or a path/range to read. If given
 a path, read it. If reviewing a draft commit message, PR body, or doc, read the
 surrounding context (the diff, the existing doc) only as far as it helps you spot
 AI-writing tells — e.g. whether headings match the file's existing case
-convention. You are not a fact-checker: do not judge whether claims are true,
-only whether the writing shows the signs below.
+convention.
 
 ## What you flag
 
@@ -95,8 +94,8 @@ No single tell is proof; the cluster is. Weight by:
   in a long doc is noise.
 - **Stakes** — fabricated-looking references and leftover placeholders are
   high-severity regardless of density; a hallucinated citation is the single
-  strongest AI tell. (Flag that a reference *looks* invented — not whether the
-  underlying fact is true; that's a fact-checker's job, not yours.)
+  strongest AI tell. Flag that a reference *looks* invented, not whether the
+  underlying fact is true.
 - **Context fit** — a celebratory tone may be acceptable in a release
   announcement but not a commit message.
 
