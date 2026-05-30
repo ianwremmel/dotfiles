@@ -52,8 +52,14 @@ one regardless of the active profile.
   public module or install them imperatively (the cleanup policy removes any
   undeclared brew package on the next apply).
 - **Claude Code config** → `profiles/default/claude/` — files under
-  `agents/ skills/ commands/ rules/ guides/` auto-map to `~/.claude/`;
-  `settings.json` is generated from the attrset in `claude.nix`.
+  `agents/ skills/ commands/ rules/ guides/` auto-map to `~/.claude/`.
+  `settings.json` is generated from the attrset in `claude.nix`, but Claude
+  Code rewrites that file at runtime, so it can't be a read-only store symlink:
+  the `seedClaudeSettings` activation script seeds a writable copy and on later
+  applies deep-merges the Nix-declared keys over the live file (ours win;
+  Claude's `permissions.allow` and other runtime keys survive). A declared key
+  changed interactively (e.g. `defaultMode`) reverts to the Nix value on the
+  next apply.
 
 ## Conventions
 
