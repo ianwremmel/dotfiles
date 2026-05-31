@@ -27,7 +27,7 @@ The flake cannot fix this alone: it is pure and cannot see `custom_environments/
 (git-ignored, separate repo). Reconciliation has to live in the bash layer, which
 can read both the flake's directory tree and the filesystem.
 
-A second, structural issue sits underneath: the public side is *N profiles inside
+A second, structural issue is underneath this: the public side is *N profiles inside
 one flake*, while each private side is *one flake per environment*. That asymmetry
 is why the two enumerations diverge in the first place, and why `lib/nix` carries a
 public branch and a separate private branch.
@@ -107,8 +107,8 @@ custom_environments/     # private, separate repo
 
 This is the shape the existing `custom_environments/work/nix/flake.nix` already uses
 (declares a `public` input, builds via `public.lib.*`, exposes per-system configs).
-The public `default`/`agent` flakes become thin versions of that same proven pattern,
-extended with the darwin half.
+The public `default`/`agent` flakes are thin versions of the same pattern, extended
+with the darwin half.
 
 Module content for a public env lives in its own directory and is imported locally
 by that env's flake. A private env that wants to layer on a public env's content can
@@ -167,7 +167,7 @@ lock) — the same trick `lib/nix` already uses for the private flake today. Bec
 `public` is always overridden to local, an env flake's own locked `public` is moot
 at apply time; only its `nixpkgs`/`home-manager` follows matter, and those resolve
 through the local core. Effectively one lock (the core's) governs an apply, matching
-today's single-lock behavior. This is already proven for `work`.
+today's single-lock behavior. This is how `work` runs today.
 
 ### Darwin: the second half of every environment
 
@@ -188,9 +188,9 @@ unconditionally on macOS; there is no per-env existence probe.
   whatever env is selected.
 - `default/darwin.nix` adds personal casks/mas/brews on top.
 - `agent/` ships no darwin module, so on macOS it gets exactly the `all` system
-  layer — the universal base, without `default`'s personal casks. This is a behavior
-  change: today `agent` on macOS inherits `default@`'s full system layer (personal
-  casks included); now it gets only the universal base. Intended — `agent` is lean.
+  layer — the universal base, without `default`'s personal casks. Today `agent` on
+  macOS inherits `default@`'s full system layer (personal casks included); now it
+  gets only the universal base. `agent` is intentionally lean.
 - `work/darwin.nix` carries private casks/mas/brews. This is what **closes the
   private-darwin deferral** (status doc item #1): the private env is no longer barred
   from shipping system state, because the darwin half is now per-env by construction.
@@ -215,9 +215,8 @@ Resolution order:
 - Else if stdin is not a TTY → **fail** with a message telling the caller to set
   `DOTFILES_ENVIRONMENT` (e.g. `=agent` for agent boxes, `=default` for a personal
   machine). A non-interactive apply must declare its environment explicitly; it
-  never silently assumes `default`. This is the behavior change for headless/agent
-  boxes — they were already expected to set `DOTFILES_ENVIRONMENT`, and now it is
-  enforced rather than defaulted.
+  never silently assumes `default`. Headless/agent boxes were already expected to set
+  `DOTFILES_ENVIRONMENT`; now it is enforced rather than defaulted.
 - Else (interactive TTY) if exactly one candidate → use it.
 - Else → prompt and persist the choice.
 
@@ -242,7 +241,6 @@ moves to `environments/host.nix`; `lib/nix` writes it there.
   (`system.stateVersion`, `nix.enable = false`, username plumbing) → `darwin.nix`
   (`darwinModules.base`); its universal content (homebrew base, login shell, system
   PATH, Xcode license) plus `darwin/defaults.nix` → `all/darwin/` (`darwinModules.all`).
-  Together `all`'s two halves are the universal home and system layers.
 - `profiles/<env>/` → `<env>/home.nix` (+ supporting dirs like `claude/`) and a new
   per-env `flake.nix`; `darwin/default/homebrew.nix` → `default/darwin.nix`.
 - `agent/` gets a `flake.nix` and `home.nix`, no darwin module.
@@ -269,14 +267,12 @@ References to update:
 
 ## Trade-offs
 
-- **More `flake.lock` files** (core + one per public env). Mitigated by the
-  override-input-to-local design: only the core's pins govern an apply, exactly as
-  for `work` today. Standalone `nix build environments/agent` without the override
-  uses that env's own lock.
+- **More `flake.lock` files** (core + one per public env). In practice only the
+  core's pins govern an apply (exactly as for `work` today); each env's own lock
+  matters only for a standalone `nix build environments/<env>` without the override.
 - **Public vs private content placement differs slightly**: a public env's module
   content sits in `environments/<env>/`, the core's shared layers in the core; a
-  private env is fully self-contained. The *flake shape* is identical, which is what
-  enumeration, validation, and the build path depend on.
+  private env is fully self-contained. The *flake shape* is identical.
 - **Behavior changes**, all intended: interactive fresh machine now prompts
   `default`/`agent`; a non-interactive apply with no `DOTFILES_ENVIRONMENT` now
   fails fast instead of silently using `default`; `agent` on macOS now gets the
