@@ -10,11 +10,11 @@
   programs.home-manager.enable = true; # home-manager manages itself
 
   # Allow installing unfree packages (terraform's BSL license, etc.).
-  # Required for the `terraform` entry in `profiles/all/cli-tools.nix`.
+  # Required for the `terraform` entry in `all/home/cli-tools.nix`.
   nixpkgs.config.allowUnfree = true;
 
   # Infrastructure only — shared content (universally-installed packages and
-  # programs) lives in `profiles/all/default.nix`, which `lib.mkHome` always
-  # composes alongside this base. Profile-specific additions live under
-  # `profiles/<name>/default.nix`.
+  # programs) lives in `all/home/default.nix`, which `lib.mkHome` always
+  # composes alongside this base. Environment-specific additions live under
+  # `<env>/home.nix`.
 }
