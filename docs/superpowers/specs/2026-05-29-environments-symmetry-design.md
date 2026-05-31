@@ -96,7 +96,8 @@ environments/
     darwin.nix           # default's darwin half (personal casks/mas/brews)
     claude/ …            # moved from profiles/default/
   agent/
-    flake.nix            # consumes public; lean — home half only, no darwin half
+    flake.nix            # consumes public; lean — no own darwin module (still
+                         #   yields the all-only darwin config on macOS via mkDarwin)
     home.nix
 custom_environments/     # private, separate repo
   work/
@@ -252,9 +253,10 @@ References to update:
 - `framework/environment` — new directory rule; remove legacy branch.
 - `framework/CLAUDE.md`, `nix/CLAUDE.md` → `environments/CLAUDE.md`,
   `nix/README.md` → `environments/README.md`, root `CLAUDE.md` mention.
-- `.gitignore` — ensure `environments/host.nix` is ignored (today `nix/host.nix` is
-  generated/untracked but has no explicit ignore entry; add one under the new path).
-- The private `work` flake (user-owned repo) has three contract changes to make
+- `.gitignore` — `nix/.gitignore` already ignores `/host.nix`; it moves with the
+  rename to `environments/.gitignore` and keeps ignoring the generated `host.nix`.
+  No new ignore entry needed.
+- The private `work` flake (user-owned repo) has four contract changes to make
   when migrating, all out of scope to edit here but noted so they are not surprises:
   1. `public.url` `?dir=nix` → `?dir=environments`.
   2. The flake moves to `custom_environments/work/flake.nix` (top-level, no `nix/`).
