@@ -38,9 +38,12 @@ environment_get_current () {
   local count
   count="$(printf '%s\n' "$candidates" | grep -c '^.')"
 
-  # Exactly one buildable environment: use it without prompting or persisting.
+  # Exactly one buildable environment: use it without prompting, but persist it
+  # so the active environment is recorded for later runs and the rest of the
+  # system.
   if [ "$count" -eq 1 ]; then
-    debug "single environment '$candidates' detected; using it"
+    debug "single environment '$candidates' detected; using and persisting it"
+    config_write DOTFILES_ENVIRONMENT "$candidates"
     echo "$candidates"
     return 0
   fi
