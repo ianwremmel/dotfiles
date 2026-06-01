@@ -1,7 +1,7 @@
 # Dotfiles Repository
 
 Environment-aware dotfiles management. Configuration is declarative via
-Nix + home-manager + nix-darwin (see `environments/`); `./apply` is a thin bootstrapper
+Nix + home-manager + nix-darwin (see `core/` and `environments/`); `./apply` is a thin bootstrapper
 that resolves the active environment, installs Nix, and activates those
 configurations.
 
@@ -10,11 +10,12 @@ configurations.
 - `apply` - Flat entry script (Bash-3.2-safe; no plugin framework)
 - `lib/nix` - Nix install + home-manager / nix-darwin activation logic (sourced by `apply`)
 - `framework/` - Small sourced helpers: `logging`, `config` (`~/.dotfilesrc`), `environment` (resolve/persist the active environment), `compat` (ensure Homebrew on macOS)
-- `environments/` - The declarative configuration: a core library flake plus one flake per environment (`default`, `agent`), each with a home half and an optional darwin half. See `environments/CLAUDE.md`.
+- `core/` - The shared library flake plus the always-included `all/` layer; consumed by every environment. See `core/CLAUDE.md`.
+- `environments/` - One flake per selectable environment (`default`, `agent`), each with a home half and an optional darwin half, consuming `core/`.
 - `custom_environments/` - Git-ignored; a separate private repo (its own flake consuming the public one) supplying per-machine config
 
-Subtree guides: `framework/CLAUDE.md` (bootstrap internals), `environments/CLAUDE.md`
-(where config goes + the layering model).
+Subtree guides: `framework/CLAUDE.md` (bootstrap internals), `core/CLAUDE.md`
+(where shared config goes + the layering model).
 
 ## Running
 
@@ -36,8 +37,8 @@ DOTFILES_DEBUG=1 ./apply  # Verbose logging
   own darwin half; an environment with no `darwin.nix` (e.g. `agent`) still gets
   the universal `base` + `all` system layer, and a private env can ship its own
   system state via its `darwin.nix`.
-- New configuration belongs in `environments/` (home-manager / nix-darwin), not
-  in new shell plugins — the plugin framework was retired.
+- New configuration belongs in `core/` (shared) or `environments/<env>/`
+  (per-environment), not in new shell plugins — the plugin framework was retired.
 
 ## Testing
 

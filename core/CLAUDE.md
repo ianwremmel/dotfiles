@@ -1,11 +1,12 @@
-# Nix configuration (`environments/`)
+# Nix core library (`core/`)
 
-This directory (renamed from `nix/`) holds the whole Nix configuration. The
-core `flake.nix` here is a *library* — it has no configs of its own. Each
-environment is its own flake that consumes the core and emits the actual
+This directory holds the shared Nix library. The core `flake.nix` here is a
+*library* — it has no configs of its own. Each environment lives in its own
+flake under `../environments/<env>/`, consumes this core, and emits the actual
 home / darwin configurations. `./apply` only bootstraps the build (see
 `../framework/CLAUDE.md`). User-level state is home-manager; macOS system-level
-state is nix-darwin. New configuration goes here — not in shell scripts.
+state is nix-darwin. New shared configuration goes here; per-environment config
+goes in the matching `environments/<env>/` flake — not in shell scripts.
 
 For the human-facing tour (install, manual build, private-flake template,
 backout) see `README.md` in this directory. This file is the map for *editing*
@@ -109,7 +110,7 @@ username.
   daemon; nix-darwin must not fight it.
 - **Private flakes** (`custom_environments/<env>/flake.nix`, top-level) consume
   this core as the `public` input
-  (`public.url = "github:ianwremmel/dotfiles?dir=environments"`) and override
+  (`public.url = "github:ianwremmel/dotfiles?dir=core"`) and override
   scalars with `lib.mkForce`. A private env can carry its own `darwin.nix`, so
   sensitive system state has a declarative home. Note any private-side update in
   `README.md` when migrating something here.

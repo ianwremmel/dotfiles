@@ -2,7 +2,7 @@
   description = "ianwremmel dotfiles — agent environment";
 
   inputs = {
-    public.url = "github:ianwremmel/dotfiles?dir=environments";
+    public.url = "github:ianwremmel/dotfiles?dir=core";
     nixpkgs.follows      = "public/nixpkgs";
     home-manager.follows = "public/home-manager";
     nix-darwin.follows   = "public/nix-darwin";

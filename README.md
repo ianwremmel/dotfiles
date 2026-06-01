@@ -51,15 +51,15 @@ choice in `~/.dotfilesrc`. A name with no matching flake fails the build.
 
 Configuration lives in two layers:
 
-- **Public** (`environments/`) — @ianwremmel's declarative config. A core library
-  flake supplies the shared layers; each environment is its own flake that
-  consumes the core (`default` for personal machines, `agent` for lean/headless
-  boxes). See `environments/`.
+- **Public** (`core/` + `environments/`) — @ianwremmel's declarative config. The
+  core library flake in `core/` supplies the shared layers; each environment is
+  its own flake under `environments/<env>/` that consumes the core (`default` for
+  personal machines, `agent` for lean/headless boxes).
 - **Private** (`custom_environments/`) — git-ignored, typically a separate repo
   you clone here. Each environment is a flake at `custom_environments/<env>/`
   that consumes the public core and layers your machine-specific config on top; a
   private env wins over a public one of the same name. See
-  `environments/README.md` for the template.
+  `core/README.md` for the template.
 
 ## How it works
 
@@ -68,16 +68,17 @@ Configuration lives in two layers:
 1. Resolves the active environment (see Environments) and picks its flake
    (`custom_environments/<env>/` if present, else `environments/<env>/`).
 2. On macOS, ensures Homebrew is present (nix-darwin's homebrew module needs it).
-3. Installs Nix (if needed), generates `environments/host.nix`, then builds and
+3. Installs Nix (if needed), generates `core/host.nix`, then builds and
    activates that environment's home-manager configuration and — on macOS — its
-   nix-darwin system layer. This is where the configuration lives (see
-   `environments/`). The nix-darwin layer is the selected environment's own
+   nix-darwin system layer. This is where the configuration lives (see `core/`
+   and `environments/`). The nix-darwin layer is the selected environment's own
    darwin half; an environment with no `darwin.nix` still gets the universal
    system layer.
 
 The bootstrap logic lives in `apply` plus a few small sourced helpers under
 `framework/` (`logging`, `config`, `environment`, `compat`) and `lib/nix`. New
-configuration belongs in `environments/`.
+shared configuration belongs in `core/`, per-environment config in
+`environments/<env>/`.
 
 ## Conventions
 

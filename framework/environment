@@ -64,9 +64,9 @@ environment_get_current () {
 #
 # Directory rule: an environment is the basename of any directory directly
 # under `environments/` or `custom_environments/` that contains a `flake.nix`.
-# `environments/default` and `environments/agent` qualify; `environments/all`
-# (no flake.nix) does not, and the top-level `environments/flake.nix` is not a
-# subdir so it is not a candidate.
+# `environments/` holds only environment dirs now (the shared library flake and
+# the always-included `all/` layer live in `core/`), so `environments/default`
+# and `environments/agent` both qualify.
 #
 environment_list_all_environments () {
   local d
