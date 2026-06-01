@@ -1,5 +1,5 @@
 { ... }: {
-  # The `default` profile is the personal-machine profile (vs. `agent` which
+  # The `default` environment is the personal-machine one (vs. `agent`, which
   # stays lean). cli-tools.nix carries personal-machine CLI installs that
   # don't belong on agent boxes.
   imports = [

@@ -1,6 +1,6 @@
 { ... }: {
   homebrew = {
-    # Personal-machine casks — additive on top of base.nix's universal list.
+    # Personal-machine casks — additive on top of the universal list in `all/darwin/default.nix`.
     # nix-darwin's homebrew option is list-typed, so these concatenate.
     casks = [
       "adobe-creative-cloud"

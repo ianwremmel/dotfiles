@@ -43,47 +43,41 @@ that setting from the file to be reprompted on next run.
 ## Environments
 
 An environment names the config for a computer (or category of computers) — e.g.
-"home" or "work". When you have environments under `custom_environments/` to
-choose from, `./apply` prompts on first run and persists the choice as
-`DOTFILES_ENVIRONMENT` in `~/.dotfilesrc`; with none, it uses `default` without
-prompting. The active environment selects what to build: a built-in public
-profile (`default` or `agent`, under `nix/profiles/`), or — for any other name —
-a private flake at `custom_environments/<env>/nix`. A name that is neither a
-built-in profile nor a private flake fails the build.
+"home" or "work". An environment is any directory under `environments/` or
+`custom_environments/` that contains a `flake.nix`. `./apply` lists those
+candidates: with a persisted `DOTFILES_ENVIRONMENT` it uses that; with exactly
+one candidate it uses it; with several it prompts on first run and persists the
+choice in `~/.dotfilesrc`. A name with no matching flake fails the build.
 
 Configuration lives in two layers:
 
-- **Public** (`nix/`) — @ianwremmel's declarative config. The `all` profile is
-  composed into every machine; selectable profiles layer on top (`default` for
-  personal machines, `agent` for lean/headless boxes). The first-run prompt
-  offers only environments found on disk (`custom_environments/*`, plus the
-  legacy `environments/*` if present) — not the built-in nix profiles — so
-  `agent` is not currently offered there. Reach it by setting
-  `DOTFILES_ENVIRONMENT=agent` (or adding a `custom_environments/agent`). Fork
-  them if you want something different. See `nix/`.
+- **Public** (`environments/`) — @ianwremmel's declarative config. A core library
+  flake supplies the shared layers; each environment is its own flake that
+  consumes the core (`default` for personal machines, `agent` for lean/headless
+  boxes). See `environments/`.
 - **Private** (`custom_environments/`) — git-ignored, typically a separate repo
-  you clone here. Each environment is a flake at `custom_environments/<env>/nix`
-  that consumes the public flake and layers your machine-specific config on top.
-  See `nix/README.md` for the template. With no private flake, you build the
-  public profile directly.
+  you clone here. Each environment is a flake at `custom_environments/<env>/`
+  that consumes the public core and layers your machine-specific config on top; a
+  private env wins over a public one of the same name. See
+  `environments/README.md` for the template.
 
 ## How it works
 
 `./apply` is a thin bootstrapper. It:
 
-1. Resolves the active environment (see Environments). It selects the
-   home-manager profile and any private flake under
-   `custom_environments/<env>/nix`.
+1. Resolves the active environment (see Environments) and picks its flake
+   (`custom_environments/<env>/` if present, else `environments/<env>/`).
 2. On macOS, ensures Homebrew is present (nix-darwin's homebrew module needs it).
-3. Installs Nix (if needed), generates `nix/host.nix`, then builds and activates
-   the home-manager configuration and — on macOS — the nix-darwin system layer.
-   This is where the configuration lives (see `nix/`). The nix-darwin layer is
-   always built from the public `default` profile; private envs only affect
-   home-manager.
+3. Installs Nix (if needed), generates `environments/host.nix`, then builds and
+   activates that environment's home-manager configuration and — on macOS — its
+   nix-darwin system layer. This is where the configuration lives (see
+   `environments/`). The nix-darwin layer is the selected environment's own
+   darwin half; an environment with no `darwin.nix` still gets the universal
+   system layer.
 
 The bootstrap logic lives in `apply` plus a few small sourced helpers under
 `framework/` (`logging`, `config`, `environment`, `compat`) and `lib/nix`. New
-configuration belongs in `nix/`.
+configuration belongs in `environments/`.
 
 ## Conventions
 
