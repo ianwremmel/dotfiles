@@ -13,28 +13,27 @@ environment_get_current () {
     return 0
   fi
 
-  local non_default_envs=''
+  local candidates count
+  candidates="$(environment_list_all_environments)"
+  count="$(printf '%s\n' "$candidates" | grep -c '^.')"
 
-  for env in $(environment_list_all_environments); do
-    if [ "$env" == 'all' ]; then
-      continue
-    fi
+  # No persisted environment and no tty to prompt on: refuse to guess. The
+  # caller must set DOTFILES_ENVIRONMENT explicitly for non-interactive runs.
+  if [ ! -t 0 ]; then
+    error 'No environment set and stdin is not a TTY to prompt on.'
+    error 'Set DOTFILES_ENVIRONMENT explicitly (e.g. DOTFILES_ENVIRONMENT=agent or DOTFILES_ENVIRONMENT=default).'
+    return 1
+  fi
 
-    non_default_envs+="$env "
-  done
-
-  # Default when the only environment is `default`, OR when none exist at all
-  # (the public `environments/` tree was fully migrated into nix/, so a fresh
-  # machine with no custom_environments has nothing to choose from — fall back
-  # to `default` rather than presenting an empty `select` prompt).
-  if [ "$non_default_envs" == 'default ' ] || [ "$non_default_envs" == '' ]; then
-    debug 'no selectable environments detected, choosing default'
-    echo 'default'
+  # Exactly one buildable environment: use it without prompting or persisting.
+  if [ "$count" -eq 1 ]; then
+    debug "single environment '$candidates' detected; using it"
+    echo "$candidates"
     return 0
   fi
 
   echo 'Multiple environments detected. Which would you like to apply to this device?'
-  select env in $non_default_envs; do
+  select env in $candidates; do
     debug "Storing user-selected environment '$env'"
     config_write DOTFILES_ENVIRONMENT "$env"
     echo "$env"
@@ -45,22 +44,22 @@ environment_get_current () {
 }
 
 #
-# Lists every environment that exists (public + custom), excluding `all`.
-# Used by environment_get_current to decide whether to prompt.
+# Lists every buildable environment, one basename per line, sorted.
+#
+# Directory rule: an environment is the basename of any directory directly
+# under `environments/` or `custom_environments/` that contains a `flake.nix`.
+# `environments/default` and `environments/agent` qualify; `environments/all`
+# (no flake.nix) does not, and the top-level `environments/flake.nix` is not a
+# subdir so it is not a candidate.
 #
 environment_list_all_environments () {
-  # shellcheck disable=SC2012
-  local envs=''
-  # The public `environments/` tree no longer exists (its content migrated into
-  # nix/); guard the listing so a missing dir doesn't print a spurious `ls`
-  # error. Only `custom_environments/<env>` remains as a real source.
-  [ -d "$DOTFILES_ROOT_DIR/environments" ] && envs="$(ls "$DOTFILES_ROOT_DIR/environments")"
-  if [ -d "$DOTFILES_ROOT_DIR/custom_environments" ]; then
-    envs="$envs
-$(ls "$DOTFILES_ROOT_DIR/custom_environments")"
-  fi
-
-  # -vx: exact whole-line match, so an env whose name merely contains "all"
-  # (e.g. "fallback") isn't filtered out with the real "all". Drop blank lines.
-  printf '%s\n' "$envs" | sort | uniq | grep -vx all | grep -v '^$'
+  local d
+  for d in "$DOTFILES_ROOT_DIR"/environments/*/ \
+           "$DOTFILES_ROOT_DIR"/custom_environments/*/; do
+    # Guards both the unmatched-glob literal (e.g. `.../custom_environments/*/`
+    # when the dir is empty/absent) and any non-directory.
+    [ -d "$d" ] || continue
+    [ -f "${d}flake.nix" ] || continue
+    basename "$d"
+  done | sort -u
 }
