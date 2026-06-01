@@ -4,8 +4,11 @@
 # Outputs the current environment
 #
 environment_get_current () {
+  # A preset process env var wins (e.g. `DOTFILES_ENVIRONMENT=agent ./apply` on a
+  # CI box), then the persisted value in ~/.dotfilesrc.
   local env
-  env="$(config_read DOTFILES_ENVIRONMENT)"
+  env="${DOTFILES_ENVIRONMENT:-}"
+  [ "$env" != '' ] || env="$(config_read DOTFILES_ENVIRONMENT)"
 
   if [ "$env" != '' ]; then
     debug "environment '$env' has already been set"
@@ -21,14 +24,19 @@ environment_get_current () {
     return 1
   fi
 
-  local candidates count
+  local candidates
   candidates="$(environment_list_all_environments)"
-  count="$(printf '%s\n' "$candidates" | grep -c '^.')"
 
-  if [ "$count" -eq 0 ]; then
+  # No buildable environment anywhere (a broken checkout missing default/agent).
+  # Guard on emptiness directly: a `grep -c` here would exit 1 on zero matches
+  # and abort under `set -euo pipefail` before this message could print.
+  if [ "$candidates" = '' ]; then
     error 'No buildable environments found under environments/ or custom_environments/.'
     return 1
   fi
+
+  local count
+  count="$(printf '%s\n' "$candidates" | grep -c '^.')"
 
   # Exactly one buildable environment: use it without prompting or persisting.
   if [ "$count" -eq 1 ]; then
