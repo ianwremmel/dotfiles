@@ -13,15 +13,20 @@ environment_get_current () {
     return 0
   fi
 
-  local candidates count
-  candidates="$(environment_list_all_environments)"
-  count="$(printf '%s\n' "$candidates" | grep -c '^.')"
-
   # No persisted environment and no tty to prompt on: refuse to guess. The
   # caller must set DOTFILES_ENVIRONMENT explicitly for non-interactive runs.
   if [ ! -t 0 ]; then
     error 'No environment set and stdin is not a TTY to prompt on.'
     error 'Set DOTFILES_ENVIRONMENT explicitly (e.g. DOTFILES_ENVIRONMENT=agent or DOTFILES_ENVIRONMENT=default).'
+    return 1
+  fi
+
+  local candidates count
+  candidates="$(environment_list_all_environments)"
+  count="$(printf '%s\n' "$candidates" | grep -c '^.')"
+
+  if [ "$count" -eq 0 ]; then
+    error 'No buildable environments found under environments/ or custom_environments/.'
     return 1
   fi
 
