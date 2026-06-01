@@ -37,11 +37,15 @@ with `/bin/bash -n <file>`.
   `config_load`); path overridable via `DOTFILES_CONFIG_FILE`. `config_load`
   exports every non-comment `KEY=value` line.
 - **`environment`** — `environment_get_current` returns the persisted
-  `DOTFILES_ENVIRONMENT` if set; otherwise lists candidate environments
-  (`custom_environments/*`, plus the legacy `environments/` dir if present,
-  excluding `all`). If the only candidate is `default` (or there are none) it
-  uses `default` without prompting or persisting; if any other env exists
-  (even one) it prompts and persists the choice.
+  `DOTFILES_ENVIRONMENT` if set. Otherwise it lists candidate environments by
+  the **directory rule**: any directory directly under `environments/` or
+  `custom_environments/` that contains a `flake.nix` (so `environments/default`
+  and `environments/agent` qualify; `environments/` holds only environment dirs,
+  the shared library and `all/` layer live in `core/`). With no persisted value
+  and **no TTY** on stdin it errors and tells
+  you to set `DOTFILES_ENVIRONMENT` — it never silently defaults. With a TTY: a
+  single candidate is used without prompting or persisting; multiple candidates
+  trigger a `select` prompt and the choice is persisted.
 - **`compat`** (macOS) — ensure Homebrew exists (nix-darwin's homebrew module
   drives `brew` but won't install it) and disable its analytics.
 
@@ -53,21 +57,25 @@ with `/bin/bash -n <file>`.
 2. Install Nix if absent — Determinate installer on macOS (daemon; SIP
    requires it), official single-user installer on Linux — then source its
    profile script onto PATH.
-3. Write **`nix/host.nix`** (untracked): `{ username; profile; }`. The flake
-   refuses to build without it.
+3. Write **`core/host.nix`** (untracked): `{ username; }`. Every env
+   flake imports it for the username; the env is selected by which flake gets
+   built (step 5), not by a value inside host.nix.
 4. `nix eval … builtins.currentSystem` → `$system`.
-5. Pick the flake: if `custom_environments/<profile>/nix/flake.nix` exists,
-   build that private flake with `--override-input public path:.../nix` and
-   target `homeConfigurations."<system>"`; otherwise build the public flake's
-   `homeConfigurations."<profile>@<system>"`. Build to a temp out-link, run
-   its `activate`.
-6. macOS only: activate nix-darwin —
-   `darwinConfigurations."default@<system>"` (only `default` has a darwin
-   module). First run bootstraps via `sudo -H nix run nix-darwin -- switch`;
-   later runs use `sudo -H darwin-rebuild switch`. **`-H` is required** so
-   nix-darwin writes state under root, not the invoking user's `$HOME`. The
-   flake ref is `path:.../nix` (non-git fetcher) so untracked `host.nix` is
-   visible.
+5. Pick the env's flake by the **directory rule**: if
+   `custom_environments/<env>/flake.nix` exists, build that private flake;
+   else `environments/<env>/flake.nix`; else fail fast. Build
+   `homeConfigurations."<system>"` (bare system key) with `--override-input
+   public path:.../core` so the env always builds against the local
+   core (and sees the untracked host.nix). Build to a temp out-link, run its
+   `activate`.
+6. macOS only: activate nix-darwin — the *selected* env's
+   `darwinConfigurations."<system>"` (not a pinned `default@…`; every env has a
+   darwin half on macOS because `mkDarwin` always folds in base + all). First
+   run bootstraps via `sudo -H nix run nix-darwin -- switch`; later runs use
+   `sudo -H darwin-rebuild switch`. **`-H` is required** so nix-darwin writes
+   state under root, not the invoking user's `$HOME`. The flake ref is
+   `path:.../environments/<env>` (non-git fetcher) so untracked `host.nix` is
+   visible, again with `--override-input public path:.../core`.
 
 ## Env vars
 
@@ -76,4 +84,6 @@ logging), `DOTFILES_NIX_SKIP=1` (skip Nix entirely), `DOTFILES_DARWIN_FORCE=1`
 (force a nix-darwin switch even when the built system matches the running one),
 `DOTFILES_ROOT_DIR` (set by `apply`).
 
-New configuration belongs in `nix/`, not here — see `../nix/CLAUDE.md`.
+New shared configuration belongs in `core/` and per-environment configuration in
+`environments/<env>/`, not here — see `../core/CLAUDE.md` and
+`../environments/<env>/`.
