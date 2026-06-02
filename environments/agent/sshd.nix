@@ -29,4 +29,17 @@ in
   home.file = lib.mkIf pkgs.stdenv.isLinux {
     ".config/agent/sshd.conf".text = sshdDropIn;
   };
+
+  # On a privileged agent host (the dev container activates as root), install the
+  # drop-in into /etc/ssh/sshd_config.d/ (the base sshd_config Includes it), so
+  # the host doesn't have to. Self-skips when activation isn't root or the file
+  # is absent (non-Linux).
+  home.activation.installAgentSshdDropIn =
+    lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+      if [ "$(id -u)" = 0 ] && [ -f "$HOME/.config/agent/sshd.conf" ]; then
+        run mkdir -p /etc/ssh/sshd_config.d
+        run install -m 0644 "$HOME/.config/agent/sshd.conf" \
+          /etc/ssh/sshd_config.d/agent.conf
+      fi
+    '';
 }
