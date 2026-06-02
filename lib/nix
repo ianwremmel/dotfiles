@@ -116,6 +116,18 @@ dotfiles_nix_apply () {
   local system
   system="$(nix "${nixflags[@]}" eval --impure --raw --expr 'builtins.currentSystem')"
 
+  # Fail fast on an empty system. Every flake ref below interpolates $system as
+  # the attr key; an empty value would silently mis-target. It is especially
+  # dangerous for the nix-darwin ref (`path:...#$system`): darwin-rebuild's
+  # parser falls back to `darwinConfigurations.$(scutil --get LocalHostName)`
+  # when the fragment is empty, which could activate the wrong config without
+  # warning. currentSystem should never be empty, but guard before we build any
+  # ref from it.
+  if [ -z "$system" ]; then
+    error 'Could not determine the current system (nix eval builtins.currentSystem returned empty).'
+    return 1
+  fi
+
   # Resolve the env's flake dir by the directory rule. A private env (under
   # custom_environments) wins over a public one of the same name. Every env is
   # built against the local core via `--override-input public path:.../core`,
@@ -151,7 +163,19 @@ dotfiles_nix_apply () {
   # re-evaluating `builtins.currentSystem` via a second nix subprocess.
   if [ "$(uname -s)" = "Darwin" ]; then
     # Build the selected env's own darwin config (keyed by bare "<system>").
-    local darwin_ref="path:$flake_dir#darwinConfigurations.\"$system\""
+    # The fragment after `#` must be the BARE config name (the system, e.g.
+    # `aarch64-darwin`) — not `darwinConfigurations.<system>` and not quoted.
+    # `darwin-rebuild` (used by both the `nix run nix-darwin -- switch`
+    # bootstrap and the later `darwin-rebuild switch`) parses the ref itself:
+    # it splits on `#` with the regex `^(.*)\#([^\#\"]*)$` (whose attr class
+    # excludes `"`), then PREPENDS `darwinConfigurations.` and APPENDS `.system`
+    # to whatever it captured. So a quoted system fails the regex (→ silent
+    # fallback to `darwinConfigurations.$(hostname)`), and a `darwinConfigurations.`
+    # prefix here gets doubled. Passing the bare system lets darwin-rebuild build
+    # the correct `darwinConfigurations.<system>.system`. (The separate `nix
+    # build` comparison below is NOT darwin-rebuild, so it keeps the full quoted
+    # attr path.)
+    local darwin_ref="path:$flake_dir#$system"
 
     # `sudo -H` resets $HOME to root's home (/var/root) for the duration of
     # the elevated command. Without it, nix-darwin sees $HOME=/Users/<user>
