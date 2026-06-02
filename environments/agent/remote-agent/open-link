@@ -5,8 +5,10 @@
 # so the browser's redirect reaches the in-pod callback server.
 set -euo pipefail
 
-SELF="$(readlink -f "${BASH_SOURCE[0]}")"
-DIR="$(dirname "$SELF")"
+# Resolve this script's own directory (by path, not readlink) so it works when
+# installed as ~/bin symlinks co-located with _remote-agent.sh and
+# remote-agent-watch-port.
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=_remote-agent.sh
 . "$DIR/_remote-agent.sh"
 

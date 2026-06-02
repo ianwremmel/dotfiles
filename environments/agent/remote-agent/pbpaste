@@ -2,9 +2,8 @@
 # pbpaste — print the connecting client's clipboard to stdout.
 set -euo pipefail
 
-SELF="$(readlink -f "${BASH_SOURCE[0]}")"
 # shellcheck source=_remote-agent.sh
-. "$(dirname "$SELF")/_remote-agent.sh"
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/_remote-agent.sh"
 
 if ra_channel_available; then
     printf 'PASTE\n' | ra_send

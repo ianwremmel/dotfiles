@@ -2,9 +2,8 @@
 # pbcopy — set the connecting client's clipboard from stdin.
 set -euo pipefail
 
-SELF="$(readlink -f "${BASH_SOURCE[0]}")"
 # shellcheck source=_remote-agent.sh
-. "$(dirname "$SELF")/_remote-agent.sh"
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/_remote-agent.sh"
 
 # Buffer stdin to a temp file rather than $(cat): command substitution strips
 # trailing newlines and mangles NUL bytes, but a clipboard must be byte-exact.

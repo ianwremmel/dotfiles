@@ -3,9 +3,8 @@
 # client (e.g. `play-sound Morse 0.4`). Name resolves to a file on the Mac.
 set -euo pipefail
 
-SELF="$(readlink -f "${BASH_SOURCE[0]}")"
 # shellcheck source=_remote-agent.sh
-. "$(dirname "$SELF")/_remote-agent.sh"
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/_remote-agent.sh"
 
 name="${1:-}"
 volume="${2:-}"
