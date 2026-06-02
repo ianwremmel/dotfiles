@@ -17,7 +17,9 @@ let
     PubkeyAuthentication yes
 
     # tmux -CC iTerm2 detection needs LC_TERMINAL forwarded from the client.
-    AcceptEnv LANG LC_*
+    # Only that one — locale (LANG/LC_*) comes from the agent profile's session
+    # vars, so there's no need to widen the accepted-env surface.
+    AcceptEnv LC_TERMINAL
 
     Banner /etc/issue
     StreamLocalBindUnlink yes
