@@ -9,20 +9,14 @@ let
   localSock = "${config.home.homeDirectory}/.dev-container-agent.sock";
 in
 {
-  # Client config for reaching the homelab dev container, owned here because
-  # core manages ~/.ssh/config as a read-only symlink — the mac-agent installer
-  # can't append to it. The marker comments mirror the installer's
-  # MARK_START/MARK_END so this is recognizably the same block; the installer's
-  # own ssh-config step is redundant when this fragment is present. macOS only —
-  # the forwarded socket is served by the macOS-only mac-agent launchd job.
-  home.file = lib.mkIf pkgs.stdenv.isDarwin {
-    ".ssh/config.d/dev-container".text = ''
-      # >>> dev-container remote-agent >>>
-      Host ${devContainerHost}
-          RemoteForward /run/remote-agent.sock ${localSock}
-          ControlMaster auto
-          ControlPath ~/.ssh/cm-%C
-      # <<< dev-container remote-agent <<<
-    '';
+  # Client config for reaching the homelab dev container, merged into the shared
+  # programs.ssh config. macOS only — the forwarded socket is served by the
+  # macOS-only mac-agent launchd job.
+  programs.ssh.settings = lib.mkIf pkgs.stdenv.isDarwin {
+    ${devContainerHost} = {
+      ControlMaster = "auto";
+      ControlPath = "~/.ssh/cm-%C";
+      RemoteForward = "/run/remote-agent.sock ${localSock}";
+    };
   };
 }

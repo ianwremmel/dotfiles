@@ -10,6 +10,7 @@
     ./gpg.nix
     ./home-files.nix
     ./shells.nix
+    ./ssh.nix
     ./vim.nix
   ];
 }
