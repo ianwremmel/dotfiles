@@ -11,6 +11,11 @@
 # if no config matches (or, a config matches but doesn't specify a particular
 # value), then the more general rules at the end will apply.
 
+# Per-environment / per-machine fragments. Included first so host-specific
+# blocks win (first-match), matching the specific-at-top ordering above. A
+# missing or empty config.d is fine — the glob simply matches nothing.
+Include ~/.ssh/config.d/*
+
 host github.com
   User                     git
   Hostname                 github.com
