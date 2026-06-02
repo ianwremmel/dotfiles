@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# pbcopy — set the connecting client's clipboard from stdin.
+set -euo pipefail
+
+SELF="$(readlink -f "${BASH_SOURCE[0]}")"
+# shellcheck source=_remote-agent.sh
+. "$(dirname "$SELF")/_remote-agent.sh"
+
+# Buffer stdin to a temp file rather than $(cat): command substitution strips
+# trailing newlines and mangles NUL bytes, but a clipboard must be byte-exact.
+buf="$(mktemp)"
+trap 'rm -f "$buf"' EXIT
+cat > "$buf"
+
+if ra_channel_available && \
+   { printf 'COPY\n'; cat "$buf"; } | ra_send >/dev/null 2>&1; then
+    exit 0
+fi
+
+b64="$(base64 < "$buf" | tr -d '\n')"
+ra_emit "$(ra_osc52 "$b64")"

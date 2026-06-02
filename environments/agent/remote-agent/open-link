@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# open-link <url> — open a URL on the connecting client.
+# Wired up as $BROWSER, xdg-open, www-browser. For OAuth auth URLs whose
+# redirect_uri is a loopback callback, also forward that port back to the pod
+# so the browser's redirect reaches the in-pod callback server.
+set -euo pipefail
+
+SELF="$(readlink -f "${BASH_SOURCE[0]}")"
+DIR="$(dirname "$SELF")"
+# shellcheck source=_remote-agent.sh
+. "$DIR/_remote-agent.sh"
+
+url="${1:-}"
+if [ -z "$url" ]; then
+    echo "usage: open-link <url>" >&2
+    exit 2
+fi
+
+if ra_channel_available; then
+    cbport="$(ra_callback_port "$url")"
+    if [ -n "$cbport" ]; then
+        printf 'FORWARD %s\n' "$cbport" | ra_send >/dev/null 2>&1 || true
+        # Detached watcher cancels the forward when the callback server closes.
+        setsid "${RA_WATCHER:-$DIR/remote-agent-watch-port}" "$cbport" \
+            </dev/null >/dev/null 2>&1 &
+    fi
+    if printf 'OPEN %s\n' "$url" | ra_send >/dev/null 2>&1; then
+        exit 0
+    fi
+fi
+
+ra_emit "$(ra_osc8 "$url")"
