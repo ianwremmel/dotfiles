@@ -27,6 +27,14 @@ in
   # clipboard in/out, play sounds, and forward OAuth callback ports. They
   # degrade to OSC-8/OSC-52 terminal escapes when no Mac agent socket is
   # present. Linux only — on macOS the native pbcopy/open should win.
-  home.packages = lib.mkIf pkgs.stdenv.isLinux [ remoteAgent ];
+  #
+  # The shims call nc (unix-socket netcat, openbsd flags -U/-N), ss, and setsid;
+  # bundle them so the profile is self-contained on a host without distro tools.
+  home.packages = lib.mkIf pkgs.stdenv.isLinux [
+    remoteAgent
+    pkgs.netcat-openbsd
+    pkgs.iproute2
+    pkgs.util-linux
+  ];
   home.sessionVariables = lib.mkIf pkgs.stdenv.isLinux { BROWSER = "open-link"; };
 }
