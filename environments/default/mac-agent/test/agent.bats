@@ -98,14 +98,14 @@ EOF
         bash -c "printf 'FORWARD 40479\n' | '$AGENT'"
     [ "$status" -eq 0 ]
     [[ "$output" == *"OK"* ]]
-    [ "$(cat "$BATS_TEST_TMPDIR/ssh.log")" = "-O forward -L 40479:127.0.0.1:40479 myhost" ]
+    [ "$(cat "$BATS_TEST_TMPDIR/ssh.log")" = "-O forward -L 40479:127.0.0.1:40479 -- myhost" ]
 }
 
 @test "UNFORWARD cancels the LocalForward via ssh -O cancel" {
     run env PATH="$BIN:$PATH" SSH_HOST=myhost AGENT_CONF=/dev/null \
         bash -c "printf 'UNFORWARD 40479\n' | '$AGENT'"
     [ "$status" -eq 0 ]
-    [ "$(cat "$BATS_TEST_TMPDIR/ssh.log")" = "-O cancel -L 40479:127.0.0.1:40479 myhost" ]
+    [ "$(cat "$BATS_TEST_TMPDIR/ssh.log")" = "-O cancel -L 40479:127.0.0.1:40479 -- myhost" ]
 }
 
 @test "FORWARD reads SSH_HOST from the conf file" {
@@ -113,7 +113,7 @@ EOF
     run env PATH="$BIN:$PATH" AGENT_CONF="$BATS_TEST_TMPDIR/conf" \
         bash -c "printf 'FORWARD 40479\n' | '$AGENT'"
     [ "$status" -eq 0 ]
-    [ "$(cat "$BATS_TEST_TMPDIR/ssh.log")" = "-O forward -L 40479:127.0.0.1:40479 confhost" ]
+    [ "$(cat "$BATS_TEST_TMPDIR/ssh.log")" = "-O forward -L 40479:127.0.0.1:40479 -- confhost" ]
 }
 
 @test "FORWARD rejects a non-numeric port" {

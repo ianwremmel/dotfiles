@@ -41,12 +41,12 @@ case "$verb" in
         ;;
     FORWARD)
         case "$arg" in ""|*[!0-9]*) printf 'ERR bad port\n' >&2; exit 1 ;; esac
-        ssh -O forward -L "$arg:127.0.0.1:$arg" "$SSH_HOST" >/dev/null 2>&1 || true
+        ssh -O forward -L "$arg:127.0.0.1:$arg" -- "$SSH_HOST" >/dev/null 2>&1 || true
         printf 'OK\n'
         ;;
     UNFORWARD)
         case "$arg" in ""|*[!0-9]*) printf 'ERR bad port\n' >&2; exit 1 ;; esac
-        ssh -O cancel -L "$arg:127.0.0.1:$arg" "$SSH_HOST" >/dev/null 2>&1 || true
+        ssh -O cancel -L "$arg:127.0.0.1:$arg" -- "$SSH_HOST" >/dev/null 2>&1 || true
         printf 'OK\n'
         ;;
     *)     printf 'ERR unknown verb: %s\n' "$verb" >&2; exit 1 ;;
