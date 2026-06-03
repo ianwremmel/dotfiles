@@ -73,7 +73,9 @@ _dotfiles_nix_install () {
       # has created that directory. Requires user namespaces (present on the
       # dev-container nodes).
       if ! grep -Eqs '^[[:space:]]*sandbox[[:space:]]*=' /etc/nix/nix.conf 2>/dev/null; then
-        printf 'sandbox = true\n' >> /etc/nix/nix.conf
+        # Prepend a newline so this can't concatenate onto a prior line that
+        # lacks a trailing newline (matches the build-users-group write above).
+        printf '\nsandbox = true\n' >> /etc/nix/nix.conf
       fi
     fi
     log 'Installing Nix (official single-user install, no daemon)'
