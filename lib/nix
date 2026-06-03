@@ -68,6 +68,13 @@ _dotfiles_nix_install () {
       if ! grep -Eqs '^[[:space:]]*build-users-group[[:space:]]*=' /etc/nix/nix.conf 2>/dev/null; then
         printf '\nbuild-users-group =\n' >> /etc/nix/nix.conf
       fi
+      # Building as root without build users still needs the sandbox: without
+      # it, builds run with HOME=/homeless-shelter and fail once a prior build
+      # has created that directory. Requires user namespaces (present on the
+      # dev-container nodes).
+      if ! grep -Eqs '^[[:space:]]*sandbox[[:space:]]*=' /etc/nix/nix.conf 2>/dev/null; then
+        printf 'sandbox = true\n' >> /etc/nix/nix.conf
+      fi
     fi
     log 'Installing Nix (official single-user install, no daemon)'
     local installer
