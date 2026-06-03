@@ -26,7 +26,12 @@ arg="${line#"$verb"}"
 arg="${arg# }"   # strip the single separating space, if any
 
 case "$verb" in
-    OPEN)  open "$arg"; printf 'OK\n' ;;
+    OPEN)
+        # Reject option injection: a URL never starts with '-', and open would
+        # treat a leading-dash arg as an option (macOS open doesn't honor '--').
+        case "$arg" in -*) printf 'ERR bad url\n' >&2; exit 1 ;; esac
+        open "$arg"; printf 'OK\n'
+        ;;
     COPY)  pbcopy ;;     # remaining stdin is the clipboard payload
     PASTE) pbpaste ;;
     PLAY)
