@@ -40,7 +40,39 @@ _dotfiles_nix_load_profile () {
   fi
 }
 
+# Ensure /etc/nix/nix.conf carries the settings a Linux root single-user install
+# needs, and re-assert them on every apply rather than only at install time.
+# /etc/nix lives on the container's ephemeral root filesystem (reset to the image
+# on each pod restart) while the store lives on the persistent /nix volume, so an
+# install-time-only write is lost on the next boot even though Nix stays
+# "installed". Without these, Nix uses its built-in default build-users-group of
+# `nixbld` — a group that doesn't exist here — and every build that isn't already
+# cached fails. A no-op on macOS and for non-root users.
+_dotfiles_nix_ensure_root_conf () {
+  if [ "$(uname -s)" = Darwin ]; then return 0; fi
+  if [ "$(id -u)" -ne 0 ]; then return 0; fi
+  mkdir -p /etc/nix
+  # Match only a real (uncommented) assignment so a commented-out example line
+  # doesn't suppress the write; prepend a newline so the setting can't
+  # concatenate onto a prior line that lacks a trailing newline.
+  #
+  # build-users-group empty: build as root rather than via the absent nixbld
+  # group. sandbox: building as root without build users still needs the
+  # sandbox, or builds run with HOME=/homeless-shelter and fail once a prior
+  # build has created that directory. Requires user namespaces (present on the
+  # dev-container nodes).
+  if ! grep -Eqs '^[[:space:]]*build-users-group[[:space:]]*=' /etc/nix/nix.conf 2>/dev/null; then
+    printf '\nbuild-users-group =\n' >> /etc/nix/nix.conf
+  fi
+  if ! grep -Eqs '^[[:space:]]*sandbox[[:space:]]*=' /etc/nix/nix.conf 2>/dev/null; then
+    printf '\nsandbox = true\n' >> /etc/nix/nix.conf
+  fi
+}
+
 _dotfiles_nix_install () {
+  # Re-assert the root nix.conf every apply (see the function comment); the
+  # install below only runs on first boot, but this must run on every restart.
+  _dotfiles_nix_ensure_root_conf
   if _dotfiles_nix_is_installed; then
     debug 'nix already installed'
     return 0
@@ -59,24 +91,6 @@ _dotfiles_nix_install () {
     if [ "$(id -u)" -eq 0 ]; then
       # Pre-create /nix so the installer doesn't need sudo to create it.
       [ -d /nix ] || mkdir -m 0755 /nix
-      # Create /etc/nix/nix.conf with build-users-group empty so Nix does not
-      # require the nixbld group when running as root (e.g. in a container).
-      mkdir -p /etc/nix
-      # Match only a real (uncommented) assignment so a commented-out example
-      # line doesn't suppress the write; prepend a newline so the setting can't
-      # concatenate onto a prior line that lacks a trailing newline.
-      if ! grep -Eqs '^[[:space:]]*build-users-group[[:space:]]*=' /etc/nix/nix.conf 2>/dev/null; then
-        printf '\nbuild-users-group =\n' >> /etc/nix/nix.conf
-      fi
-      # Building as root without build users still needs the sandbox: without
-      # it, builds run with HOME=/homeless-shelter and fail once a prior build
-      # has created that directory. Requires user namespaces (present on the
-      # dev-container nodes).
-      if ! grep -Eqs '^[[:space:]]*sandbox[[:space:]]*=' /etc/nix/nix.conf 2>/dev/null; then
-        # Prepend a newline so this can't concatenate onto a prior line that
-        # lacks a trailing newline (matches the build-users-group write above).
-        printf '\nsandbox = true\n' >> /etc/nix/nix.conf
-      fi
     fi
     log 'Installing Nix (official single-user install, no daemon)'
     local installer
