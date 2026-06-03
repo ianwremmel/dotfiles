@@ -14,8 +14,16 @@ config_load () {
 
   # TODO can we set IFS to ensure we only word split on X=? rather than spaces
   # and every new line?
-  # shellcheck disable=SC2046
-  IFS=$'\n' export $(grep -v '^#' "$DOTFILES_CONFIG_FILE" | xargs)
+  local _cfg
+  _cfg="$(grep -v '^#' "$DOTFILES_CONFIG_FILE" | xargs)"
+  # Guard the empty case: `export` with no arguments prints the entire
+  # environment (every `declare -x`), which dumps secrets to the log when
+  # ~/.dotfilesrc has no entries.
+  if [ -n "$_cfg" ]; then
+    # Word-split the KEY=value pairs and export each (the point of this helper).
+    # shellcheck disable=SC2086,SC2163
+    IFS=$'\n' export $_cfg
+  fi
 }
 
 config_read () {
