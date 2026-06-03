@@ -1,4 +1,4 @@
-{ pkgs, lib, ... }:
+{ lib, ... }:
 let
   # Auto-discover every file under ./home-files/home/ and map it to the same
   # relative path under $HOME. The source tree's layout IS the home layout.
@@ -21,7 +21,7 @@ let
 
   # Pre-existing regular files to clear so home-manager can link. Derived from
   # the discovered set plus the specially-handled files: .screenrc (via
-  # programs.screen), .ssh/config (via the .text assembly below), the
+  # programs.screen), .ssh/config (now owned by programs.ssh), the
   # now-vestigial .gitignore (old excludesfile path), and .config/git/ignore
   # (a hand-created global ignore now owned by programs.git.ignores — its sole
   # pattern was folded into git.nix's ignores list).
@@ -35,15 +35,7 @@ in
     screenrc = ./home-files/screenrc;
   };
 
-  home.file = discovered // {
-    # ~/.ssh/config from a regular source file (programs.ssh would
-    # reorder/deprecate/inject — see design decision 4). Only the macOS-only
-    # UseKeychain line is appended conditionally; it lands inside the trailing
-    # `host *` block (option order within a block is irrelevant).
-    ".ssh/config".text =
-      builtins.readFile ./home-files/ssh-config
-      + lib.optionalString pkgs.stdenv.isDarwin "  UseKeychain              yes\n";
-  };
+  home.file = discovered;
 
   # Clear the legacy rsynced regular files so home-manager can take over.
   # Direct rm (no backup) — exact tracked copies; rsync -av already clobbered

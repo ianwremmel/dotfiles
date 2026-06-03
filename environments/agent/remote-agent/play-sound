@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# play-sound [<name>] [<volume>] — play a macOS system sound on the connecting
+# client (e.g. `play-sound Morse 0.4`). Name resolves to a file on the Mac.
+set -euo pipefail
+
+# shellcheck source=_remote-agent.sh
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/_remote-agent.sh"
+
+name="${1:-}"
+volume="${2:-}"
+
+# "PLAY [<name> [<volume>]]" — only include volume when a name is given.
+req="PLAY"
+if [ -n "$name" ]; then
+    req="$req $name"
+    [ -n "$volume" ] && req="$req $volume"
+fi
+
+if ra_channel_available && printf '%s\n' "$req" | ra_send >/dev/null 2>&1; then
+    exit 0
+fi
+
+# No agent: ring the terminal bell (raw BEL — works without TERM/terminfo).
+ra_emit "$(printf '\a')"

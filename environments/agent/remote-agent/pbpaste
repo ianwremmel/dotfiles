@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# pbpaste — print the connecting client's clipboard to stdout.
+set -euo pipefail
+
+# shellcheck source=_remote-agent.sh
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/_remote-agent.sh"
+
+if ra_channel_available; then
+    printf 'PASTE\n' | ra_send
+    exit 0
+fi
+
+echo "pbpaste: no clipboard channel (install the Mac agent — see images/dev-container/contrib/mac-agent/README.md)" >&2
+exit 1

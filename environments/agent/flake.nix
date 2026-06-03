@@ -14,7 +14,12 @@
       supportedSystems = [ "aarch64-darwin" "x86_64-darwin" "x86_64-linux" "aarch64-linux" ];
       darwinSystems    = [ "aarch64-darwin" "x86_64-darwin" ];
     in {
-      # Lean home config: the agent layer adds nothing beyond the shared base.
+      # The agent home module, exposed so consumers (e.g. the homelab dev
+      # container) can fold it into their own home config alongside their own
+      # modules — `public.lib.mkHome { modules = [ agent.homeModules.agent ... ]; }`.
+      homeModules.agent = ./home.nix;
+
+      # Home config layering the agent module over the shared base.
       homeConfigurations = builtins.listToAttrs (map
         (system: {
           name = system;

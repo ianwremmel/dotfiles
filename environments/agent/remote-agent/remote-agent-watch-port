@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# remote-agent-watch-port <port> — wait until the pod stops LISTENing on
+# <port> (the OAuth login finished), then send UNFORWARD over the channel so
+# the Mac agent cancels the LocalForward. Bounded by a safety timeout.
+set -euo pipefail
+
+# shellcheck source=_remote-agent.sh
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/_remote-agent.sh"
+
+port="${1:-}"
+case "$port" in ""|*[!0-9]*) exit 0 ;; esac
+timeout="${REMOTE_AGENT_WATCH_TIMEOUT:-300}"
+
+listening() { ss -ltnH "sport = :$port" 2>/dev/null | grep -q .; }
+
+# Wait for the callback server to be up (it usually already is).
+seen=0
+for _ in $(seq 1 15); do if listening; then seen=1; break; fi; sleep 1; done
+
+# Only tear down a forward we actually observed serving. If the port never
+# came up, leave any forward in place (it's harmless and clears when the SSH
+# session ends) rather than cancelling one that may still be needed.
+[ "$seen" -eq 1 ] || exit 0
+
+# Wait for it to go away, or give up at the timeout.
+elapsed=0
+while [ "$elapsed" -lt "$timeout" ]; do
+    listening || break
+    sleep 1; elapsed=$((elapsed + 1))
+done
+
+printf 'UNFORWARD %s\n' "$port" | ra_send >/dev/null 2>&1 || true
