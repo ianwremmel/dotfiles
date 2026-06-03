@@ -12,18 +12,19 @@ config_load () {
 
   debug 'loading config'
 
-  # TODO can we set IFS to ensure we only word split on X=? rather than spaces
-  # and every new line?
-  local _cfg
-  _cfg="$(grep -v '^#' "$DOTFILES_CONFIG_FILE" | xargs)"
-  # Guard the empty case: `export` with no arguments prints the entire
-  # environment (every `declare -x`), which dumps secrets to the log when
-  # ~/.dotfilesrc has no entries.
-  if [ -n "$_cfg" ]; then
-    # Word-split the KEY=value pairs and export each (the point of this helper).
-    # shellcheck disable=SC2086,SC2163
-    IFS=$'\n' export $_cfg
-  fi
+  # Export each non-comment KEY=value line via a while-read loop rather than
+  # `export $(grep ... | xargs)`, which had three problems: an empty/all-comment
+  # file makes grep exit 1 and aborts apply under `set -euo pipefail`; xargs
+  # collapses entries to a space-separated string that IFS splitting then
+  # mishandles for multiple keys; and a bare `export` (no args) prints the whole
+  # environment, leaking secrets to the log. The loop exports each line as one
+  # argument (values with spaces survive) and simply does nothing when empty.
+  local _line
+  while IFS= read -r _line; do
+    case "$_line" in '' | '#'*) continue ;; esac
+    # shellcheck disable=SC2163
+    export "$_line"
+  done < "$DOTFILES_CONFIG_FILE"
 }
 
 config_read () {
