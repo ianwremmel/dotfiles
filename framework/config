@@ -21,6 +21,12 @@ config_load () {
   # argument (values with spaces survive) and simply does nothing when empty.
   local _line
   while IFS= read -r _line; do
+    # Strip a trailing CR (CRLF-saved files) and leading whitespace before
+    # classifying, so whitespace-only lines and indented comments are skipped
+    # rather than passed to `export` — which would fail on an invalid
+    # identifier and abort apply under `set -euo pipefail`.
+    _line="${_line%$'\r'}"
+    _line="${_line#"${_line%%[![:space:]]*}"}"
     case "$_line" in '' | '#'*) continue ;; esac
     # shellcheck disable=SC2163
     export "$_line"
