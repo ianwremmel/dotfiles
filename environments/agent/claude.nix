@@ -55,7 +55,9 @@ in
   # managed-settings as the system policy, so the host doesn't have to place it.
   # Self-skips when activation isn't root or the file is absent (non-Linux).
   home.activation.installAgentManagedSettings =
-    lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    # After linkGeneration, not just writeBoundary: it copies from the
+    # ~/.config/agent/ symlink, which linkGeneration creates.
+    lib.hm.dag.entryAfter [ "linkGeneration" ] ''
       if [ "$(id -u)" = 0 ] && [ -f "$HOME/.config/agent/claude-managed-settings.json" ]; then
         run mkdir -p /etc/claude-code
         run install -m 0644 "$HOME/.config/agent/claude-managed-settings.json" \

@@ -37,7 +37,9 @@ in
   # the host doesn't have to. Self-skips when activation isn't root or the file
   # is absent (non-Linux).
   home.activation.installAgentSshdDropIn =
-    lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    # After linkGeneration, not just writeBoundary: it copies from the
+    # ~/.config/agent/sshd.conf symlink, which linkGeneration creates.
+    lib.hm.dag.entryAfter [ "linkGeneration" ] ''
       if [ "$(id -u)" = 0 ] && [ -f "$HOME/.config/agent/sshd.conf" ]; then
         run mkdir -p /etc/ssh/sshd_config.d
         run install -m 0644 "$HOME/.config/agent/sshd.conf" \
