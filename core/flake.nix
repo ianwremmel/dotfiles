@@ -14,9 +14,13 @@
     {
       # Shared home-manager layers. `base` is infrastructure (username,
       # stateVersion, allowUnfree); `all` is the content every machine gets.
+      # Bundles under `common/` are shared-but-optional: an environment folds
+      # one into its own `modules` list to opt in (see `core/common/claude`).
       homeModules = {
         base = ./home.nix;
         all  = ./all/home/default.nix;
+
+        claude = ./common/claude;
       };
 
       # Shared nix-darwin layers. `base` is infrastructure (state version,

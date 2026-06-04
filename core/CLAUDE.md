@@ -32,6 +32,10 @@ Core library (`flake.nix`):
   layer composed into *every* darwin config: system PATH, login shell, Xcode
   license, and the base homebrew block (universal casks/mas/brews). macOS
   `defaults` come from `all/darwin/defaults.nix`.
+- **`homeModules.<bundle>`** (`common/<bundle>/`) — shared-but-optional bundles.
+  Unlike `all`, these are *not* folded in automatically; an environment opts in
+  by adding `public.homeModules.<bundle>` to its own `modules` list. See the
+  bundle conventions below; `homeModules.claude` is the first one.
 - **`lib.mkHome { system, username, modules ? [] }`** — builds a home-manager
   config from `homeModules.base` + `homeModules.all` + the env's `modules`.
 - **`lib.mkDarwin { system, username, modules ? [] }`** — builds a nix-darwin
@@ -80,15 +84,44 @@ username.
 - **A default-only macOS app** → `homebrew.{casks,masApps,brews}` in
   `default/darwin.nix`. A private environment can ship its own system state the
   same way, via its own `darwin.nix`.
-- **Claude Code config** → `default/claude/` — files under
-  `agents/ skills/ commands/ rules/ guides/` auto-map to `~/.claude/`.
-  `settings.json` is generated from the attrset in `default/claude.nix`, but
-  Claude Code rewrites that file at runtime, so it can't be a read-only store
-  symlink: the `seedClaudeSettings` activation script seeds a writable copy and
-  on later applies deep-merges the Nix-declared keys over the live file (ours
-  win; Claude's `permissions.allow` and other runtime keys survive). A declared
-  key changed interactively (e.g. `defaultMode`) reverts to the Nix value on the
-  next apply.
+- **Shared-but-optional content** → a bundle under `core/common/<name>`, opted
+  into per environment via its flake's `modules` list (see bundle conventions
+  below). Use this when several environments — but not all — want the same
+  content; putting it in `all/` would force it on every environment instead.
+- **Claude Code config** → the `common/claude` bundle. Shared content
+  (`files/{rules,guides,agents}/`, the base `CLAUDE.md`) and the
+  `settings.json` seed/merge machinery live there; a profile customizes via
+  `dotfiles.claude.*` (see below). Claude Code rewrites `settings.json` at
+  runtime, so it can't be a read-only store symlink: the `seedClaudeSettings`
+  activation script seeds a writable copy and on later applies deep-merges the
+  Nix-declared keys over the live file (ours win; Claude's `permissions.allow`
+  and other runtime keys survive). A declared key changed interactively (e.g.
+  `defaultMode`) reverts to the Nix value on the next apply.
+
+## Common bundles (`common/`)
+
+A bundle is shared-but-optional content. It lives under `core/common/<name>`,
+is exposed from `flake.nix` as `homeModules.<name>`, and an environment opts in
+by adding `public.homeModules.<name>` to the `modules` list it passes to
+`mkHome` — the same list that already carries `./home.nix`. Leaving it out means
+the environment never sees it. Two flavors:
+
+- **Simple bundle** — a plain module (`home.packages` / `programs.*`), on or
+  off. No options. Add it to an environment's `modules` list to enable it.
+- **Configurable bundle** — an option-bearing module: it declares
+  `options.dotfiles.<name>.*` with `mkOption` and reads them in `config`. A
+  profile opts in via the `modules` list and customizes by setting those options
+  anywhere in its module set. `common/claude` is the worked example: it declares
+  `dotfiles.claude.{settings,extraTrees,claudeMd}`. `settings` is typed
+  `lib.types.anything` so several modules can each contribute keys and they
+  deep-merge; the bundle's base content can be overridden because an option
+  `default` (e.g. `claudeMd`) is the lowest merge priority. `default/claude.nix`
+  is now just the `dotfiles.claude.settings` keys for the personal machine;
+  `agent` opts in for the shared `~/.claude` content and adds no overrides.
+
+These are the repo's only `options`/`mkOption` declarations — reserved for the
+configurable-bundle case, where a profile genuinely needs to layer onto shared
+content. Everything else stays unconditional `imports` plus platform `mkIf`.
 
 ## Conventions
 
