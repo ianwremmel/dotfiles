@@ -13,14 +13,14 @@ let
     r2     = "env /usr/bin/arch -x86_64";
   };
 
-  # Re-prepend the nix profile bins to PATH for interactive shells. On Linux
-  # hosts (the dev-container), the login shell sources Debian's /etc/profile,
-  # which resets root's PATH after PAM applied the deterministic one from
-  # /etc/environment — dropping ~/.nix-profile/bin. home.sessionPath can't
-  # restore it because hm-session-vars.sh short-circuits when something pre-sets
-  # __HM_SESS_VARS_SOURCED (the entrypoint bakes it into /etc/environment). This
-  # runs unconditionally in the shell init, so bare `fnm`/`nix` resolve. Works in
-  # bash and zsh; idempotent (a no-op when the dir is already on PATH).
+  # Re-prepend the nix profile bins to PATH for interactive shells. On Linux a
+  # login shell sources /etc/profile, which on Debian-family systems resets
+  # root's PATH to a fixed default — dropping ~/.nix-profile/bin even when it was
+  # already on PATH. home.sessionPath can't restore it when the environment
+  # already carries __HM_SESS_VARS_SOURCED, because hm-session-vars.sh then
+  # short-circuits. Prepending here in the shell init runs regardless, so bare
+  # `fnm`/`nix` resolve. Works in bash and zsh; idempotent (a no-op when the dir
+  # is already on PATH).
   nixProfilePath = ''
     for __d in "/nix/var/nix/profiles/default/bin" "$HOME/.nix-profile/bin"; do
       case ":$PATH:" in
