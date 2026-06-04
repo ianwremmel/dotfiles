@@ -13,6 +13,25 @@ let
     r2     = "env /usr/bin/arch -x86_64";
   };
 
+  # Re-prepend the nix profile bins to PATH for interactive shells. On Linux a
+  # login shell sources /etc/profile, which on Debian-family systems resets
+  # root's PATH to a fixed default — dropping ~/.nix-profile/bin even when it was
+  # already on PATH. home.sessionPath can't restore it when the environment
+  # already carries __HM_SESS_VARS_SOURCED, because hm-session-vars.sh then
+  # short-circuits. Prepending here in the shell init runs regardless, so bare
+  # `fnm`/`nix` resolve. Works in bash and zsh; idempotent (a no-op when the dir
+  # is already on PATH).
+  nixProfilePath = ''
+    for __d in "/nix/var/nix/profiles/default/bin" "$HOME/.nix-profile/bin"; do
+      case ":$PATH:" in
+        *":$__d:"*) ;;
+        *) [ -d "$__d" ] && PATH="$__d:$PATH" ;;
+      esac
+    done
+    export PATH
+    unset __d
+  '';
+
 in {
   # ---------- Cross-shell PATH additions ----------
   # User-private bin dirs. `~/.local/bin` is where the native Claude Code
@@ -174,6 +193,8 @@ in {
     bashrcExtra = ''
       [ -n "$PS1" ] || return
 
+      # Restore the nix profile bin to PATH (Linux only; see nixProfilePath).
+      ${lib.optionalString pkgs.stdenv.isLinux nixProfilePath}
       # ---- from .bash_profile.d/completion ----
     '' + (builtins.readFile ./bash-completion.bash) + ''
 
@@ -250,6 +271,8 @@ in {
     initContent = ''
       # ---- from .zshrc body ----
 
+      # Restore the nix profile bin to PATH (Linux only; see nixProfilePath).
+      ${lib.optionalString pkgs.stdenv.isLinux nixProfilePath}
       # extendedglob: support **/* globs
       setopt extendedglob
       # error on unmatched globs
