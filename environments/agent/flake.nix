@@ -26,7 +26,7 @@
           value = public.lib.mkHome {
             inherit system;
             inherit (host) username;
-            modules = [ ./home.nix ];
+            modules = [ ./home.nix public.homeModules.claude ];
           };
         })
         supportedSystems);

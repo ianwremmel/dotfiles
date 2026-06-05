@@ -42,10 +42,15 @@ in
 {
   # Exported under ~/.config/agent/ as content the host wires in (managed
   # settings is a system policy file; the MCP list is registered at boot with
-  # token substitution). Skills, rules, and a custom CLAUDE.md can be added
-  # later via the same per-file mapping default/claude.nix uses. Linux only:
-  # the sound hooks call the play-sound shim, which (like the SSH server config)
-  # only ships on Linux agent hosts.
+  # token substitution). This environment's flake folds in the common/claude
+  # bundle (public.homeModules.claude), so the agent's own config gets the shared
+  # ~/.claude content and base CLAUDE.md; agent-specific skills/rules or a
+  # different CLAUDE.md go through dotfiles.claude.extraTrees /
+  # dotfiles.claude.claudeMd. A downstream consumer that reuses the exported
+  # homeModules.agent must add public.homeModules.claude to its own modules list
+  # to get that shared content — a bare module path can't carry the bundle across
+  # the flake boundary. Linux only: the sound hooks call the play-sound shim,
+  # which (like the SSH server config) only ships on Linux agent hosts.
   home.file = lib.mkIf pkgs.stdenv.isLinux {
     ".config/agent/claude-managed-settings.json".source = managedSettings;
     ".config/agent/mcp-servers.json".source = mcpServers;
