@@ -6,7 +6,11 @@ let
   # Auto-discover the shim files (the test/ dir aside) and map each to
   # ~/bin/<name>. Drop a file in ./remote-agent/ and it's installed — no edit
   # here. The shims are co-located under ~/bin so each resolves its sibling
-  # _remote-agent.sh by directory; ~/bin is on PATH via home.sessionPath.
+  # _remote-agent.sh by directory; ~/bin is declared on PATH via home.sessionPath
+  # and re-prepended in interactive shells by core/all/home/shells.nix's
+  # interactivePath (Debian's /etc/profile resets root's PATH, dropping it
+  # otherwise — which would leave these shims, and Claude's hooks that call them,
+  # unable to find each other).
   discovered = lib.listToAttrs (map
     (p:
       let name = lib.removePrefix prefix (toString p); in
