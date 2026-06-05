@@ -13,16 +13,25 @@ let
     r2     = "env /usr/bin/arch -x86_64";
   };
 
-  # Re-prepend the nix profile bins to PATH for interactive shells. On Linux a
-  # login shell sources /etc/profile, which on Debian-family systems resets
-  # root's PATH to a fixed default — dropping ~/.nix-profile/bin even when it was
-  # already on PATH. home.sessionPath can't restore it when the environment
+  # Re-prepend the nix profile bins and the user-private bin dirs to PATH for
+  # interactive shells. On Linux a login shell sources /etc/profile, which on
+  # Debian-family systems resets root's PATH to a fixed default — dropping
+  # ~/.nix-profile/bin, $HOME/bin, and $HOME/.local/bin even when they were
+  # already on PATH. home.sessionPath can't restore them when the environment
   # already carries __HM_SESS_VARS_SOURCED, because hm-session-vars.sh then
   # short-circuits. Prepending here in the shell init runs regardless, so bare
-  # `fnm`/`nix` resolve. Works in bash and zsh; idempotent (a no-op when the dir
-  # is already on PATH).
-  nixProfilePath = ''
-    for __d in "/nix/var/nix/profiles/default/bin" "$HOME/.nix-profile/bin"; do
+  # `fnm`/`nix` resolve and the $HOME/bin shims (the agent's remote-agent bridge)
+  # and the ~/.local/bin `claude` symlink stay reachable — including from
+  # processes launched out of the interactive shell, like Claude Code's hooks.
+  # The loop prepends, so the last dir listed lands first: user bins ahead of nix
+  # bins, matching home.sessionPath's order. Works in bash and zsh; idempotent (a
+  # no-op when the dir is already on PATH).
+  interactivePath = ''
+    for __d in \
+      "/nix/var/nix/profiles/default/bin" \
+      "$HOME/.nix-profile/bin" \
+      "$HOME/.local/bin" \
+      "$HOME/bin"; do
       case ":$PATH:" in
         *":$__d:"*) ;;
         *) [ -d "$__d" ] && PATH="$__d:$PATH" ;;
@@ -193,8 +202,8 @@ in {
     bashrcExtra = ''
       [ -n "$PS1" ] || return
 
-      # Restore the nix profile bin to PATH (Linux only; see nixProfilePath).
-      ${lib.optionalString pkgs.stdenv.isLinux nixProfilePath}
+      # Restore the nix + user-private bins to PATH (Linux only; see interactivePath).
+      ${lib.optionalString pkgs.stdenv.isLinux interactivePath}
       # ---- from .bash_profile.d/completion ----
     '' + (builtins.readFile ./bash-completion.bash) + ''
 
@@ -271,8 +280,8 @@ in {
     initContent = ''
       # ---- from .zshrc body ----
 
-      # Restore the nix profile bin to PATH (Linux only; see nixProfilePath).
-      ${lib.optionalString pkgs.stdenv.isLinux nixProfilePath}
+      # Restore the nix + user-private bins to PATH (Linux only; see interactivePath).
+      ${lib.optionalString pkgs.stdenv.isLinux interactivePath}
       # extendedglob: support **/* globs
       setopt extendedglob
       # error on unmatched globs
