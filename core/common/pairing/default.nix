@@ -10,9 +10,22 @@ let
   cfg = config.dotfiles.pairing;
 
   # --- client (macOS) ---
-  devContainerHost = "dev-container-dev-container";
-  localSock = "${config.home.homeDirectory}/.dev-container-agent.sock";
-  agentBin = "${config.home.homeDirectory}/.local/bin/dev-container-agent";
+  sock = "${config.home.homeDirectory}/.remote-agent.sock";
+  agentBin = "${config.home.homeDirectory}/.local/bin/remote-agent";
+  # OAuth callback port-forwarding (the FORWARD verb) targets a single host;
+  # use the first paired remote. Multi-remote callback forwarding is out of
+  # scope — the socket-based open-link/clipboard/sound verbs work for all
+  # remotes since they don't need to know which remote a request came from.
+  primaryRemote = if cfg.remotes == [ ] then "" else builtins.head cfg.remotes;
+  # One ssh Host block per paired remote: forward the agent's
+  # /run/remote-agent.sock back to this machine's local socket.
+  remoteSshBlocks = lib.listToAttrs (map
+    (h: lib.nameValuePair h {
+      ControlMaster = "auto";
+      ControlPath = "~/.ssh/cm-%C";
+      RemoteForward = "/run/remote-agent.sock ${sock}";
+    })
+    cfg.remotes);
 
   # --- server (Linux) ---
   shimSrc = ./remote-agent;
@@ -68,23 +81,24 @@ in
   config = lib.mkMerge [
     # CLIENT — macOS launchd socket handler + ssh RemoteForward to the agent.
     (lib.mkIf (cfg.mode == "client" && pkgs.stdenv.isDarwin) {
-      home.file.".local/bin/dev-container-agent" = {
+      home.file.".local/bin/remote-agent" = {
         source = ./mac-agent/agent.sh;
         executable = true;
       };
-      launchd.agents.dev-container-agent = {
+      launchd.agents.remote-agent = {
         enable = true;
         config = {
           ProgramArguments = [ agentBin ];
+          # The handler reads SSH_HOST for the FORWARD verb; point it at the
+          # primary paired remote (empty when none are configured).
+          EnvironmentVariables.SSH_HOST = primaryRemote;
+          # Per-connection socket activation: launchd wires the accepted
+          # connection to the handler's stdin/stdout (Wait=false).
           inetdCompatibility.Wait = false;
-          Sockets.Listener.SockPathName = localSock;
+          Sockets.Listener.SockPathName = sock;
         };
       };
-      programs.ssh.settings.${devContainerHost} = {
-        ControlMaster = "auto";
-        ControlPath = "~/.ssh/cm-%C";
-        RemoteForward = "/run/remote-agent.sock ${localSock}";
-      };
+      programs.ssh.settings = remoteSshBlocks;
     })
 
     # SERVER — sshd drop-in + remote-agent shims (Linux).
