@@ -1132,23 +1132,24 @@ After the block that sets `flake_dir` (around line 166, right after `log "Buildi
   fi
 ```
 
-- [ ] **Step 2: Pass `"${agentoverride[@]}"` to the home-config build**
+- [ ] **Step 2: Pass the array to the home-config build (Bash-3.2-safe expansion)**
 
-In the `nix build … homeConfigurations…activationPackage` call, add `"${agentoverride[@]}"` alongside the existing `--override-input public …`:
+In the `nix build … homeConfigurations…activationPackage` call, add the array alongside the existing `--override-input public …`, using the `${arr[@]+"${arr[@]}"}` alternate-value form:
 
 ```bash
   nix "${nixflags[@]}" build \
     "path:$flake_dir#homeConfigurations.\"$system\".activationPackage" \
     --override-input public "path:$DOTFILES_ROOT_DIR/core" \
-    "${agentoverride[@]}" \
+    ${agentoverride[@]+"${agentoverride[@]}"} \
     --out-link "$tmpdir/result"
 ```
 
-Note: an empty Bash array expands to nothing under `set -u` only when written `"${agentoverride[@]}"` (with the quotes). On Bash 3.2 an empty array with `set -u` can error as "unbound variable" for `"${arr[@]}"` in some patched builds — guard by initializing `agentoverride=()` (done in Step 1) and, if a 3.2 unbound error appears in testing, use `"${agentoverride[@]:-}"`. Verify with the parse-check and a dry run below.
+**Critical — do NOT use `"${agentoverride[@]:-}"`.** On stock Bash 3.2 under `set -u`, a bare `"${arr[@]}"` on an *empty* array errors ("unbound variable"), but the `:-` default form `"${arr[@]:-}"` expands an empty array to a single *empty-string argument* (`''`) — which would inject a stray empty installable into `nix build` on every default/agent apply (the no-agent-input case) and break it. The correct idiom is `${agentoverride[@]+"${agentoverride[@]}"}`: nothing when empty, all elements (each quoted) when non-empty. Verify both cases:
+`/bin/bash -uc 'a=(); set -- p ${a[@]+"${a[@]}"} q; echo $#'` → `2`; `/bin/bash -uc 'a=(x y); set -- p ${a[@]+"${a[@]}"} q; echo $#'` → `4`.
 
 - [ ] **Step 3: Pass it to the two nix-darwin invocations too**
 
-The `dev-container` env is Linux-only, so its darwin path is never built; but other future agent-layering envs might have a darwin half. For consistency add `"${agentoverride[@]}"` to both the `sudo -H nix run nix-darwin -- switch …` bootstrap and the `sudo -H darwin-rebuild switch …` call (each already passes `--override-input public …`). If you prefer to keep this strictly minimal and Linux-only, you may skip the darwin calls and note that in the commit message — the home-config build (Step 2) is the one that matters for `dev-container`.
+The `dev-container` env is Linux-only, so its darwin path is never built; but other future agent-layering envs might have a darwin half. For consistency add `${agentoverride[@]+"${agentoverride[@]}"}` to both the `sudo -H nix run nix-darwin -- switch …` bootstrap and the `sudo -H darwin-rebuild switch …` call (and the intermediate `nix build … darwinConfigurations…system` comparison build), each already passing `--override-input public …`.
 
 - [ ] **Step 4: Parse-check, shellcheck, and a dry verification**
 

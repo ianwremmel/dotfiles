@@ -207,11 +207,22 @@ dotfiles_nix_apply () {
   fi
   log "Building environment '$profile' for $system"
 
+  # Envs that layer the `agent` profile declare an `agent` flake input (a github
+  # placeholder). Override it to the local checkout — same trick as `public` —
+  # so the agent layer comes from this tree, not a fetch. Only add the flag when
+  # the env actually has the input (passing --override-input for an absent input
+  # is an error). Detected by grepping the env's flake for an `agent` input decl.
+  local -a agentoverride=()
+  if grep -Eq '^[[:space:]]*agent\.(url|inputs)' "$flake_dir/flake.nix" 2>/dev/null; then
+    agentoverride=(--override-input agent "path:$DOTFILES_ROOT_DIR/environments/agent")
+  fi
+
   local tmpdir
   tmpdir="$(mktemp -d)"
   nix "${nixflags[@]}" build \
     "path:$flake_dir#homeConfigurations.\"$system\".activationPackage" \
     --override-input public "path:$DOTFILES_ROOT_DIR/core" \
+    ${agentoverride[@]+"${agentoverride[@]}"} \
     --out-link "$tmpdir/result"
 
   log 'Activating home-manager configuration'
@@ -257,7 +268,8 @@ dotfiles_nix_apply () {
       log "Bootstrapping nix-darwin (first apply on this machine; sudo required)"
       sudo -H nix "${nixflags[@]}" run \
         nix-darwin -- switch --flake "$darwin_ref" \
-        --override-input public "path:$DOTFILES_ROOT_DIR/core"
+        --override-input public "path:$DOTFILES_ROOT_DIR/core" \
+        ${agentoverride[@]+"${agentoverride[@]}"}
     else
       # `darwin-rebuild switch` always re-runs the whole activation: it prompts
       # for sudo, re-runs `brew bundle`, and restarts the Dock (nix-darwin's
@@ -280,7 +292,8 @@ dotfiles_nix_apply () {
         local built current
         built="$(nix "${nixflags[@]}" build --no-link --print-out-paths \
           "path:$flake_dir#darwinConfigurations.\"$system\".system" \
-          --override-input public "path:$DOTFILES_ROOT_DIR/core")"
+          --override-input public "path:$DOTFILES_ROOT_DIR/core" \
+          ${agentoverride[@]+"${agentoverride[@]}"})"
         # /run/current-system is a direct symlink to the active system's store
         # path (nix-darwin resolves it with `readlink -f` before linking), so a
         # single-level `readlink` returns the canonical path that matches
@@ -295,7 +308,8 @@ dotfiles_nix_apply () {
       if [ "$do_switch" -eq 1 ]; then
         log "Activating nix-darwin (sudo required)"
         sudo -H darwin-rebuild switch --flake "$darwin_ref" \
-          --override-input public "path:$DOTFILES_ROOT_DIR/core"
+          --override-input public "path:$DOTFILES_ROOT_DIR/core" \
+          ${agentoverride[@]+"${agentoverride[@]}"}
       fi
     fi
   fi
