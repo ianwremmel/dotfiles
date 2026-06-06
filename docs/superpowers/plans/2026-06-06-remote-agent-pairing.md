@@ -16,7 +16,7 @@
 - `git commit` here needs gpg signing, which fails under the command sandbox — run commit steps with the sandbox disabled.
 - Sentence-case headings; straight quotes.
 
-**One pre-flight decision baked into this plan (validate early in Task 8):** `environments/dev-container/flake.nix` references the `agent` profile via a *relative path input* `agent.url = "path:../agent"` with `agent.inputs.public.follows = "public"`. This keeps the agent layer local (no GitHub fetch) and lets `lib/nix`'s `--override-input public path:.../core` reach it transitively. If `nix flake metadata` rejects the relative input on this Nix version, the fallback is to add `--override-input agent path:.../environments/agent` in `lib/nix` — but try the relative input first; it is the lower-footprint option.
+**`agent`-input resolution (settled during implementation):** `environments/dev-container/flake.nix` layers the `agent` profile via a flake input. A relative `path:../agent` input does NOT resolve correctly (Nix maps it to a bogus `/nix/store/agent/flake.nix`), so the flake declares `agent.url = "github:ianwremmel/dotfiles?dir=environments/agent"` with `agent.inputs.public.follows = "public"`, and `lib/nix` overrides it to the local checkout at build time — the same pattern it uses for `public`. Task 6 sets up the flake; **Task 9b** adds the `--override-input agent` to `lib/nix`. Manual `nix` invocations against the dev-container env must pass both `--override-input public …` and `--override-input agent …`.
 
 ---
 
@@ -624,12 +624,13 @@ git commit -m "feat(pairing): generate one RemoteForward per remote; rename mac-
   description = "ianwremmel dotfiles — dev-container environment (agent profile + homelab cluster tooling)";
 
   # Linux-only (the homelab dev container). Inherits the generic `agent`
-  # profile via a relative path input so the agent layer comes from this local
-  # checkout (no GitHub fetch); `agent.inputs.public.follows = "public"` makes
-  # the agent layer build against the same core that lib/nix overrides to local.
+  # profile. `agent.inputs.public.follows = "public"` makes the agent layer
+  # build against the same core. lib/nix overrides BOTH `public` and `agent` to
+  # the local checkout at build time (see its --override-input flags), so the
+  # github refs here are placeholders that never fetch during ./apply.
   inputs = {
     public.url = "github:ianwremmel/dotfiles?dir=core";
-    agent.url = "path:../agent";
+    agent.url = "github:ianwremmel/dotfiles?dir=environments/agent";
     agent.inputs.public.follows = "public";
     nixpkgs.follows      = "public/nixpkgs";
     home-manager.follows = "public/home-manager";
@@ -672,14 +673,17 @@ ianwremmel/llc-infrastructure
 ianwremmel/dotfiles
 ```
 
-- [ ] **Step 3: Validate the relative `agent` path input resolves (the pre-flight decision)**
+- [ ] **Step 3: Validate the `agent` input resolves to the local checkout via override**
+
+A relative `path:../agent` input does NOT work here — Nix resolves it relative to the store-copied flake, yielding a bogus `/nix/store/agent/flake.nix`. So the flake uses a `github:` ref for `agent` and relies on `lib/nix` overriding it to the local path (Task 9b adds that override). Verify the override resolves locally (nix needs the sandbox disabled):
 
 ```bash
 cd /Users/ian/projects/dotfiles
 nix flake metadata "path:/Users/ian/projects/dotfiles/environments/dev-container" \
-  --override-input public "path:/Users/ian/projects/dotfiles/core" 2>&1 | head -30
+  --override-input public "path:/Users/ian/projects/dotfiles/core" \
+  --override-input agent "path:/Users/ian/projects/dotfiles/environments/agent" 2>&1 | head -30
 ```
-Expected: metadata prints with `agent` resolved to the local `environments/agent` path and `public` to local `core`, no fetch error. **If it errors on the relative path input**, apply the fallback from the plan header: keep `agent.url = "github:ianwremmel/dotfiles?dir=environments/agent"` and add `--override-input agent "path:$DOTFILES_ROOT_DIR/environments/agent"` to the `nix build` in `lib/nix` (note this in Task 9). Re-run until metadata resolves locally.
+Expected: `agent` resolves to the local `environments/agent` path and `public` to local `core`, no fetch error. The matching `--override-input agent` for `./apply` is added to `lib/nix` in Task 9b.
 
 - [ ] **Step 4: Commit (the env doesn't build yet — `dev-container.nix` is Task 7; commit the scaffold)**
 
@@ -722,13 +726,15 @@ let
   git = "${pkgs.git}/bin/git";
   gh = "${pkgs.gh}/bin/gh";
   aws = "${pkgs.awscli2}/bin/aws";
-  talosctl = "${pkgs.talosctl}/bin/talosctl";
-  kubectl = "${pkgs.kubectl}/bin/kubectl";
+  # Distinct names so these store-path strings don't shadow the `pkgs` package
+  # attrs of the same name inside the `with pkgs;` home.packages list below.
+  talosctlBin = "${pkgs.talosctl}/bin/talosctl";
+  kubectlBin = "${pkgs.kubectl}/bin/kubectl";
 in
 {
-  # Cluster / infra tooling that used to be hand-downloaded in the Dockerfile.
-  # Versions track nixpkgs; if a tool needs to match the cluster exactly
-  # (talosctl / kubectl skew), pin it here via an overlay.
+  # Cluster / infra tooling for the homelab dev container. Versions track
+  # nixpkgs; if a tool needs to match the cluster exactly (talosctl / kubectl
+  # skew), pin it here via an overlay.
   home.packages = with pkgs; [
     kubectl
     kubernetes-helm
@@ -755,8 +761,8 @@ in
     IdentityAgent = "none";
   };
 
-  # --- Runtime bootstrap, ported from the homelab entrypoint.sh. Each runs on
-  # every apply (idempotent), reads secrets from env vars at activation time
+  # --- Runtime bootstrap. Each runs on every apply (idempotent), reads secrets
+  # from env vars at activation time
   # (never baked into the store), and soft-fails so a missing secret or down
   # endpoint warns rather than aborting the apply. ---
 
@@ -775,9 +781,9 @@ in
             echo "$CLAUDE_CREDENTIALS" > "$HOME/.claude/.credentials.json"
             chmod 600 "$HOME/.claude/.credentials.json"
           else
-            disk=$(${jq} -r '.claudeAiOauth.expiresAt // 0' "$HOME/.claude/.credentials.json" 2>/dev/null || echo 0)
-            env=$(echo "$CLAUDE_CREDENTIALS" | ${jq} -r '.claudeAiOauth.expiresAt // 0')
-            if [ "$env" -gt "$disk" ] 2>/dev/null; then
+            disk_expires=$(${jq} -r '.claudeAiOauth.expiresAt // 0' "$HOME/.claude/.credentials.json" 2>/dev/null || echo 0)
+            env_expires=$(echo "$CLAUDE_CREDENTIALS" | ${jq} -r '.claudeAiOauth.expiresAt // 0')
+            if [ "$env_expires" -gt "$disk_expires" ] 2>/dev/null; then
               echo "$CLAUDE_CREDENTIALS" > "$HOME/.claude/.credentials.json"
               chmod 600 "$HOME/.claude/.credentials.json"
             fi
@@ -789,9 +795,9 @@ in
             echo "$CODEX_CREDENTIALS" > "$HOME/.codex/auth.json"
             chmod 600 "$HOME/.codex/auth.json"
           else
-            disk=$(${jq} -r '.expires_at // 0' "$HOME/.codex/auth.json" 2>/dev/null || echo 0)
-            env=$(echo "$CODEX_CREDENTIALS" | ${jq} -r '.expires_at // 0')
-            if [ "$env" -gt "$disk" ] 2>/dev/null; then
+            disk_expires=$(${jq} -r '.expires_at // 0' "$HOME/.codex/auth.json" 2>/dev/null || echo 0)
+            env_expires=$(echo "$CODEX_CREDENTIALS" | ${jq} -r '.expires_at // 0')
+            if [ "$env_expires" -gt "$disk_expires" ] 2>/dev/null; then
               echo "$CODEX_CREDENTIALS" > "$HOME/.codex/auth.json"
               chmod 600 "$HOME/.codex/auth.json"
             fi
@@ -877,14 +883,16 @@ in
           echo "[pairing] cluster creds: state missing/empty controlplane_ips" >&2; exit 0; }
         mapfile -t ips < <(echo "$ips_json" | ${jq} -r '.[]')
         first_ip="''${ips[0]}"
-        ${talosctl} config endpoint "''${ips[@]}"
-        ${talosctl} config node "$first_ip"
-        if ! ${talosctl} kubeconfig --force "$HOME/.kube/config" >/dev/null 2>&1; then
+        ${talosctlBin} config endpoint "''${ips[@]}"
+        ${talosctlBin} config node "$first_ip"
+        if ! ${talosctlBin} kubeconfig --force "$HOME/.kube/config" >/dev/null 2>&1; then
           echo "[pairing] cluster creds: talosctl kubeconfig failed" >&2; exit 0
         fi
         chmod 600 "$HOME/.kube/config"
-        ${kubectl} config set-cluster homelab-cluster --server="https://$first_ip:6443" >/dev/null
-        ${kubectl} config set-context --current --namespace=argocd >/dev/null
+        if ! ${kubectlBin} config set-cluster homelab-cluster --server="https://$first_ip:6443" >/dev/null \
+           || ! ${kubectlBin} config set-context --current --namespace=argocd >/dev/null; then
+          echo "[pairing] cluster creds: kubectl config failed" >&2; exit 0
+        fi
         echo "[pairing] cluster creds configured (endpoints: ''${ips[*]})" >&2
       ) || echo "[pairing] WARNING: cluster cred bootstrap aborted unexpectedly" >&2
       fi
@@ -899,7 +907,8 @@ cd /Users/ian/projects/dotfiles
 printf '{ username = "ian"; remoteAgents = [ ]; }\n' > core/host.nix
 nix eval --raw \
   "path:/Users/ian/projects/dotfiles/environments/dev-container#homeConfigurations.\"x86_64-linux\".activationPackage.drvPath" \
-  --override-input public "path:/Users/ian/projects/dotfiles/core"
+  --override-input public "path:/Users/ian/projects/dotfiles/core" \
+  --override-input agent "path:/Users/ian/projects/dotfiles/environments/agent"
 ```
 Expected: a `.drv` path, no eval error (confirms the agent layer, pairing server mode, tooling, and the three activation scripts all evaluate together).
 
@@ -908,18 +917,20 @@ Expected: a `.drv` path, no eval error (confirms the agent layer, pairing server
 ```bash
 nix eval \
   "path:/Users/ian/projects/dotfiles/environments/dev-container#homeConfigurations.\"x86_64-linux\".config.dotfiles.pairing.mode" \
-  --override-input public "path:/Users/ian/projects/dotfiles/core"
+  --override-input public "path:/Users/ian/projects/dotfiles/core" \
+  --override-input agent "path:/Users/ian/projects/dotfiles/environments/agent"
 ```
 Expected: `"server"`
 
 - [ ] **Step 4: Build on Linux (in the container, or any aarch64/x86_64-linux Nix host)**
 
-Run on a Linux host (e.g. the dev container after Task 11, or a Linux builder):
+Run on a Linux host (e.g. the dev container after Task 11, or a Linux builder). Note `lib/nix` (Task 9b) adds both overrides automatically during `./apply`; the explicit flags below are for a manual build:
 ```bash
 sys=$(nix eval --impure --raw --expr 'builtins.currentSystem')   # e.g. x86_64-linux
 nix build \
   "path:/root/projects/dotfiles/environments/dev-container#homeConfigurations.\"$sys\".activationPackage" \
-  --override-input public "path:/root/projects/dotfiles/core"
+  --override-input public "path:/root/projects/dotfiles/core" \
+  --override-input agent "path:/root/projects/dotfiles/environments/agent"
 ```
 Expected: builds. (Defer to the Task 11 end-to-end if no Linux Nix host is available now.)
 
@@ -1096,6 +1107,69 @@ Expected: local apply finishes, then the fan-out SSHes to the remote, which prin
 cd /Users/ian/projects/dotfiles
 git add lib/nix
 git commit -m "feat(pairing): fan out apply to paired remotes after a successful local apply"
+```
+
+### Task 9b: `lib/nix` overrides the `agent` input for envs that layer the agent profile
+
+**Why:** the `dev-container` env (Task 6) layers the `agent` profile via a flake input. A relative `path:../agent` input does not resolve correctly (Nix maps it to a bogus store path), so the flake declares `agent.url = "github:…?dir=environments/agent"` and relies on `lib/nix` overriding it to the local checkout — exactly as it already does for `public`. Without this, `DOTFILES_ENVIRONMENT=dev-container ./apply` fetches the agent layer from GitHub instead of the local tree.
+
+**Files:**
+- Modify: `lib/nix` (the `nix build` for the home config, and the two macOS nix-darwin invocations)
+
+- [ ] **Step 1: Add a conditional `agent` override variable after `flake_dir` is resolved**
+
+After the block that sets `flake_dir` (around line 166, right after `log "Building environment '$profile' for $system"`), add:
+
+```bash
+  # Envs that layer the `agent` profile declare an `agent` flake input (a github
+  # placeholder). Override it to the local checkout — same trick as `public` —
+  # so the agent layer comes from this tree, not a fetch. Only add the flag when
+  # the env actually has the input (passing --override-input for an absent input
+  # is an error). Detected by grepping the env's flake for an `agent` input decl.
+  local -a agentoverride=()
+  if grep -Eq '^[[:space:]]*agent\.(url|inputs)' "$flake_dir/flake.nix" 2>/dev/null; then
+    agentoverride=(--override-input agent "path:$DOTFILES_ROOT_DIR/environments/agent")
+  fi
+```
+
+- [ ] **Step 2: Pass `"${agentoverride[@]}"` to the home-config build**
+
+In the `nix build … homeConfigurations…activationPackage` call, add `"${agentoverride[@]}"` alongside the existing `--override-input public …`:
+
+```bash
+  nix "${nixflags[@]}" build \
+    "path:$flake_dir#homeConfigurations.\"$system\".activationPackage" \
+    --override-input public "path:$DOTFILES_ROOT_DIR/core" \
+    "${agentoverride[@]}" \
+    --out-link "$tmpdir/result"
+```
+
+Note: an empty Bash array expands to nothing under `set -u` only when written `"${agentoverride[@]}"` (with the quotes). On Bash 3.2 an empty array with `set -u` can error as "unbound variable" for `"${arr[@]}"` in some patched builds — guard by initializing `agentoverride=()` (done in Step 1) and, if a 3.2 unbound error appears in testing, use `"${agentoverride[@]:-}"`. Verify with the parse-check and a dry run below.
+
+- [ ] **Step 3: Pass it to the two nix-darwin invocations too**
+
+The `dev-container` env is Linux-only, so its darwin path is never built; but other future agent-layering envs might have a darwin half. For consistency add `"${agentoverride[@]}"` to both the `sudo -H nix run nix-darwin -- switch …` bootstrap and the `sudo -H darwin-rebuild switch …` call (each already passes `--override-input public …`). If you prefer to keep this strictly minimal and Linux-only, you may skip the darwin calls and note that in the commit message — the home-config build (Step 2) is the one that matters for `dev-container`.
+
+- [ ] **Step 4: Parse-check, shellcheck, and a dry verification**
+
+```bash
+/bin/bash -n /Users/ian/projects/dotfiles/lib/nix && echo OK
+shellcheck -s bash /Users/ian/projects/dotfiles/lib/nix
+```
+Expected: `OK`; no new errors. Then confirm the detection grep matches the dev-container flake and not default/agent:
+```bash
+cd /Users/ian/projects/dotfiles
+grep -Eq '^[[:space:]]*agent\.(url|inputs)' environments/dev-container/flake.nix && echo "dev-container: has agent input"
+grep -Eq '^[[:space:]]*agent\.(url|inputs)' environments/default/flake.nix && echo "default: MATCH (unexpected)" || echo "default: no agent input (correct)"
+```
+Expected: `dev-container: has agent input` and `default: no agent input (correct)`.
+
+- [ ] **Step 5: Commit**
+
+```bash
+cd /Users/ian/projects/dotfiles
+git add lib/nix
+git commit -m "feat(dev-container): override the agent flake input to the local checkout in lib/nix"
 ```
 
 ### Task 10: Document the new config + bundle in the repo guides
