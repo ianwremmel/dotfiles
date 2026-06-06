@@ -83,6 +83,11 @@ with `/bin/bash -n <file>`.
 logging), `DOTFILES_NIX_SKIP=1` (skip Nix entirely), `DOTFILES_DARWIN_FORCE=1`
 (force a nix-darwin switch even when the built system matches the running one),
 `DOTFILES_ROOT_DIR` (set by `apply`).
+`DOTFILES_REMOTE_AGENTS` (space-separated SSH host aliases of paired remote
+agents; baked into `host.nix` and used by the post-apply fan-out),
+`DOTFILES_REMOTE_PATH` (path to the dotfiles repo on a remote; default
+`$HOME/projects/dotfiles`), `DOTFILES_REMOTE_TRIGGER=1` (set by `pull-and-apply`
+so a remote apply does not fan out again).
 
 New shared configuration belongs in `core/` and per-environment configuration in
 `environments/<env>/`, not here — see `../core/CLAUDE.md` and

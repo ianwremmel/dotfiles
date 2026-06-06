@@ -119,6 +119,14 @@ the environment never sees it. Two flavors:
   is now just the `dotfiles.claude.settings` keys for the personal machine;
   `agent` opts in for the shared `~/.claude` content and adds no overrides.
 
+- **`common/pairing`** — the laptop↔agent SSH wiring, one configurable bundle
+  with `dotfiles.pairing.mode` (`off`/`client`/`server`) and
+  `dotfiles.pairing.remotes`. `client` (set by `default`) installs the
+  `remote-agent` launchd socket handler and a `RemoteForward` per paired
+  remote; `server` (set by `agent`, re-set by `dev-container`) installs the
+  sshd drop-in and the `remote-agent/` shims. The remote list comes from
+  `host.remoteAgents`, which `lib/nix` generates from `DOTFILES_REMOTE_AGENTS`.
+
 These are the repo's only `options`/`mkOption` declarations — reserved for the
 configurable-bundle case, where a profile genuinely needs to layer onto shared
 content. Everything else stays unconditional `imports` plus platform `mkIf`.
