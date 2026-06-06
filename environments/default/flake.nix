@@ -26,7 +26,7 @@
               ./home.nix
               public.homeModules.claude
               public.homeModules.pairing
-              { dotfiles.pairing.mode = "client"; }
+              { dotfiles.pairing = { mode = "client"; remotes = host.remoteAgents; }; }
             ];
           };
         })
