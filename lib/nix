@@ -108,6 +108,37 @@ _dotfiles_nix_resolve_profile () {
   echo "${DOTFILES_ENVIRONMENT:-default}"
 }
 
+# After a successful local apply, re-apply on each paired remote agent (pulling
+# latest first). Sequential; an unreachable or failing remote is logged and
+# skipped (the local apply already succeeded). Guarded by the caller so it only
+# runs from a client and never recurses.
+_dotfiles_nix_fanout () {
+  local _remote_path _host _rc _summary
+  # Literal $HOME so the REMOTE shell expands it; override with an absolute
+  # DOTFILES_REMOTE_PATH in ~/.dotfilesrc when a remote keeps dotfiles elsewhere.
+  _remote_path="${DOTFILES_REMOTE_PATH:-\$HOME/projects/dotfiles}"
+  _summary=''
+  # shellcheck disable=SC2086
+  for _host in ${DOTFILES_REMOTE_AGENTS}; do
+    log "Fanning out to remote agent: $_host"
+    # shellcheck disable=SC2029
+    if ssh "$_host" "cd \"$_remote_path\" && ./pull-and-apply"; then
+      _summary="$_summary
+  $_host: ok"
+    else
+      _rc=$?
+      if [ "$_rc" -eq 255 ]; then
+        _summary="$_summary
+  $_host: unreachable"
+      else
+        _summary="$_summary
+  $_host: apply failed (exit $_rc)"
+      fi
+    fi
+  done
+  printf '%s\n' "Remote agent fan-out summary:$_summary"
+}
+
 dotfiles_nix_apply () {
   if [ "${DOTFILES_NIX_SKIP:-0}" -eq 1 ]; then
     log 'DOTFILES_NIX_SKIP set; skipping nix'
@@ -267,5 +298,12 @@ dotfiles_nix_apply () {
           --override-input public "path:$DOTFILES_ROOT_DIR/core"
       fi
     fi
+  fi
+
+  # Post-apply fan-out. Skip when this apply was itself triggered by a remote
+  # fan-out (no loops) and when no remotes are configured (server boxes never
+  # set DOTFILES_REMOTE_AGENTS).
+  if [ "${DOTFILES_REMOTE_TRIGGER:-0}" != 1 ] && [ -n "${DOTFILES_REMOTE_AGENTS:-}" ]; then
+    _dotfiles_nix_fanout
   fi
 }
