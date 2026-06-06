@@ -20,7 +20,8 @@
         base = ./home.nix;
         all  = ./all/home/default.nix;
 
-        claude = ./common/claude;
+        claude  = ./common/claude;
+        pairing = ./common/pairing;
       };
 
       # Shared nix-darwin layers. `base` is infrastructure (state version,
