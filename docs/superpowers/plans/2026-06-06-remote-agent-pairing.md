@@ -844,6 +844,12 @@ in
           esac
           case "$slug" in */*) ;; *) echo "[pairing] skipping repo slug without owner '$slug'" >&2; continue ;; esac
           name="''${slug##*/}"
+          # Reject a name of "." or ".." outright: it would make dest the
+          # projects dir (or its parent), and the rm -rf below could then target
+          # something far larger than one repo. The slug guards above already
+          # drop "owner/.." (via *..*) and "owner/" (via */), but not "owner/."
+          # which yields name=".".
+          case "$name" in .|..) echo "[pairing] skipping repo slug with unsafe name '$slug'" >&2; continue ;; esac
           dest="$projects/$name"
           if [ -d "$dest/.git" ]; then
             ${git} -C "$dest" fetch --all --prune --quiet || echo "[pairing] fetch failed: $slug" >&2
