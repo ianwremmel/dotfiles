@@ -8,8 +8,6 @@
   imports = [
     ./cli-tools.nix
     ./claude.nix
-    ./remote-agent.nix
     ./shell-extras.nix
-    ./sshd.nix
   ];
 }

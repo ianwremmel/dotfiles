@@ -5,8 +5,6 @@
   imports = [
     ./claude.nix
     ./cli-tools.nix
-    ./dev-container-agent.nix
-    ./ssh.nix
     ./terminal-fonts.nix
   ];
 

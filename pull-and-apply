@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# Pull the latest dotfiles (and any custom_environments repos), then apply.
+# Invoked over SSH by a paired client's post-apply fan-out (see lib/nix's
+# _dotfiles_nix_fanout). DOTFILES_REMOTE_TRIGGER=1 marks the downstream apply
+# so it does not fan out again — no loops.
+set -euo pipefail
+
+cd "$(dirname "$0")"
+
+# --ff-only: never create a merge commit on a remote with local commits; a
+# diverged remote fails here and surfaces as "apply failed" in the client's
+# fan-out summary rather than silently merging.
+git pull --ff-only
+
+if [ -d custom_environments ]; then
+  for d in custom_environments/*/; do
+    if [ -d "$d.git" ]; then
+      ( cd "$d" && git pull --ff-only ) || echo "warning: git pull --ff-only failed in $d" >&2
+    fi
+  done
+fi
+
+exec env DOTFILES_REMOTE_TRIGGER=1 ./apply
