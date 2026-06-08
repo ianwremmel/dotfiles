@@ -18,9 +18,13 @@ let
   # remotes since they don't need to know which remote a request came from.
   primaryRemote = if cfg.remotes == [ ] then "" else builtins.head cfg.remotes;
   # One ssh Host block per paired remote: forward the agent's
-  # /run/remote-agent.sock back to this machine's local socket.
+  # /run/remote-agent.sock back to this machine's local socket. Pairing servers
+  # are agent hosts, which log in as root (server mode's sshd drop-in sets
+  # PermitRootLogin prohibit-password), so connect as root rather than the
+  # laptop's local username.
   remoteSshBlocks = lib.listToAttrs (map
     (h: lib.nameValuePair h {
+      User = "root";
       ControlMaster = "auto";
       ControlPath = "~/.ssh/cm-%C";
       RemoteForward = "/run/remote-agent.sock ${sock}";
