@@ -108,10 +108,24 @@ _dotfiles_nix_resolve_profile () {
   echo "${DOTFILES_ENVIRONMENT:-default}"
 }
 
+# Run `pull-and-apply` on a single remote. The default reaches the remote by
+# plain ssh; a profile whose remotes aren't plain ssh hosts overrides this by
+# shipping a `fanout.sh` in its flake dir (sourced by dotfiles_nix_apply after
+# the flake dir is resolved, so the redefinition is in scope here). $1 is the
+# remote identifier (an ssh host by default), $2 the remote dotfiles path
+# (literal — the REMOTE shell expands $HOME). Returns the remote command's exit
+# status; ssh uses 255 for its own connection failures (see the caller's label).
+_dotfiles_remote_apply () {
+  local _host="$1" _remote_path="$2"
+  # shellcheck disable=SC2029
+  ssh "$_host" "cd \"$_remote_path\" && ./pull-and-apply"
+}
+
 # After a successful local apply, re-apply on each paired remote agent (pulling
 # latest first). Sequential; an unreachable or failing remote is logged and
 # skipped (the local apply already succeeded). Guarded by the caller so it only
-# runs from a client and never recurses.
+# runs from a client and never recurses. The per-remote transport is
+# _dotfiles_remote_apply, which a profile may have overridden.
 _dotfiles_nix_fanout () {
   local _remote_path _host _rc _summary
   # Literal $HOME so the REMOTE shell expands it; override with an absolute
@@ -121,8 +135,7 @@ _dotfiles_nix_fanout () {
   # shellcheck disable=SC2086
   for _host in ${DOTFILES_REMOTE_AGENTS}; do
     log "Fanning out to remote agent: $_host"
-    # shellcheck disable=SC2029
-    if ssh "$_host" "cd \"$_remote_path\" && ./pull-and-apply"; then
+    if _dotfiles_remote_apply "$_host" "$_remote_path"; then
       _summary="$_summary
   $_host: ok"
     else
@@ -206,6 +219,17 @@ dotfiles_nix_apply () {
     return 1
   fi
   log "Building environment '$profile' for $system"
+
+  # Optional per-profile fan-out hook. If the selected env ships a fanout.sh,
+  # source it now (the flake dir is resolved) so it can override
+  # _dotfiles_remote_apply before the post-apply fan-out runs. Keeps
+  # transport-specific logic (e.g. reaching a remote via `yak ws ssh` instead of
+  # plain ssh) in the private env, out of this generic library.
+  if [ -f "$flake_dir/fanout.sh" ]; then
+    log "Loading fan-out hook: $flake_dir/fanout.sh"
+    # shellcheck disable=SC1090
+    . "$flake_dir/fanout.sh"
+  fi
 
   # Flake-input overrides applied to every build/run below, collected into one
   # array so each call site expands `"${overrides[@]}"`.
