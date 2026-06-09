@@ -119,6 +119,10 @@ _dotfiles_remote_apply () {
   local _host="$1" _remote_path="$2"
   # shellcheck disable=SC2029
   ssh "$_host" "cd \"$_remote_path\" && ./pull-and-apply"
+  # Snapshot and return ssh's status so the caller's $? classification (255 =
+  # ssh transport failure) is robust to any trailing command a future edit adds.
+  local _rc=$?
+  return "$_rc"
 }
 
 # After a successful local apply, re-apply on each paired remote agent (pulling
@@ -140,9 +144,13 @@ _dotfiles_nix_fanout () {
   $_host: ok"
     else
       _rc=$?
+      # 255 is ssh's own code for a transport failure (can't connect, auth,
+      # etc.) — but a remote `./pull-and-apply` could in principle also exit 255,
+      # and a non-ssh transport (a fanout.sh override) won't use 255 at all. So
+      # label it "transport failed (255)" rather than asserting "unreachable".
       if [ "$_rc" -eq 255 ]; then
         _summary="$_summary
-  $_host: unreachable"
+  $_host: transport failed (255)"
       else
         _summary="$_summary
   $_host: apply failed (exit $_rc)"
@@ -220,17 +228,6 @@ dotfiles_nix_apply () {
   fi
   log "Building environment '$profile' for $system"
 
-  # Optional per-profile fan-out hook. If the selected env ships a fanout.sh,
-  # source it now (the flake dir is resolved) so it can override
-  # _dotfiles_remote_apply before the post-apply fan-out runs. Keeps
-  # transport-specific logic (e.g. reaching a remote via `yak ws ssh` instead of
-  # plain ssh) in the private env, out of this generic library.
-  if [ -f "$flake_dir/fanout.sh" ]; then
-    log "Loading fan-out hook: $flake_dir/fanout.sh"
-    # shellcheck disable=SC1090
-    . "$flake_dir/fanout.sh"
-  fi
-
   # Flake-input overrides applied to every build/run below, collected into one
   # array so each call site expands `"${overrides[@]}"`.
   #
@@ -249,18 +246,22 @@ dotfiles_nix_apply () {
   # Both `agent` and `shared` are gated because passing `--override-input` for
   # an input the env doesn't declare makes nix warn ("does not match any
   # input"), and the public default env (neither input) shouldn't emit that
-  # noise. The greps are cheap text tests (no `nix eval`); they match the
-  # `<name>.url` / `<name>.inputs` forms an input declaration takes in these
-  # flakes. `overrides` always carries `public`, so plain `"${overrides[@]}"`
-  # expansion is never empty.
+  # noise. The greps are cheap text tests (no `nix eval`); they match an input
+  # DECLARATION — `<name>.url` / `<name>.inputs` as the first non-whitespace
+  # token on a line, the form these flakes use. Anchoring at line start (modulo
+  # indentation) avoids matching the name inside a comment or mid-line (e.g. a
+  # `# … agent.inputs …` note, or `something.follows = "agent/nixpkgs"`), which
+  # would re-introduce the very warning this gate exists to prevent. `overrides`
+  # always carries `public`, so plain `"${overrides[@]}"` expansion is never
+  # empty.
   local -a overrides
   overrides=(--override-input public "path:$DOTFILES_ROOT_DIR/core")
-  if grep -Eq '(^|[^A-Za-z_])agent\.(url|inputs)' "$flake_dir/flake.nix" 2>/dev/null; then
+  if grep -Eq '^[[:space:]]*agent\.(url|inputs)' "$flake_dir/flake.nix" 2>/dev/null; then
     overrides=("${overrides[@]}" --override-input agent "path:$DOTFILES_ROOT_DIR/environments/agent")
   fi
   local shared_dir="$DOTFILES_ROOT_DIR/custom_environments/shared"
   if [ -d "$shared_dir" ] \
-     && grep -Eq '(^|[^A-Za-z_])shared\.(url|inputs)' "$flake_dir/flake.nix"; then
+     && grep -Eq '^[[:space:]]*shared\.(url|inputs)' "$flake_dir/flake.nix" 2>/dev/null; then
     overrides=("${overrides[@]}" --override-input shared "path:$shared_dir")
   fi
 
@@ -361,6 +362,28 @@ dotfiles_nix_apply () {
   # fan-out (no loops) and when no remotes are configured (server boxes never
   # set DOTFILES_REMOTE_AGENTS).
   if [ "${DOTFILES_REMOTE_TRIGGER:-0}" != 1 ] && [ -n "${DOTFILES_REMOTE_AGENTS:-}" ]; then
+    # Load the optional per-profile fan-out hook HERE — at fan-out time, not
+    # before the local build — so a broken hook can never sabotage the local
+    # apply, and so it's only loaded when fan-out actually runs. The hook
+    # redefines _dotfiles_remote_apply to change the transport (e.g. `yak ws
+    # ssh` instead of plain ssh), keeping that profile-specific coupling in the
+    # private env, out of this generic library.
+    #
+    # A present hook MUST load cleanly: no `|| true`. A hook that fails to
+    # source (syntax error, missing function) would otherwise leave the default
+    # ssh transport active and silently fan out to the WRONG target — e.g. `ssh
+    # clever-emu`, where clever-emu is a yak workspace name, not an ssh host.
+    # Failing loud (abort before contacting any remote) beats a silent
+    # wrong-transport fan-out. The local apply already succeeded above, so
+    # aborting here loses nothing but the fan-out.
+    if [ -f "$flake_dir/fanout.sh" ]; then
+      log "Loading fan-out hook: $flake_dir/fanout.sh"
+      # shellcheck disable=SC1090
+      if ! . "$flake_dir/fanout.sh"; then
+        error "fan-out hook failed to load: $flake_dir/fanout.sh"
+        return 1
+      fi
+    fi
     _dotfiles_nix_fanout
   fi
 }
