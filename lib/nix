@@ -72,15 +72,14 @@ _dotfiles_nix_ensure_root_conf () {
 _dotfiles_nix_ensure_user_conf () {
   if [ "$(uname -s)" = Darwin ]; then return 0; fi
   if [ "$(id -u)" -eq 0 ]; then return 0; fi
-  local conf="$HOME/.config/nix/nix.conf"
-  mkdir -p "$(dirname "$conf")"
-  # Non-root single-user installs on Linux containers need sandbox disabled:
-  # the kernel allows user-namespace creation but the container's seccomp or
-  # overlayfs blocks chmod inside the sandbox, causing every source-unpack
-  # derivation to fail. Re-assert on every apply (the file may be on an
-  # ephemeral filesystem wiped by workspace recycle).
-  if ! grep -Eqs '^[[:space:]]*sandbox[[:space:]]*=' "$conf" 2>/dev/null; then
-    printf '\nsandbox = false\n' >> "$conf"
+  # On workspaces where /nix is a bind-mount from $HOME/.nix (persistent ext4),
+  # the filesystem does not permit chmod inside the default build directory
+  # (/nix/var/nix/builds). Redirect builds to /tmp (volatile overlay, full
+  # POSIX semantics). Re-assert on every apply because /etc is ephemeral and
+  # wiped by workspace recycle. Passwordless sudo is available.
+  sudo mkdir -p /etc/nix
+  if ! grep -Eqs '^[[:space:]]*build-dir[[:space:]]*=' /etc/nix/nix.conf 2>/dev/null; then
+    printf '\nbuild-dir = /tmp/nix-builds\n' | sudo tee -a /etc/nix/nix.conf >/dev/null
   fi
 }
 
