@@ -69,10 +69,26 @@ _dotfiles_nix_ensure_root_conf () {
   fi
 }
 
+_dotfiles_nix_ensure_user_conf () {
+  if [ "$(uname -s)" = Darwin ]; then return 0; fi
+  if [ "$(id -u)" -eq 0 ]; then return 0; fi
+  local conf="$HOME/.config/nix/nix.conf"
+  mkdir -p "$(dirname "$conf")"
+  # Non-root single-user installs on Linux containers need sandbox disabled:
+  # the kernel allows user-namespace creation but the container's seccomp or
+  # overlayfs blocks chmod inside the sandbox, causing every source-unpack
+  # derivation to fail. Re-assert on every apply (the file may be on an
+  # ephemeral filesystem wiped by workspace recycle).
+  if ! grep -Eqs '^[[:space:]]*sandbox[[:space:]]*=' "$conf" 2>/dev/null; then
+    printf '\nsandbox = false\n' >> "$conf"
+  fi
+}
+
 _dotfiles_nix_install () {
-  # Re-assert the root nix.conf every apply (see the function comment); the
-  # install below only runs on first boot, but this must run on every restart.
+  # Re-assert nix.conf settings every apply (see function comments); the install
+  # below only runs on first boot, but these must run on every restart.
   _dotfiles_nix_ensure_root_conf
+  _dotfiles_nix_ensure_user_conf
   if _dotfiles_nix_is_installed; then
     debug 'nix already installed'
     return 0
@@ -239,9 +255,8 @@ dotfiles_nix_apply () {
   # local checkout — same trick as `public` — makes the agent layer come from
   # this tree, not a fetch.
   #
-  # `shared` is the custom_environments library consumed by the private
-  # work/airdev envs; override it to the local tree only when the selected env
-  # declares it.
+  # `shared` is the custom_environments library consumed by private envs that
+  # declare it; override it to the local tree only when the selected env does.
   #
   # Both `agent` and `shared` are gated because passing `--override-input` for
   # an input the env doesn't declare makes nix warn ("does not match any
