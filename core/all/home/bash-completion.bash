@@ -1,6 +1,7 @@
-# Add tab completion for SSH hostnames based on ~/.ssh/config, ignoring
-# wildcards
-[ -e "$HOME/.ssh/config" ] && complete -o "default" -o "nospace" -W "$(grep "^Host" ~/.ssh/config | grep -v "[?*]" | cut -d " " -f2)" scp sftp ssh
+# Add tab completion for SSH hostnames from ~/.ssh/config and the managed
+# config.d/ fragment it Includes (the Host blocks live in the fragment, not the
+# top-level file), ignoring wildcards.
+[ -e "$HOME/.ssh/config" ] && complete -o "default" -o "nospace" -W "$(cat ~/.ssh/config ~/.ssh/config.d/* 2>/dev/null | grep "^Host" | grep -v "[?*]" | cut -d " " -f2)" scp sftp ssh
 
 if [ "$(uname)" == 'Darwin' ]; then
   # Add tab completion for `defaults read|write NSGlobalDomain`
