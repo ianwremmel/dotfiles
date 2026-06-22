@@ -21,12 +21,14 @@ let
 
   # Pre-existing regular files to clear so home-manager can link. Derived from
   # the discovered set plus the specially-handled files: .screenrc (via
-  # programs.screen), .ssh/config (now owned by programs.ssh), the
-  # now-vestigial .gitignore (old excludesfile path), and .config/git/ignore
-  # (a hand-created global ignore now owned by programs.git.ignores — its sole
-  # pattern was folded into git.nix's ignores list).
+  # programs.screen), the now-vestigial .gitignore (old excludesfile path), and
+  # .config/git/ignore (a hand-created global ignore now owned by
+  # programs.git.ignores — its sole pattern was folded into git.nix's ignores
+  # list). ~/.ssh/config is deliberately absent: ssh.nix keeps it a writable
+  # real file (runtime tools rewrite it), so clearing it here would wipe a
+  # tool-injected block on every apply. ssh.nix's seed handles legacy files.
   clearPaths = (builtins.attrNames discovered)
-    ++ [ ".screenrc" ".ssh/config" ".gitignore" ".config/git/ignore" ];
+    ++ [ ".screenrc" ".gitignore" ".config/git/ignore" ];
 in
 {
   programs.screen = {
