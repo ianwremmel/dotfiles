@@ -4,3 +4,7 @@
 custom_environments
 
 .claude/settings.local.json
+.claude/worktrees/
+
+# JetBrains IDE settings (machine-local)
+.idea/
