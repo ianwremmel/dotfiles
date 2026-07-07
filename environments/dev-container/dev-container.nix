@@ -14,7 +14,7 @@ let
         command = "mcp-grafana";
         args = [ "-t" "stdio" ];
         env = {
-          GRAFANA_URL = "http://kube-prometheus-stack-grafana.monitoring.svc.cluster.local";
+          GRAFANA_URL = "http://kube-prometheus-stack-grafana.observability.svc.cluster.local";
           GRAFANA_SERVICE_ACCOUNT_TOKEN = "$GRAFANA_SERVICE_ACCOUNT_TOKEN";
         };
       }
@@ -24,11 +24,10 @@ let
   jq       = "${pkgs.jq}/bin/jq";
   git      = "${pkgs.git}/bin/git";
   gh       = "${pkgs.gh}/bin/gh";
-  aws      = "${pkgs.awscli2}/bin/aws";
-  # Use distinct names so these store-path strings don't shadow the `pkgs`
-  # package attrs of the same name in the `with pkgs;` home.packages list.
-  talosctlBin = "${pkgs.talosctl}/bin/talosctl";
-  kubectlBin  = "${pkgs.kubectl}/bin/kubectl";
+  # git shells out to plain `ssh`, which isn't on the activation environment's
+  # PATH — pin it or every git@github.com clone/fetch in activation dies with
+  # "cannot run ssh: No such file or directory".
+  gitSsh   = "GIT_SSH_COMMAND=${pkgs.openssh}/bin/ssh";
 in
 {
   # Cluster / infra tooling for the homelab dev container. Versions track
@@ -46,7 +45,7 @@ in
     flyctl
     bats
     mcp-grafana
-    awscli2 # also used by the cluster-credential activation script
+    awscli2
   ];
 
   home.file.".config/agent/mcp-servers-homelab.json".source = grafanaMcp;
@@ -150,55 +149,13 @@ in
           case "$name" in .|..) echo "[pairing] skipping repo slug with unsafe name '$slug'" >&2; continue ;; esac
           dest="$projects/$name"
           if [ -d "$dest/.git" ]; then
-            ${git} -C "$dest" fetch --all --prune --quiet || echo "[pairing] fetch failed: $slug" >&2
+            ${gitSsh} ${git} -C "$dest" fetch --all --prune --quiet || echo "[pairing] fetch failed: $slug" >&2
           else
             [ -e "$dest" ] && rm -rf "$dest"
-            ${git} clone --quiet "git@github.com:$slug.git" "$dest" || echo "[pairing] clone failed: $slug" >&2
+            ${gitSsh} ${git} clone --quiet "git@github.com:$slug.git" "$dest" || echo "[pairing] clone failed: $slug" >&2
           fi
         done < "$repos_file"
       ) || echo "[pairing] WARNING: project clone aborted unexpectedly" >&2
-      fi
-    '';
-
-  # Cluster credentials: fetch Terraform state from Garage S3 and derive
-  # talosconfig/kubeconfig. Endpoint comes from $GARAGE_ENDPOINT (no hostname
-  # committed); skipped when it or the AWS creds are unset.
-  home.activation.bootstrapClusterCreds =
-    lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-      if [ -z "$DRY_RUN_CMD" ]; then
-      (
-        set +e
-        if [ -z "''${GARAGE_ENDPOINT:-}" ] || [ -z "''${AWS_ACCESS_KEY_ID:-}" ] || [ -z "''${AWS_SECRET_ACCESS_KEY:-}" ]; then
-          echo "[pairing] cluster creds: GARAGE_ENDPOINT or AWS creds unset; skipping" >&2
-          exit 0
-        fi
-        state_tmp=$(mktemp "''${TMPDIR:-/tmp}/tofu-state.XXXXXX.json")
-        trap 'rm -f "$state_tmp"' EXIT
-        if ! ${aws} --endpoint-url "$GARAGE_ENDPOINT" --region us-east-1 \
-             s3 cp "s3://terraform-state/homelab/terraform.tfstate" "$state_tmp" --no-progress >/dev/null 2>&1; then
-          echo "[pairing] cluster creds: state fetch from Garage failed" >&2; exit 0
-        fi
-        mkdir -p "$HOME/.talos" "$HOME/.kube"
-        if ! ${jq} -er '.outputs.talosconfig.value' "$state_tmp" > "$HOME/.talos/config" 2>/dev/null; then
-          echo "[pairing] cluster creds: state missing talosconfig output" >&2; exit 0
-        fi
-        chmod 600 "$HOME/.talos/config"
-        ips_json=$(${jq} -ce '.outputs.controlplane_ips.value | select(type == "array" and length > 0)' "$state_tmp" 2>/dev/null) || {
-          echo "[pairing] cluster creds: state missing/empty controlplane_ips" >&2; exit 0; }
-        mapfile -t ips < <(echo "$ips_json" | ${jq} -r '.[]')
-        first_ip="''${ips[0]}"
-        ${talosctlBin} config endpoint "''${ips[@]}"
-        ${talosctlBin} config node "$first_ip"
-        if ! ${talosctlBin} kubeconfig --force "$HOME/.kube/config" >/dev/null 2>&1; then
-          echo "[pairing] cluster creds: talosctl kubeconfig failed" >&2; exit 0
-        fi
-        chmod 600 "$HOME/.kube/config"
-        if ! ${kubectlBin} config set-cluster homelab-cluster --server="https://$first_ip:6443" >/dev/null \
-           || ! ${kubectlBin} config set-context --current --namespace=argocd >/dev/null; then
-          echo "[pairing] cluster creds: kubectl config failed" >&2; exit 0
-        fi
-        echo "[pairing] cluster creds configured (endpoints: ''${ips[*]})" >&2
-      ) || echo "[pairing] WARNING: cluster cred bootstrap aborted unexpectedly" >&2
       fi
     '';
 }
