@@ -2,3 +2,4 @@ ianwremmel/apps
 ianwremmel/homelab
 ianwremmel/llc-infrastructure
 ianwremmel/dotfiles
+ianwremmel/agentic
