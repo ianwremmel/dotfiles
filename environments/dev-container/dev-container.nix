@@ -47,6 +47,10 @@ in
     bats
     mcp-grafana
     awscli2 # also used by the cluster-credential activation script
+    # Claude Code's Linux sandbox helpers. Without bwrap (bubblewrap) and socat
+    # the agent falls back to running unsandboxed in the pod.
+    bubblewrap # provides `bwrap`
+    socat
   ];
 
   home.file.".config/agent/mcp-servers-homelab.json".source = grafanaMcp;
