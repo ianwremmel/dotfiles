@@ -14,7 +14,7 @@ let
         command = "mcp-grafana";
         args = [ "-t" "stdio" ];
         env = {
-          GRAFANA_URL = "http://kube-prometheus-stack-grafana.monitoring.svc.cluster.local";
+          GRAFANA_URL = "http://kube-prometheus-stack-grafana.observability.svc.cluster.local";
           GRAFANA_SERVICE_ACCOUNT_TOKEN = "$GRAFANA_SERVICE_ACCOUNT_TOKEN";
         };
       }
@@ -25,6 +25,10 @@ let
   git      = "${pkgs.git}/bin/git";
   gh       = "${pkgs.gh}/bin/gh";
   aws      = "${pkgs.awscli2}/bin/aws";
+  # git shells out to plain `ssh`, which isn't on the activation environment's
+  # PATH — pin it or every git@github.com clone/fetch in activation dies with
+  # "cannot run ssh: No such file or directory".
+  gitSsh   = "GIT_SSH_COMMAND=${pkgs.openssh}/bin/ssh";
   # Use distinct names so these store-path strings don't shadow the `pkgs`
   # package attrs of the same name in the `with pkgs;` home.packages list.
   talosctlBin = "${pkgs.talosctl}/bin/talosctl";
@@ -150,10 +154,10 @@ in
           case "$name" in .|..) echo "[pairing] skipping repo slug with unsafe name '$slug'" >&2; continue ;; esac
           dest="$projects/$name"
           if [ -d "$dest/.git" ]; then
-            ${git} -C "$dest" fetch --all --prune --quiet || echo "[pairing] fetch failed: $slug" >&2
+            ${gitSsh} ${git} -C "$dest" fetch --all --prune --quiet || echo "[pairing] fetch failed: $slug" >&2
           else
             [ -e "$dest" ] && rm -rf "$dest"
-            ${git} clone --quiet "git@github.com:$slug.git" "$dest" || echo "[pairing] clone failed: $slug" >&2
+            ${gitSsh} ${git} clone --quiet "git@github.com:$slug.git" "$dest" || echo "[pairing] clone failed: $slug" >&2
           fi
         done < "$repos_file"
       ) || echo "[pairing] WARNING: project clone aborted unexpectedly" >&2
