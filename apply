@@ -38,7 +38,7 @@ if [ "$(uname -s)" = Darwin ]; then
   compat_ensure_homebrew
 fi
 
-# Install nix, generate nix/host.nix, build + activate home-manager, and (on
+# Install nix, generate core/host.nix, build + activate home-manager, and (on
 # macOS) activate nix-darwin.
 dotfiles_nix_apply
 
