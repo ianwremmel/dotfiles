@@ -52,21 +52,22 @@ _dotfiles_nix_ensure_root_conf () {
   if [ "$(uname -s)" = Darwin ]; then return 0; fi
   if [ "$(id -u)" -ne 0 ]; then return 0; fi
   mkdir -p /etc/nix
-  # Match only a real (uncommented) assignment so a commented-out example line
-  # doesn't suppress the write; prepend a newline so the setting can't
-  # concatenate onto a prior line that lacks a trailing newline.
+  # Force build-users-group= and sandbox=true, OVERRIDING whatever the Nix
+  # installer wrote. The installer rewrites /etc/nix/nix.conf after this ran at
+  # first-boot and may set sandbox=false (or omit it), which makes the FIRST
+  # home-manager build run impure with HOME=/homeless-shelter; parallel builds
+  # then collide on that dir and ./apply aborts. A skip-if-present guard is not
+  # enough (it respects the installer's value), so strip any existing
+  # assignments and append ours — authoritative on every apply. This function is
+  # therefore also called immediately after the installer runs (below), before
+  # the first build.
   #
   # build-users-group empty: build as root rather than via the absent nixbld
-  # group. sandbox: building as root without build users still needs the
-  # sandbox, or builds run with HOME=/homeless-shelter and fail once a prior
-  # build has created that directory. Requires user namespaces (present on the
-  # dev-container nodes).
-  if ! grep -Eqs '^[[:space:]]*build-users-group[[:space:]]*=' /etc/nix/nix.conf 2>/dev/null; then
-    printf '\nbuild-users-group =\n' >> /etc/nix/nix.conf
-  fi
-  if ! grep -Eqs '^[[:space:]]*sandbox[[:space:]]*=' /etc/nix/nix.conf 2>/dev/null; then
-    printf '\nsandbox = true\n' >> /etc/nix/nix.conf
-  fi
+  # group. sandbox true: building as root without build users still needs the
+  # sandbox. Requires user namespaces (present on the dev-container nodes).
+  local conf=/etc/nix/nix.conf
+  [ -f "$conf" ] && sed -i -E '/^[[:space:]]*(build-users-group|sandbox)[[:space:]]*=/d' "$conf"
+  printf '\nbuild-users-group =\nsandbox = true\n' >> "$conf"
 }
 
 _dotfiles_nix_ensure_user_conf () {
@@ -114,6 +115,11 @@ _dotfiles_nix_install () {
     curl -fsSL https://nixos.org/nix/install -o "$installer"
     sh "$installer" --no-daemon --no-channel-add < /dev/null
     rm -f "$installer"
+    # The installer rewrites /etc/nix/nix.conf; re-assert sandbox=true now so the
+    # FIRST home-manager build (run by dotfiles_nix_apply, right after this) is
+    # sandboxed rather than impure. Without this the fresh first-boot ./apply
+    # fails on /homeless-shelter collisions.
+    _dotfiles_nix_ensure_root_conf
   fi
 }
 
