@@ -75,13 +75,25 @@ _dotfiles_nix_ensure_user_conf () {
   if [ "$(id -u)" -eq 0 ]; then return 0; fi
   local conf="$HOME/.config/nix/nix.conf"
   mkdir -p "$(dirname "$conf")"
-  # Non-root single-user installs on Linux containers need sandbox disabled:
-  # the kernel allows user-namespace creation but the container's seccomp or
-  # overlayfs blocks chmod inside the sandbox, causing every source-unpack
-  # derivation to fail. Re-assert on every apply (the file may be on an
-  # ephemeral filesystem wiped by workspace recycle).
+  # Non-root single-user installs on Linux containers need two build-isolation
+  # knobs off. Re-assert on every apply (the file may be on an ephemeral
+  # filesystem wiped by workspace recycle).
+  #
+  # sandbox = false: the kernel allows user-namespace creation but the
+  # container's seccomp or overlayfs blocks chmod inside the sandbox, causing
+  # every source-unpack derivation to fail.
+  #
+  # filter-syscalls = false: the store lives on a bind-mounted volume whose
+  # build dir (/nix/var/nix/builds) inherits a setgid bit, and filter-syscalls'
+  # seccomp filter returns EPERM on any chmod that would set setgid. Fetchers
+  # that chmod their temp tree — nix-prefetch-git for a submoduled vim plugin,
+  # etc. — then die with "chmod: Operation not permitted" even with the sandbox
+  # already off.
   if ! grep -Eqs '^[[:space:]]*sandbox[[:space:]]*=' "$conf" 2>/dev/null; then
     printf '\nsandbox = false\n' >> "$conf"
+  fi
+  if ! grep -Eqs '^[[:space:]]*filter-syscalls[[:space:]]*=' "$conf" 2>/dev/null; then
+    printf 'filter-syscalls = false\n' >> "$conf"
   fi
 }
 
