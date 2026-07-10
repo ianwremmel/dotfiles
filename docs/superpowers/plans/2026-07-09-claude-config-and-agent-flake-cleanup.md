@@ -379,13 +379,18 @@ should exist or how long it should be. Generated docs keep growing."
 **Files:**
 - Create: `core/common/claude/plugins.nix`
 - Modify: `core/common/claude/default.nix` (the `baseSettings` binding)
-- Modify: `environments/agent/claude.nix` (the `managedSettings` binding)
 
 **Interfaces:**
 - Produces: `core/common/claude/plugins.nix` evaluates to
   `{ extraKnownMarketplaces = { <name>.source = { source = "github"; repo = "<owner>/<repo>"; }; ... }; enabledPlugins = { "<plugin>@<marketplace>" = true; ... }; }`.
   It is a plain attrset, **not** a module — `import` it, do not add it to `imports`.
-  Task 6 moves the `environments/agent/claude.nix` consumer to `core/common/agent/claude.nix`.
+
+**Do not touch `environments/agent/claude.nix` in this task.** A flake's source
+tree is only its own directory, so `environments/agent/` cannot `import` a path
+under `core/` — nix rejects it as outside the flake source. The managed-settings
+consumer is wired up in Task 6 Step 3, after that file has moved to
+`core/common/agent/claude.nix`, where `../claude/plugins.nix` is a sibling
+inside the same flake root.
 
 - [ ] **Step 1: Confirm the container is missing the plugins today**
 
@@ -457,47 +462,7 @@ Replace with:
   baseSettings = import ./plugins.nix;
 ```
 
-- [ ] **Step 4: Feed it into the managed-settings policy**
-
-In `environments/agent/claude.nix`, the `managedSettings` binding currently reads:
-
-```nix
-  managedSettings = jsonFormat.generate "claude-managed-settings.json" {
-    extraKnownMarketplaces.openai-codex.source = {
-      source = "github";
-      repo = "openai/codex-plugin-cc";
-    };
-    enabledPlugins."codex@openai-codex" = true;
-    hooks = {
-      Stop = [{ hooks = [{ type = "command"; command = "play-sound Morse 0.4"; }]; }];
-      Notification = [{ hooks = [{ type = "command"; command = "play-sound Ping 0.35"; }]; }];
-    };
-  };
-```
-
-Replace with:
-
-```nix
-  managedSettings = jsonFormat.generate "claude-managed-settings.json" (
-    (import ../../core/common/claude/plugins.nix) // {
-      hooks = {
-        Stop = [{ hooks = [{ type = "command"; command = "play-sound Morse 0.4"; }]; }];
-        Notification = [{ hooks = [{ type = "command"; command = "play-sound Ping 0.35"; }]; }];
-      };
-    }
-  );
-```
-
-Also update the comment above it: it says "It pre-approves the codex plugin
-marketplace + plugin". Change that clause to "It pre-approves the shared plugin
-set (see `core/common/claude/plugins.nix`)".
-
-The `../../core/...` relative path works because `environments/agent/` is a
-sibling of `core/` in the source tree, and `lib/nix` builds this flake with
-`path:` (whole-tree) semantics. Task 6 removes this path when the consumer moves
-into `core/common/agent/`, where it becomes `../claude/plugins.nix`.
-
-- [ ] **Step 5: Verify the attrset shape**
+- [ ] **Step 4: Verify the attrset shape**
 
 `settings.json` is not a `home.file` entry — the bundle seeds it from a store
 path via the `seedClaudeSettings` activation script, so it cannot be read out of
@@ -513,22 +478,21 @@ nix eval --impure --expr 'builtins.attrNames (import ./core/common/claude/plugin
 Expected: an attrset with all five plugin keys set to `true`, then
 `[ "agentic" "claude-plugins-official" "openai-codex" ]`.
 
-- [ ] **Step 6: Verify the agent environment still evaluates**
+- [ ] **Step 5: Verify the default environment still evaluates**
 
 ```bash
 cd ~/projects/dotfiles
-nix eval --raw "path:$PWD/environments/agent#homeConfigurations.\"x86_64-linux\".activationPackage.drvPath" \
+nix eval --raw "path:$PWD/environments/default#homeConfigurations.\"$(nix eval --raw --impure --expr builtins.currentSystem)\".activationPackage.drvPath" \
   --override-input public "path:$PWD/core"
 ```
 
-Expected: a `/nix/store/....drv` path. Evaluation works cross-platform, so this
-succeeds on macOS even though the output is a Linux derivation.
+Expected: a `/nix/store/....drv` path.
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
 cd ~/projects/dotfiles
-git add core/common/claude/plugins.nix core/common/claude/default.nix environments/agent/claude.nix
+git add core/common/claude/plugins.nix core/common/claude/default.nix
 git commit -m "feat(claude): declare the plugin set for every environment
 
 Only the agent managed-settings policy declared a plugin, and only codex. Every
@@ -536,8 +500,9 @@ other plugin existed as interactive ~/.claude/plugins state that no environment
 reproduced, so a fresh dev container had no /deliver, no /code-review, and no
 typescript LSP.
 
-plugins.nix is the one declaration, spliced into both the user settings.json
-seed and the managed-settings policy."
+plugins.nix is the one declaration. It lands in the user settings.json seed
+here; Task 6 splices the same file into the managed-settings policy once that
+consumer moves under core/."
 ```
 
 ---
@@ -603,13 +568,48 @@ Create `core/common/agent/default.nix`:
 }
 ```
 
-- [ ] **Step 3: Repoint the moved `claude.nix`**
+- [ ] **Step 3: Wire the plugin set into the moved `claude.nix`**
 
-`core/common/agent/claude.nix` came from `environments/agent/claude.nix`. Two edits:
+`core/common/agent/claude.nix` came from `environments/agent/claude.nix`. It now
+lives under `core/`, the same flake root as `core/common/claude/plugins.nix`, so
+it can finally import it. (From its old home it could not: a flake's source tree
+is only its own directory.)
 
-1. Its `plugins.nix` import path changes from `../../core/common/claude/plugins.nix` to `../claude/plugins.nix`.
-2. Its header comment describes the old flake-boundary caveat. Replace the whole
-   leading comment on the `home.file` attribute with:
+Its `managedSettings` binding currently reads:
+
+```nix
+  managedSettings = jsonFormat.generate "claude-managed-settings.json" {
+    extraKnownMarketplaces.openai-codex.source = {
+      source = "github";
+      repo = "openai/codex-plugin-cc";
+    };
+    enabledPlugins."codex@openai-codex" = true;
+    hooks = {
+      Stop = [{ hooks = [{ type = "command"; command = "play-sound Morse 0.4"; }]; }];
+      Notification = [{ hooks = [{ type = "command"; command = "play-sound Ping 0.35"; }]; }];
+    };
+  };
+```
+
+Replace with:
+
+```nix
+  managedSettings = jsonFormat.generate "claude-managed-settings.json" (
+    (import ../claude/plugins.nix) // {
+      hooks = {
+        Stop = [{ hooks = [{ type = "command"; command = "play-sound Morse 0.4"; }]; }];
+        Notification = [{ hooks = [{ type = "command"; command = "play-sound Ping 0.35"; }]; }];
+      };
+    }
+  );
+```
+
+The comment above `managedSettings` says "It pre-approves the codex plugin
+marketplace + plugin". Change that clause to "It pre-approves the shared plugin
+set (see `../claude/plugins.nix`)".
+
+Then replace the whole leading comment on the `home.file` attribute — it
+describes a flake-boundary caveat that no longer applies — with:
 
 ```nix
   # Exported under ~/.config/agent/ as content the host wires in: the managed
