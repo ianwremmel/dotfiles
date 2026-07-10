@@ -35,7 +35,8 @@ Core library (`flake.nix`):
 - **`homeModules.<bundle>`** (`common/<bundle>/`) — shared-but-optional bundles.
   Unlike `all`, these are *not* folded in automatically; an environment opts in
   by adding `public.homeModules.<bundle>` to its own `modules` list. See the
-  bundle conventions below; `homeModules.claude` is the first one.
+  bundle conventions below; `homeModules.{agent,claude,pairing}` are the
+  shipped bundles.
 - **`lib.mkHome { system, username, modules ? [] }`** — builds a home-manager
   config from `homeModules.base` + `homeModules.all` + the env's `modules`.
 - **`lib.mkDarwin { system, username, modules ? [] }`** — builds a nix-darwin
@@ -53,14 +54,17 @@ bare `"<system>"`, not `"<profile>@<system>"`.
 Darwin is gated by *platform*, not by environment. Because `mkDarwin` always
 folds in `base` + `all`, even an environment with no own darwin module still
 yields a darwin config on macOS — it just equals the universal `all` system
-layer. The two shipped environments:
+layer. The three shipped environments:
 
 - **`default`** — personal machine. Both halves: `default/home.nix` (Claude
   config, personal CLI tools, terminal fonts, git identity + signing) and
   `default/darwin.nix` (personal casks/mas/brews).
-- **`agent`** — headless. Home half only (`agent/home.nix`, intentionally lean,
-  nothing beyond the shared base). It has no `darwin.nix`, so on macOS it gets
-  the `base` + `all` system layer only — universal casks, no personal ones.
+- **`agent-interactive`** — an SSH-in agent host. Home half only, Linux only:
+  the `agent` bundle plus cluster CLIs, `repos.txt` clones, credential restore,
+  and tmux auto-attach.
+- **`agent-autonomous`** — an unattended agent host. The `agent` bundle and
+  nothing else. Both halves, since it still yields the universal darwin layer
+  on macOS.
 
 The active environment is selected by which env flake `lib/nix` builds (from
 `DOTFILES_ENVIRONMENT`), not by a value inside `host.nix`. The untracked
@@ -97,6 +101,10 @@ username.
   Nix-declared keys over the live file (ours win; Claude's `permissions.allow`
   and other runtime keys survive). A declared key changed interactively (e.g.
   `defaultMode`) reverts to the Nix value on the next apply.
+- **A Claude Code plugin every machine should have** → `enabledPlugins` in
+  `core/common/claude/plugins.nix`, with its marketplace in the
+  `extraKnownMarketplaces` attrset beside it. The file is spliced into both the
+  user `settings.json` seed and the agent managed-settings policy.
 
 ## Common bundles (`common/`)
 
@@ -119,12 +127,17 @@ the environment never sees it. Two flavors:
   is now just the `dotfiles.claude.settings` keys for the personal machine;
   `agent` opts in for the shared `~/.claude` content and adds no overrides.
 
+- **`common/agent`** — the base for agent hosts: `bk`, the Claude
+  managed-settings policy, and the MCP server list exported to
+  `~/.config/agent/`. It `imports` `../claude`, so an environment adding
+  `public.homeModules.agent` also gets the shared `~/.claude` content. Host-
+  specific tooling belongs in the consuming environment.
 - **`common/pairing`** — the laptop↔agent SSH wiring, one configurable bundle
   with `dotfiles.pairing.mode` (`off`/`client`/`server`) and
   `dotfiles.pairing.remotes`. `client` (set by `default`) installs the
   `remote-agent` launchd socket handler and a `RemoteForward` per paired
-  remote; `server` (set by `agent`, re-set by `dev-container`) installs the
-  sshd drop-in and the `remote-agent/` shims. The remote list comes from
+  remote; `server` (set by `agent-interactive` and `agent-autonomous`) installs
+  the sshd drop-in and the `remote-agent/` shims. The remote list comes from
   `host.remoteAgents`, which `lib/nix` generates from `DOTFILES_REMOTE_AGENTS`.
 
 These are the repo's only `options`/`mkOption` declarations — reserved for the
