@@ -34,8 +34,8 @@ let
   extraTree = lib.foldl' (acc: t: acc // mapTree t) { } cfg.extraTrees;
 
   # Keys every profile should have; per-profile keys come from cfg.settings and
-  # win on conflict. Empty today — kept so universal defaults have a home.
-  baseSettings = { };
+  # win on conflict.
+  baseSettings = import ./plugins.nix;
   settingsFile =
     jsonFormat.generate "claude-settings.json" (lib.recursiveUpdate baseSettings cfg.settings);
 in
