@@ -15,9 +15,10 @@ let
     }
   );
 
-  # MCP servers the agent kit registers. The host substitutes the $VAR tokens
-  # at runtime and merges in any host-specific servers (e.g. homelab's Grafana)
-  # before registering them with `claude mcp add`.
+  # MCP servers the agent kit registers globally. The host substitutes the $VAR
+  # tokens at runtime before registering them with `claude mcp add`. A
+  # project-scoped server (e.g. homelab's Grafana) goes in that project's own
+  # .mcp.json instead — see homelabMcp below.
   mcpServers = jsonFormat.generate "mcp-servers.json" {
     servers = [
       {
