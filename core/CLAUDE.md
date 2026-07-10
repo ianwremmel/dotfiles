@@ -123,7 +123,8 @@ the environment never sees it. Two flavors:
   `dotfiles.claude.{settings,extraTrees,claudeMd}`. `settings` is typed
   `lib.types.anything` so several modules can each contribute keys and they
   deep-merge; the bundle's base content can be overridden because an option
-  `default` (e.g. `claudeMd`) is the lowest merge priority. `default/claude.nix` is just the `dotfiles.claude.settings` keys for the
+  `default` (e.g. `claudeMd`) is the lowest merge priority.
+  `default/claude.nix` is just the `dotfiles.claude.settings` keys for the
   personal machine; agent hosts get the shared `~/.claude` content
   transitively, through `common/agent`'s import of this bundle.
 
