@@ -2,6 +2,12 @@
   programs.vim = {
     enable = true;
 
+    # home-manager customizes `packageConfigurable`, which defaults to
+    # `pkgs.vim-full` — the huge GTK2/X11 build that drags XQuartz onto macOS.
+    # Plain `pkgs.vim` is the terminal build (no X11), and still supports the
+    # `.customize` call the module uses for plugins/extraConfig.
+    packageConfigurable = pkgs.vim;
+
     plugins = with pkgs.vimPlugins; [
       vim-javascript          # pangloss (replaces unmaintained jelera/vim-javascript-syntax)
       vim-colors-solarized
