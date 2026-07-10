@@ -76,7 +76,8 @@ in
     '';
 
   # Drop the project's MCP config in when the repo is present. The file is
-  # gitignored in homelab, so overwriting it leaves no working-tree change.
+  # gitignored in homelab, so overwriting it leaves no working-tree change; it is
+  # rewritten on every apply, so a hand edit on an agent host does not survive.
   # Linux only: on a personal macOS machine ~/projects/homelab is a human's
   # checkout with its own .mcp.json pointed at the public Grafana endpoint.
   home.activation.writeHomelabMcp = lib.mkIf pkgs.stdenv.isLinux (
