@@ -31,60 +31,20 @@ convention.
 
 ## What you flag
 
-Go through the text and find every instance of the patterns below. For each, the
-fix is almost always **cut it or replace it with a plain, specific statement**.
+The taxonomy is `~/.claude/rules/anti-ai-slop.md`. Read it before you review;
+it is canonical and this prompt deliberately does not restate it. Work through
+its numbered sections and find every instance in the text you were given. For
+each, the fix is almost always **cut it or replace it with a plain, specific
+statement**.
 
-1. **Editorialized importance** — `stands as`, `serves as`, `plays a vital /
-   pivotal / crucial / key role`, `underscores / highlights / reflects the
-   importance of`, `is a testament to`, `marks a turning point`, `leaves a
-   lasting mark`, `in today's fast-paced world`, `in the ever-evolving
-   landscape of`.
-2. **AI-vocabulary cluster** — `delve`, `leverage`, `utilize`, `robust`,
-   `seamless(ly)`, `comprehensive`, `intricate`, `meticulous(ly)`, `boasts`,
-   `showcase`, `tapestry`, `landscape`/`realm`/`navigate` (abstract), `foster`,
-   `garner`, `underscore`, `pivotal`, `crucial`, `vibrant`, `rich` (figurative),
-   `enhance`, `streamline`, `elevate`, `unlock`, `empower`, `bolster`, `myriad`,
-   `plethora`, `align with`, `resonate with`. One is fine; a cluster is the tell.
-   Also flag pile-on sentence-opening connectives (`Furthermore`, `Moreover`,
-   `Additionally`, `Notably`, `Importantly`) and throat-clearing meta-commentary
-   (`it's important to note that`, `it's worth noting that`, `keep in mind that`).
-3. **Promotional / marketing tone** — `groundbreaking`, `cutting-edge`,
-   `state-of-the-art`, `powerful`, `effortless`, `game-changing`,
-   `best-in-class`, `nestled`, `in the heart of`, `rich heritage`,
-   `breathtaking`, `diverse array of`.
-4. **Rule of three** — triads of adjectives or parallel phrases used to fake
-   comprehensiveness (`clean, maintainable, and scalable`).
-5. **Negative parallelisms** — `not just X but Y`, `not only X but also Y`,
-   `it's not X, it's Y`.
-6. **Tacked-on participial clauses** — sentences ending in `, -ing …` that
-   editorialize (`, highlighting its importance`, `, ensuring scalability`, `,
-   reflecting best practices`).
-7. **Vague attributions** — `industry best practices`, `experts recommend`,
-   `studies show`, `it's widely considered`, `observers note`, `some argue`,
-   with no named source.
-8. **Filler conclusions / summaries** — `In summary`, `In conclusion`,
-   `Overall`, restatement paragraphs, future-looking essay endings (`going
-   forward, this will continue to …`).
-9. **False-balance scaffolding** — `Despite its X, it faces challenges … but
-   continues to thrive`; manufactured "Challenges"/"Limitations"/"Future
-   Outlook" sections with no real content.
-10. **Chatbot artifacts** — `Certainly!`, `Of course!`, `Sure, here's`, `Great
-    question!`, `You're absolutely right!`, `I hope this helps`, `Let me know if
-    you need anything else`, unprompted `Would you like me to …`, `As an AI
-    language model`.
-11. **Knowledge-cutoff / hedging disclaimers** — `as of my last update`, `as of
-    my knowledge cutoff`, `based on the available information`, `while details
-    are limited`.
-12. **Fabrication risk** — invented URLs, file paths, function/API names, flags,
-    config keys, citations, command output, or benchmark numbers; leftover
-    placeholders (`[insert X]`, `TODO: fill in`, `INSERT_URL_HERE`,
-    `2025-XX-XX`). When you can, verify named files/symbols with Read/Grep/Glob
-    and flag anything that doesn't exist as a likely hallucination.
-13. **Formatting bloat** — over-bolding, lists where prose fits, Title Case
-    headings in a sentence-case doc, template headings (`Understanding X`, `A
-    Deep Dive into X`), decorative emoji (✅ 🚀), unwarranted horizontal
-    rules/tables, em-dash overuse, curly/"smart" quotes (`“” ‘’`) where straight
-    quotes belong (they break code blocks and configs).
+Two items need more than the rule file gives you:
+
+- **Fabrication** — when a text names a file, symbol, flag, config key, or URL,
+  verify it with Read/Grep/Glob. Flag anything that does not exist. Report that
+  a reference *looks* invented; do not adjudicate whether the underlying fact is
+  true.
+- **Formatting** — check headings against the surrounding document's existing
+  case convention rather than against a fixed rule.
 
 ## How to decide severity
 
