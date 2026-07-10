@@ -18,8 +18,7 @@ sentence should exist.
 ## Keep what you do write short
 
 - A section earns its place by answering a question a reader will actually have.
-  Delete sections that exist for symmetry, for completeness, or to look
-  thorough.
+  Delete sections that exist for symmetry or to look thorough.
 - Prefer one accurate sentence to three hedged ones. Prefer a code block to a
   paragraph describing the code block.
 - When a document grows past what someone will read, cut it. Do not reorganize
