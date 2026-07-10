@@ -125,8 +125,8 @@ New shape:
 
 | Path | Role |
 | --- | --- |
-| `core/common/agent/` | Bundle. `cli-tools.nix`, `claude.nix`, and `imports = [ ../claude ]`. |
-| `environments/agent-interactive/` | Cluster CLIs, `repos.txt` cloning, credential restore, tmux auto-attach. |
+| `core/common/agent/` | Bundle. `cli-tools.nix`, `claude.nix`, `shell-extras.nix`, and `imports = [ ../claude ]`. |
+| `environments/agent-interactive/` | Cluster CLIs, `repos.txt` cloning, credential restore. |
 | `environments/agent-autonomous/` | Bundle + pairing server. Nothing else yet. |
 | `environments/dev-container/` | Re-exports `agent-interactive`'s `homeConfigurations`. |
 | `environments/agent/` | Re-exports `agent-autonomous`'s `homeConfigurations`. |
@@ -137,9 +137,9 @@ flake passes `agent.homeModules.agent` to `mkHome` without
 `~/.claude/rules/`, or `~/.claude/agents/`. A bundle can carry its own imports;
 a bare module path exported across a flake boundary cannot.
 
-`environments/agent/shell-extras.nix` (tmux auto-attach, which `exec`s a shell
-replacement) moves to `agent-interactive`. Both container images select
-`dev-container`, so behavior is unchanged today.
+`shell-extras.nix` (tmux auto-attach) lives in the bundle, so both agent
+environments get it. It `exec`s a shell replacement, but only when stdout is a
+TTY, so an unattended host that runs `ssh host <command>` is unaffected.
 
 `agent` and `dev-container` keep their names because `homelab`'s
 `images/dev-base/lib/bootstrap.sh` hardcodes `DOTFILES_ENVIRONMENT=dev-container`.

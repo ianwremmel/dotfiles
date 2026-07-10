@@ -3,7 +3,7 @@
 
   # Linux-only: an interactive agent host is a container you SSH into. Layers
   # the shared agent bundle (which carries the claude bundle) with this host's
-  # cluster tooling, repo clones, and tmux auto-attach.
+  # cluster tooling and repo clones.
   inputs = {
     public.url = "github:ianwremmel/dotfiles?dir=core";
     nixpkgs.follows      = "public/nixpkgs";
@@ -25,7 +25,6 @@
             modules = [
               public.homeModules.agent
               ./home.nix
-              ./shell-extras.nix
               public.homeModules.pairing
               { dotfiles.pairing.mode = "server"; }
             ];

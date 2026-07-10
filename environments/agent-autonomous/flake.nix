@@ -2,8 +2,7 @@
   description = "ianwremmel dotfiles — agent-autonomous environment (agent bundle, unattended)";
 
   # An unattended agent host: the shared agent bundle and nothing else. Distinct
-  # from agent-interactive, which adds a cluster toolchain, repo clones, and a
-  # tmux session for a human on the other end of an SSH pipe.
+  # from agent-interactive, which adds a cluster toolchain and repo clones.
   inputs = {
     public.url = "github:ianwremmel/dotfiles?dir=core";
     nixpkgs.follows      = "public/nixpkgs";

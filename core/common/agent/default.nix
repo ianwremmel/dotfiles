@@ -14,5 +14,6 @@
     ../claude
     ./cli-tools.nix
     ./claude.nix
+    ./shell-extras.nix
   ];
 }

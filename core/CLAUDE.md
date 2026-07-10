@@ -62,8 +62,8 @@ are content-free aliases re-exporting `agent-autonomous` and
   config, personal CLI tools, terminal fonts, git identity + signing) and
   `default/darwin.nix` (personal casks/mas/brews).
 - **`agent-interactive`** — an SSH-in agent host. Home half only, Linux only:
-  the `agent` bundle plus cluster CLIs, `repos.txt` clones, credential restore,
-  and tmux auto-attach.
+  the `agent` bundle plus cluster CLIs, `repos.txt` clones, and credential
+  restore.
 - **`agent-autonomous`** — an unattended agent host. The `agent` bundle and
   nothing else. Both halves, since it still yields the universal darwin layer
   on macOS.
@@ -131,10 +131,11 @@ the environment never sees it. Two flavors:
   transitively, through `common/agent`'s import of this bundle.
 
 - **`common/agent`** — the base for agent hosts: `bk`, the Claude
-  managed-settings policy, and the MCP server list exported to
-  `~/.config/agent/`. It `imports` `../claude`, so an environment adding
-  `public.homeModules.agent` also gets the shared `~/.claude` content. Host-
-  specific tooling belongs in the consuming environment.
+  managed-settings policy, the MCP server list exported to `~/.config/agent/`,
+  and the tmux auto-attach that wraps interactive logins. It `imports`
+  `../claude`, so an environment adding `public.homeModules.agent` also gets the
+  shared `~/.claude` content. Host-specific tooling belongs in the consuming
+  environment.
 - **`common/pairing`** — the laptop↔agent SSH wiring, one configurable bundle
   with `dotfiles.pairing.mode` (`off`/`client`/`server`) and
   `dotfiles.pairing.remotes`. `client` (set by `default`) installs the
