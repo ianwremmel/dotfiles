@@ -262,36 +262,38 @@ dotfiles_nix_apply () {
   fi
   log "Building environment '$profile' for $system"
 
-  # Flake-input overrides applied to every build/run below, collected into one
-  # array so each call site expands `"${overrides[@]}"`.
-  #
-  # `public` is overridden for every env (all declare it) so builds use the
-  # local core tree, including its untracked host.nix.
-  #
-  # `agent` is overridden only for envs that layer the `agent` profile (they
-  # declare an `agent` flake input — a github placeholder). Overriding it to the
-  # local checkout — same trick as `public` — makes the agent layer come from
-  # this tree, not a fetch.
+  # An env flake may declare another *environment* as an input — the trivial
+  # `agent` / `dev-container` shells re-export a sibling's configurations. For
+  # every directory under environments/ whose name the selected flake declares
+  # as an input, override that input to the local checkout, exactly as `public`
+  # is overridden. Without this, nix would fetch the sibling from github and
+  # build a stale tree.
   #
   # `shared` is the custom_environments library consumed by private envs that
   # declare it; override it to the local tree only when the selected env does.
   #
-  # Both `agent` and `shared` are gated because passing `--override-input` for
-  # an input the env doesn't declare makes nix warn ("does not match any
-  # input"), and the public default env (neither input) shouldn't emit that
-  # noise. The greps are cheap text tests (no `nix eval`); they match an input
-  # DECLARATION — `<name>.url` / `<name>.inputs` as the first non-whitespace
-  # token on a line, the form these flakes use. Anchoring at line start (modulo
-  # indentation) avoids matching the name inside a comment or mid-line (e.g. a
-  # `# … agent.inputs …` note, or `something.follows = "agent/nixpkgs"`), which
-  # would re-introduce the very warning this gate exists to prevent. `overrides`
+  # Every override is gated on a declaration test because passing
+  # `--override-input` for an input the env doesn't declare makes nix warn
+  # ("does not match any input"). The greps are cheap text tests (no `nix
+  # eval`); they match an input DECLARATION — `<name>.url` / `<name>.inputs` as
+  # the first non-whitespace token on a line, the form these flakes use.
+  # Anchoring at line start (modulo indentation) avoids matching the name inside
+  # a comment or mid-line (e.g. a `# … agent.inputs …` note, or a
+  # `something.follows = "agent/nixpkgs"`), which would re-introduce the very
+  # warning this gate exists to prevent. The trailing `\.` in the pattern also
+  # keeps `agent` from matching a declaration of `agent-autonomous`. `overrides`
   # always carries `public`, so plain `"${overrides[@]}"` expansion is never
   # empty.
   local -a overrides
   overrides=(--override-input public "path:$DOTFILES_ROOT_DIR/core")
-  if grep -Eq '^[[:space:]]*agent\.(url|inputs)' "$flake_dir/flake.nix" 2>/dev/null; then
-    overrides=("${overrides[@]}" --override-input agent "path:$DOTFILES_ROOT_DIR/environments/agent")
-  fi
+  local env_dir env_name
+  for env_dir in "$DOTFILES_ROOT_DIR"/environments/*/; do
+    [ -f "$env_dir/flake.nix" ] || continue
+    env_name="$(basename "$env_dir")"
+    if grep -Eq "^[[:space:]]*${env_name}\.(url|inputs)" "$flake_dir/flake.nix" 2>/dev/null; then
+      overrides=("${overrides[@]}" --override-input "$env_name" "path:$DOTFILES_ROOT_DIR/environments/$env_name")
+    fi
+  done
   local shared_dir="$DOTFILES_ROOT_DIR/custom_environments/shared"
   if [ -d "$shared_dir" ] \
      && grep -Eq '^[[:space:]]*shared\.(url|inputs)' "$flake_dir/flake.nix" 2>/dev/null; then

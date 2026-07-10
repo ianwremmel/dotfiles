@@ -20,6 +20,7 @@
         base = ./home.nix;
         all  = ./all/home/default.nix;
 
+        agent   = ./common/agent;
         claude  = ./common/claude;
         pairing = ./common/pairing;
       };

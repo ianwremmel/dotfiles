@@ -3,20 +3,17 @@ let
   jsonFormat = pkgs.formats.json { };
 
   # System-level Claude Code policy. The consuming host installs this at
-  # /etc/claude-code/managed-settings.json. It pre-approves the codex plugin
-  # marketplace + plugin and wires the remote-agent sound hooks (the play-sound
-  # shim plays the sound on the connecting client).
-  managedSettings = jsonFormat.generate "claude-managed-settings.json" {
-    extraKnownMarketplaces.openai-codex.source = {
-      source = "github";
-      repo = "openai/codex-plugin-cc";
-    };
-    enabledPlugins."codex@openai-codex" = true;
-    hooks = {
-      Stop = [{ hooks = [{ type = "command"; command = "play-sound Morse 0.4"; }]; }];
-      Notification = [{ hooks = [{ type = "command"; command = "play-sound Ping 0.35"; }]; }];
-    };
-  };
+  # /etc/claude-code/managed-settings.json. It pre-approves the shared plugin
+  # set (see `../claude/plugins.nix`) and wires the remote-agent sound hooks (the
+  # play-sound shim plays the sound on the connecting client).
+  managedSettings = jsonFormat.generate "claude-managed-settings.json" (
+    (import ../claude/plugins.nix) // {
+      hooks = {
+        Stop = [{ hooks = [{ type = "command"; command = "play-sound Morse 0.4"; }]; }];
+        Notification = [{ hooks = [{ type = "command"; command = "play-sound Ping 0.35"; }]; }];
+      };
+    }
+  );
 
   # MCP servers the agent kit registers. The host substitutes the $VAR tokens
   # at runtime and merges in any host-specific servers (e.g. homelab's Grafana)
@@ -40,17 +37,10 @@ let
   };
 in
 {
-  # Exported under ~/.config/agent/ as content the host wires in (managed
-  # settings is a system policy file; the MCP list is registered at boot with
-  # token substitution). This environment's flake folds in the common/claude
-  # bundle (public.homeModules.claude), so the agent's own config gets the shared
-  # ~/.claude content and base CLAUDE.md; agent-specific skills/rules or a
-  # different CLAUDE.md go through dotfiles.claude.extraTrees /
-  # dotfiles.claude.claudeMd. A downstream consumer that reuses the exported
-  # homeModules.agent must add public.homeModules.claude to its own modules list
-  # to get that shared content — a bare module path can't carry the bundle across
-  # the flake boundary. Linux only: the sound hooks call the play-sound shim,
-  # which (like the SSH server config) only ships on Linux agent hosts.
+  # Exported under ~/.config/agent/ as content the host wires in: the managed
+  # settings is a system policy file, and the MCP list is registered at boot with
+  # token substitution. Linux only — the sound hooks call the play-sound shim,
+  # which (like the sshd config) only ships on Linux agent hosts.
   home.file = lib.mkIf pkgs.stdenv.isLinux {
     ".config/agent/claude-managed-settings.json".source = managedSettings;
     ".config/agent/mcp-servers.json".source = mcpServers;

@@ -3,7 +3,7 @@ let
   jsonFormat = pkgs.formats.json { };
 
   # Grafana MCP server — homelab-specific (points at this cluster's Grafana), so
-  # it lives here rather than in the shared agent profile. The agent profile's
+  # it lives here rather than in the shared agent bundle. The agent bundle's
   # claude.nix exports the base MCP list to ~/.config/agent/mcp-servers.json;
   # this file sits alongside it for the host to merge at boot.
   grafanaMcp = jsonFormat.generate "mcp-servers-homelab.json" {
@@ -30,7 +30,7 @@ let
   gitSsh   = "GIT_SSH_COMMAND=${pkgs.openssh}/bin/ssh";
 in
 {
-  # Cluster / infra tooling for the homelab dev container. Versions track
+  # Cluster / infra tooling for the interactive agent host. Versions track
   # nixpkgs; if a tool needs to match the cluster exactly (talosctl / kubectl
   # skew), pin it here via an overlay.
   home.packages = with pkgs; [
