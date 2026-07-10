@@ -1,26 +1,5 @@
 { pkgs, lib, ... }:
 let
-  jsonFormat = pkgs.formats.json { };
-
-  # Grafana MCP server — homelab-specific (points at this cluster's Grafana), so
-  # it lives here rather than in the shared agent bundle. The agent bundle's
-  # claude.nix exports the base MCP list to ~/.config/agent/mcp-servers.json;
-  # this file sits alongside it for the host to merge at boot.
-  grafanaMcp = jsonFormat.generate "mcp-servers-homelab.json" {
-    servers = [
-      {
-        name = "grafana";
-        transport = "stdio";
-        command = "mcp-grafana";
-        args = [ "-t" "stdio" ];
-        env = {
-          GRAFANA_URL = "http://kube-prometheus-stack-grafana.observability.svc.cluster.local";
-          GRAFANA_SERVICE_ACCOUNT_TOKEN = "$GRAFANA_SERVICE_ACCOUNT_TOKEN";
-        };
-      }
-    ];
-  };
-
   jq       = "${pkgs.jq}/bin/jq";
   git      = "${pkgs.git}/bin/git";
   gh       = "${pkgs.gh}/bin/gh";
@@ -44,11 +23,8 @@ in
     aws-sam-cli
     flyctl
     bats
-    mcp-grafana
     awscli2
   ];
-
-  home.file.".config/agent/mcp-servers-homelab.json".source = grafanaMcp;
 
   # Force the mounted Claude Bot key for github.com so `git push` attributes to
   # the bot, not whatever the operator forwards over `ssh -A`. Merges with the
@@ -124,7 +100,7 @@ in
 
   # Project repos: clone (or fetch) the slugs in repos.txt into ~/projects.
   home.activation.cloneAgentProjects =
-    lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    lib.hm.dag.entryBetween [ "writeHomelabMcp" ] [ "writeBoundary" ] ''
       if [ -z "$DRY_RUN_CMD" ]; then
       (
         set +e

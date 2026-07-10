@@ -35,6 +35,21 @@ let
       }
     ];
   };
+
+  # Grafana lives inside the cluster, so this server is only reachable from an
+  # agent host and only useful in the homelab repo. Claude Code reads .mcp.json
+  # from a project root and expands ${VAR} at load time, so the token is never
+  # written to disk.
+  homelabMcp = jsonFormat.generate "homelab-mcp.json" {
+    mcpServers.grafana = {
+      command = "mcp-grafana";
+      args = [ "-t" "stdio" ];
+      env = {
+        GRAFANA_URL = "http://kube-prometheus-stack-grafana.observability.svc.cluster.local";
+        GRAFANA_SERVICE_ACCOUNT_TOKEN = "\${GRAFANA_SERVICE_ACCOUNT_TOKEN}";
+      };
+    };
+  };
 in
 {
   # Exported under ~/.config/agent/ as content the host wires in: the managed
@@ -59,4 +74,16 @@ in
           /etc/claude-code/managed-settings.json
       fi
     '';
+
+  # Drop the project's MCP config in when the repo is present. The file is
+  # gitignored in homelab, so overwriting it leaves no working-tree change.
+  # Linux only: on a personal macOS machine ~/projects/homelab is a human's
+  # checkout with its own .mcp.json pointed at the public Grafana endpoint.
+  home.activation.writeHomelabMcp = lib.mkIf pkgs.stdenv.isLinux (
+    lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+      if [ -d "$HOME/projects/homelab" ]; then
+        run install -m 0644 ${homelabMcp} "$HOME/projects/homelab/.mcp.json"
+      fi
+    ''
+  );
 }
