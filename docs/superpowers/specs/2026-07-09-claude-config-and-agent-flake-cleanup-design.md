@@ -2,9 +2,9 @@
 
 Date: 2026-07-09
 
-Six independent cleanups, landed together. Four touch the Claude Code config
-bundle; one changes a git default; one restructures the agent environment
-flakes. A seventh, paired change lands in the `homelab` repo.
+Seven independent cleanups, landed together. Four touch the Claude Code config
+bundle; one changes a git default; two touch the agent environment bundle and
+flakes.
 
 ## Background
 
@@ -161,46 +161,38 @@ the existing comment gives: a mention inside a comment or a `follows` string
 would otherwise trigger a spurious override and a nix warning. Environment
 names may contain `-`, which is safe inside the existing ERE.
 
-## 7. Grafana MCP moves to the homelab repo (paired change)
+## 7. Grafana MCP config writes straight into the homelab checkout
 
-`environments/dev-container/dev-container.nix` generates
-`~/.config/agent/mcp-servers-homelab.json`, which `bootstrap.sh` merges into
-the MCP server list for every session in the container. The Grafana server is
-only useful when working on `homelab`.
+The Grafana MCP server is only useful when working on `homelab`, and it needs
+a service-account token, so it can't live in a server list shared across every
+project. Claude Code reads `.mcp.json` from a project root and expands `${VAR}`
+references in it, and `homelab`'s own `.gitignore` already treats `.mcp.json`
+as per-machine state — on the personal macOS machine it holds a hand-written
+config that runs `docker run grafana/mcp-grafana` against the public Grafana
+URL. `core/common/agent/claude.nix` writes the agent-host version of that same
+gitignored file:
 
-Claude Code reads `.mcp.json` from a project root and expands `${VAR}`
-references in it. So the server config moves into the homelab repo:
-
-```json
-{
-  "mcpServers": {
-    "grafana": {
-      "command": "mcp-grafana",
-      "args": ["-t", "stdio"],
-      "env": {
-        "GRAFANA_URL": "http://kube-prometheus-stack-grafana.observability.svc.cluster.local",
-        "GRAFANA_SERVICE_ACCOUNT_TOKEN": "${GRAFANA_SERVICE_ACCOUNT_TOKEN}"
-      }
-    }
-  }
-}
+```nix
+home.activation.writeHomelabMcp = lib.mkIf pkgs.stdenv.isLinux (
+  lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    if [ -d "$HOME/projects/homelab" ]; then
+      run install -m 0644 ${homelabMcp} "$HOME/projects/homelab/.mcp.json"
+    fi
+  ''
+);
 ```
 
-In dotfiles: delete the `grafanaMcp` derivation and the
-`home.file.".config/agent/mcp-servers-homelab.json"` entry. Keep `mcp-grafana`
-in `agent-interactive`'s `home.packages` — the `.mcp.json` above invokes that
-binary by name.
+The `pkgs.stdenv.isLinux` gate is what keeps this off the personal machine, so
+`agent-autonomous` and `agent-interactive` write their own token-bearing config
+without clobbering the laptop's hand-written one. `mcp-grafana` moves into
+`core/common/agent/cli-tools.nix` (same Linux gate), since the `.mcp.json`
+above invokes that binary by name.
 
-In homelab: add `.mcp.json`; drop the `mcp-servers-homelab.json` line from
-`dev_bootstrap::register_mcp_servers` and the sentence in its comment that
-describes it.
-
-### Ordering
-
-The homelab PR must merge before the dotfiles Grafana deletion reaches a
-container, or Grafana is unavailable in the gap. The gap is a container
-`dotfiles-apply` away from closing, and no automation depends on the Grafana
-server, so the risk is a temporary missing tool, not breakage.
+`agent-interactive`'s `cloneAgentProjects` activation (which clones
+`repos.txt` into `~/projects`) is ordered with
+`lib.hm.dag.entryBetween [ "writeHomelabMcp" ] [ "writeBoundary" ]`, so it runs
+after `writeBoundary` and before `writeHomelabMcp` — `~/projects/homelab`
+exists by the time the write needs it.
 
 ## Testing
 
@@ -226,3 +218,7 @@ No automated tests in this repo. Verification:
   real content.
 - `images/ai-dev` continues to select `dev-container`. Pointing it at
   `agent-autonomous` is a homelab-side change for later.
+- `homelab`'s `images/dev-base/lib/bootstrap.sh` still has a guarded
+  `[ -f ... ] && mcp_files+=(...)` line for the old
+  `mcp-servers-homelab.json`. The guard makes it a no-op now that dotfiles
+  never writes that file; removing the line is a homelab-side cleanup.

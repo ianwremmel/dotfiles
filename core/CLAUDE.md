@@ -54,7 +54,9 @@ bare `"<system>"`, not `"<profile>@<system>"`.
 Darwin is gated by *platform*, not by environment. Because `mkDarwin` always
 folds in `base` + `all`, even an environment with no own darwin module still
 yields a darwin config on macOS — it just equals the universal `all` system
-layer. The three shipped environments:
+layer. The three content-carrying environments (`agent` and `dev-container`
+are content-free aliases re-exporting `agent-autonomous` and
+`agent-interactive`; see the root `CLAUDE.md`):
 
 - **`default`** — personal machine. Both halves: `default/home.nix` (Claude
   config, personal CLI tools, terminal fonts, git identity + signing) and
