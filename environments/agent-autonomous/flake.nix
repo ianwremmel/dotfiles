@@ -1,8 +1,9 @@
 {
   description = "ianwremmel dotfiles — agent-autonomous environment (agent bundle, unattended)";
 
-  # An unattended agent host: the shared agent bundle and nothing else. Distinct
-  # from agent-interactive, which adds a cluster toolchain and repo clones.
+  # An unattended agent host. Identical to agent-interactive except it names no
+  # repos to clone — a private environment supplies its own `reposFile`. Linux
+  # only, so it emits no darwin configuration.
   inputs = {
     public.url = "github:ianwremmel/dotfiles?dir=core";
     nixpkgs.follows      = "public/nixpkgs";
@@ -13,8 +14,7 @@
   outputs = { self, public, ... }:
     let
       host = import (public + "/host.nix");
-      supportedSystems = [ "aarch64-darwin" "x86_64-darwin" "x86_64-linux" "aarch64-linux" ];
-      darwinSystems    = [ "aarch64-darwin" "x86_64-darwin" ];
+      systems = [ "x86_64-linux" "aarch64-linux" ];
     in {
       homeConfigurations = builtins.listToAttrs (map
         (system: {
@@ -29,19 +29,6 @@
             ];
           };
         })
-        supportedSystems);
-
-      # This environment contributes no darwin module; on macOS it gets the
-      # universal base + all system layer only.
-      darwinConfigurations = builtins.listToAttrs (map
-        (system: {
-          name = system;
-          value = public.lib.mkDarwin {
-            inherit system;
-            inherit (host) username;
-            modules = [ ];
-          };
-        })
-        darwinSystems);
+        systems);
     };
 }

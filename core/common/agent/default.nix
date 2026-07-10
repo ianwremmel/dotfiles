@@ -8,12 +8,15 @@
   # seed/merge) without listing that bundle separately. The module system
   # dedupes, so an environment may still list `public.homeModules.claude`.
   #
-  # Anything specific to one agent host — a cluster's CLIs, its MCP servers,
-  # which repos to clone — belongs in the consuming environment, not here.
+  # Every agent host gets the same content — cluster tooling, credential
+  # restore, project cloning, tmux, the managed-settings policy. The one
+  # per-host difference is which repos to clone, set through
+  # `dotfiles.agent.reposFile` (see ./projects.nix).
   imports = [
     ../claude
     ./cli-tools.nix
     ./claude.nix
+    ./projects.nix
     ./shell-extras.nix
   ];
 }

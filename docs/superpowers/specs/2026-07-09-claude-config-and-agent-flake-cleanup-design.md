@@ -125,11 +125,15 @@ New shape:
 
 | Path | Role |
 | --- | --- |
-| `core/common/agent/` | Bundle. `cli-tools.nix`, `claude.nix`, `shell-extras.nix`, and `imports = [ ../claude ]`. |
-| `environments/agent-interactive/` | Cluster CLIs, `repos.txt` cloning, credential restore. |
-| `environments/agent-autonomous/` | Bundle + pairing server. Nothing else yet. |
+| `core/common/agent/` | Bundle. Cluster CLIs, credential restore, project cloning, tmux, `claude.nix`, and `imports = [ ../claude ]`. Declares `dotfiles.agent.reposFile`. |
+| `environments/agent-interactive/` | The bundle, with `reposFile` set to its `repos.txt`. |
+| `environments/agent-autonomous/` | The bundle, no `reposFile` (a private env supplies one). Linux-only, no darwin half. |
 | `environments/dev-container/` | Re-exports `agent-interactive`'s `homeConfigurations`. |
 | `environments/agent/` | Re-exports `agent-autonomous`'s `homeConfigurations`. |
+
+Every agent host gets identical content; the sole difference is the repo list,
+exposed as `dotfiles.agent.reposFile`. That put the cluster CLIs, credential
+restore, and clone machinery in the bundle, not the consuming environment.
 
 `core/common/agent` importing `../claude` fixes a live bug: the dev-container
 flake passes `agent.homeModules.agent` to `mkHome` without

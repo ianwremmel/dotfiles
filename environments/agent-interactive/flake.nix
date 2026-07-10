@@ -1,9 +1,9 @@
 {
-  description = "ianwremmel dotfiles — agent-interactive environment (agent bundle + homelab cluster tooling)";
+  description = "ianwremmel dotfiles — agent-interactive environment (agent bundle + repos.txt)";
 
-  # Linux-only: an interactive agent host is a container you SSH into. Layers
-  # the shared agent bundle (which carries the claude bundle) with this host's
-  # cluster tooling and repo clones.
+  # Linux-only: an interactive agent host is a container you SSH into. The agent
+  # bundle carries everything (cluster tooling, credential restore, cloning,
+  # tmux, the claude bundle); this environment only names the repos to clone.
   inputs = {
     public.url = "github:ianwremmel/dotfiles?dir=core";
     nixpkgs.follows      = "public/nixpkgs";
@@ -24,7 +24,7 @@
             inherit (host) username;
             modules = [
               public.homeModules.agent
-              ./home.nix
+              { dotfiles.agent.reposFile = ./repos.txt; }
               public.homeModules.pairing
               { dotfiles.pairing.mode = "server"; }
             ];

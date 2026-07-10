@@ -52,9 +52,11 @@ Every environment is a flake with two halves. The **home half** (`<env>/home.nix
 bare `"<system>"`, not `"<profile>@<system>"`.
 
 Darwin is gated by *platform*, not by environment. Because `mkDarwin` always
-folds in `base` + `all`, even an environment with no own darwin module still
-yields a darwin config on macOS — it just equals the universal `all` system
-layer. The three content-carrying environments (`agent` and `dev-container`
+folds in `base` + `all`, an environment that emits a darwin half but has no own
+darwin module still yields a darwin config on macOS — it just equals the
+universal `all` system layer. An environment may also restrict its systems: the
+agent hosts are Linux-only, so they emit neither darwin configs nor darwin home
+configs. The three content-carrying environments (`agent` and `dev-container`
 are content-free aliases re-exporting `agent-autonomous` and
 `agent-interactive`; see the root `CLAUDE.md`):
 
@@ -62,11 +64,10 @@ are content-free aliases re-exporting `agent-autonomous` and
   config, personal CLI tools, terminal fonts, git identity + signing) and
   `default/darwin.nix` (personal casks/mas/brews).
 - **`agent-interactive`** — an SSH-in agent host. Home half only, Linux only:
-  the `agent` bundle plus cluster CLIs, `repos.txt` clones, and credential
-  restore.
-- **`agent-autonomous`** — an unattended agent host. The `agent` bundle and
-  nothing else. Both halves, since it still yields the universal darwin layer
-  on macOS.
+  the `agent` bundle, with `dotfiles.agent.reposFile` set to its `repos.txt`.
+- **`agent-autonomous`** — an unattended agent host. The `agent` bundle with no
+  `reposFile` (a private environment supplies one). Identical to
+  `agent-interactive` but for that; Linux only, so no darwin half.
 
 The active environment is selected by which env flake `lib/nix` builds (from
 `DOTFILES_ENVIRONMENT`), not by a value inside `host.nix`. The untracked
@@ -130,12 +131,15 @@ the environment never sees it. Two flavors:
   personal machine; agent hosts get the shared `~/.claude` content
   transitively, through `common/agent`'s import of this bundle.
 
-- **`common/agent`** — the base for agent hosts: `bk`, the Claude
-  managed-settings policy, the MCP server list exported to `~/.config/agent/`,
-  and the tmux auto-attach that wraps interactive logins. It `imports`
-  `../claude`, so an environment adding `public.homeModules.agent` also gets the
-  shared `~/.claude` content. Host-specific tooling belongs in the consuming
-  environment.
+- **`common/agent`** — the base every agent host shares: cluster CLIs, `bk`,
+  credential restore, project cloning, tmux auto-attach, the Claude
+  managed-settings policy, and the MCP server list exported to
+  `~/.config/agent/`. It `imports` `../claude`, so an environment adding
+  `public.homeModules.agent` also gets the shared `~/.claude` content. One
+  configurable option, `dotfiles.agent.reposFile` (a path, default null), names
+  the repos to clone — the only per-host difference between `agent-interactive`
+  and `agent-autonomous`. Linux-gated: a macOS build gets none of the host
+  bootstrap.
 - **`common/pairing`** — the laptop↔agent SSH wiring, one configurable bundle
   with `dotfiles.pairing.mode` (`off`/`client`/`server`) and
   `dotfiles.pairing.remotes`. `client` (set by `default`) installs the
@@ -144,9 +148,10 @@ the environment never sees it. Two flavors:
   the sshd drop-in and the `remote-agent/` shims. The remote list comes from
   `host.remoteAgents`, which `lib/nix` generates from `DOTFILES_REMOTE_AGENTS`.
 
-These are the repo's only `options`/`mkOption` declarations — reserved for the
-configurable-bundle case, where a profile genuinely needs to layer onto shared
-content. Everything else stays unconditional `imports` plus platform `mkIf`.
+`common/{claude,pairing,agent}` are the repo's only `options`/`mkOption`
+declarations — reserved for the configurable-bundle case, where a profile
+genuinely needs to layer onto shared content. Everything else stays
+unconditional `imports` plus platform `mkIf`.
 
 ## Conventions
 
