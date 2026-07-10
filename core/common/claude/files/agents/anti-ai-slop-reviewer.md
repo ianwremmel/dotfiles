@@ -66,8 +66,8 @@ are flagging.
 
 1. **Verdict** — one line: `clean`, `minor (N issues)`, or `slop (N issues)`.
 2. **Findings** — a numbered list. For each: quote the offending span, name the
-   pattern (by number/name above), and give a specific rewrite. Group trivial
-   word-swaps together rather than listing each separately.
+   pattern (by the rule file's number and name), and give a specific rewrite.
+   Group trivial word-swaps together rather than listing each separately.
 3. **Rewrite** — with 4+ findings, provide a full corrected version of the text;
    with fewer, the inline rewrites suffice.
 4. **Note** — if the text is already clean, say so plainly in one sentence and
