@@ -7,7 +7,7 @@
 # are preserved by the merge.
 {
   dotfiles.claude.settings = {
-    permissions.defaultMode = "plan";
+    permissions.defaultMode = "auto";
     hooks = {
       Stop = [
         { hooks = [{ type = "command"; command = "afplay -v 0.40 /System/Library/Sounds/Morse.aiff"; }]; }

@@ -35,7 +35,8 @@ Core library (`flake.nix`):
 - **`homeModules.<bundle>`** (`common/<bundle>/`) — shared-but-optional bundles.
   Unlike `all`, these are *not* folded in automatically; an environment opts in
   by adding `public.homeModules.<bundle>` to its own `modules` list. See the
-  bundle conventions below; `homeModules.claude` is the first one.
+  bundle conventions below; `homeModules.{agent,claude,pairing}` are the
+  shipped bundles.
 - **`lib.mkHome { system, username, modules ? [] }`** — builds a home-manager
   config from `homeModules.base` + `homeModules.all` + the env's `modules`.
 - **`lib.mkDarwin { system, username, modules ? [] }`** — builds a nix-darwin
@@ -51,16 +52,22 @@ Every environment is a flake with two halves. The **home half** (`<env>/home.nix
 bare `"<system>"`, not `"<profile>@<system>"`.
 
 Darwin is gated by *platform*, not by environment. Because `mkDarwin` always
-folds in `base` + `all`, even an environment with no own darwin module still
-yields a darwin config on macOS — it just equals the universal `all` system
-layer. The two shipped environments:
+folds in `base` + `all`, an environment that emits a darwin half but has no own
+darwin module still yields a darwin config on macOS — it just equals the
+universal `all` system layer. An environment may also restrict its systems: the
+agent hosts are Linux-only, so they emit neither darwin configs nor darwin home
+configs. The three content-carrying environments (`agent` and `dev-container`
+are content-free aliases re-exporting `agent-autonomous` and
+`agent-interactive`; see the root `CLAUDE.md`):
 
 - **`default`** — personal machine. Both halves: `default/home.nix` (Claude
   config, personal CLI tools, terminal fonts, git identity + signing) and
   `default/darwin.nix` (personal casks/mas/brews).
-- **`agent`** — headless. Home half only (`agent/home.nix`, intentionally lean,
-  nothing beyond the shared base). It has no `darwin.nix`, so on macOS it gets
-  the `base` + `all` system layer only — universal casks, no personal ones.
+- **`agent-interactive`** — an SSH-in agent host. Home half only, Linux only:
+  the `agent` bundle, with `dotfiles.agent.reposFile` set to its `repos.txt`.
+- **`agent-autonomous`** — an unattended agent host. The `agent` bundle with no
+  `reposFile` (a private environment supplies one). Identical to
+  `agent-interactive` but for that; Linux only, so no darwin half.
 
 The active environment is selected by which env flake `lib/nix` builds (from
 `DOTFILES_ENVIRONMENT`), not by a value inside `host.nix`. The untracked
@@ -97,6 +104,10 @@ username.
   Nix-declared keys over the live file (ours win; Claude's `permissions.allow`
   and other runtime keys survive). A declared key changed interactively (e.g.
   `defaultMode`) reverts to the Nix value on the next apply.
+- **A Claude Code plugin every machine should have** → `enabledPlugins` in
+  `core/common/claude/plugins.nix`, with its marketplace in the
+  `extraKnownMarketplaces` attrset beside it. The file is spliced into both the
+  user `settings.json` seed and the agent managed-settings policy.
 
 ## Common bundles (`common/`)
 
@@ -115,21 +126,32 @@ the environment never sees it. Two flavors:
   `dotfiles.claude.{settings,extraTrees,claudeMd}`. `settings` is typed
   `lib.types.anything` so several modules can each contribute keys and they
   deep-merge; the bundle's base content can be overridden because an option
-  `default` (e.g. `claudeMd`) is the lowest merge priority. `default/claude.nix`
-  is now just the `dotfiles.claude.settings` keys for the personal machine;
-  `agent` opts in for the shared `~/.claude` content and adds no overrides.
+  `default` (e.g. `claudeMd`) is the lowest merge priority.
+  `default/claude.nix` is just the `dotfiles.claude.settings` keys for the
+  personal machine; agent hosts get the shared `~/.claude` content
+  transitively, through `common/agent`'s import of this bundle.
 
+- **`common/agent`** — the base every agent host shares: cluster CLIs, `bk`,
+  credential restore, project cloning, tmux auto-attach, the Claude
+  managed-settings policy, and the MCP server list exported to
+  `~/.config/agent/`. It `imports` `../claude`, so an environment adding
+  `public.homeModules.agent` also gets the shared `~/.claude` content. One
+  configurable option, `dotfiles.agent.reposFile` (a path, default null), names
+  the repos to clone — the only per-host difference between `agent-interactive`
+  and `agent-autonomous`. Linux-gated: a macOS build gets none of the host
+  bootstrap.
 - **`common/pairing`** — the laptop↔agent SSH wiring, one configurable bundle
   with `dotfiles.pairing.mode` (`off`/`client`/`server`) and
   `dotfiles.pairing.remotes`. `client` (set by `default`) installs the
   `remote-agent` launchd socket handler and a `RemoteForward` per paired
-  remote; `server` (set by `agent`, re-set by `dev-container`) installs the
-  sshd drop-in and the `remote-agent/` shims. The remote list comes from
+  remote; `server` (set by `agent-interactive` and `agent-autonomous`) installs
+  the sshd drop-in and the `remote-agent/` shims. The remote list comes from
   `host.remoteAgents`, which `lib/nix` generates from `DOTFILES_REMOTE_AGENTS`.
 
-These are the repo's only `options`/`mkOption` declarations — reserved for the
-configurable-bundle case, where a profile genuinely needs to layer onto shared
-content. Everything else stays unconditional `imports` plus platform `mkIf`.
+`common/{claude,pairing,agent}` are the repo's only `options`/`mkOption`
+declarations — reserved for the configurable-bundle case, where a profile
+genuinely needs to layer onto shared content. Everything else stays
+unconditional `imports` plus platform `mkIf`.
 
 ## Conventions
 

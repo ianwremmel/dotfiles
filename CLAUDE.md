@@ -11,7 +11,14 @@ configurations.
 - `lib/nix` - Nix install + home-manager / nix-darwin activation logic (sourced by `apply`)
 - `framework/` - Small sourced helpers: `logging`, `config` (`~/.dotfilesrc`), `environment` (resolve/persist the active environment), `compat` (ensure Homebrew on macOS)
 - `core/` - The shared library flake plus the always-included `all/` layer; consumed by every environment. See `core/CLAUDE.md`.
-- `environments/` - One flake per selectable environment (`default`, `agent`), each with a home half and an optional darwin half, consuming `core/`.
+- `environments/` - One flake per selectable environment, each consuming
+  `core/`. `default` (personal machine) and `agent-interactive` (SSH-in agent
+  host) carry content; `agent-autonomous` is the unattended host, empty beyond
+  the shared bundle. `agent` and `dev-container` are thin aliases that
+  re-export `agent-autonomous` and `agent-interactive` respectively — homelab's
+  `bootstrap.sh` hardcodes `DOTFILES_ENVIRONMENT=dev-container`.
+- `.claude/rules/` - Rules that apply only to work in this repo. Claude Code
+  auto-discovers them; no `@` import needed.
 - `custom_environments/` - Git-ignored; a separate private repo (its own flake consuming the public one) supplying per-machine config
 
 Subtree guides: `framework/CLAUDE.md` (bootstrap internals), `core/CLAUDE.md`
