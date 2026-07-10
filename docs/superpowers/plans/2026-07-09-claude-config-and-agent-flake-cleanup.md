@@ -42,7 +42,8 @@
 - `lib/nix:273-294` — generalize the input override.
 - `environments/agent/flake.nix` — re-export `agent-autonomous`.
 - `environments/dev-container/flake.nix` — re-export `agent-interactive`.
-- `~/projects/homelab/.mcp.json` (create), `~/projects/homelab/images/dev-base/lib/bootstrap.sh` (modify).
+- `core/common/agent/claude.nix` — installs `~/projects/homelab/.mcp.json` on Linux.
+- `core/common/agent/cli-tools.nix` — gains `mcp-grafana` (Linux only).
 
 **Deleted:**
 - `core/common/claude/files/rules/feature-branch-push.md`
@@ -1073,182 +1074,199 @@ git commit -m "docs: describe the agent bundle, the new environments, and plugin
 
 ---
 
-### Task 8: Move the Grafana MCP server into the homelab repo
+### Task 8: Scope the Grafana MCP server to the homelab project
 
-Two repos. The homelab change must merge first, or the dev container loses
-Grafana between the dotfiles merge and the homelab merge.
+`environments/agent-interactive/home.nix` generates
+`~/.config/agent/mcp-servers-homelab.json`, which `bootstrap.sh` merges into the
+globally-registered MCP server list for every session in the container. The
+Grafana server is only useful when working on the `homelab` repo.
+
+`~/projects/homelab/.mcp.json` is **gitignored** in the homelab repo
+(`.gitignore:9`) and already holds a laptop-specific config on the personal
+machine (`docker run grafana/mcp-grafana` against the public Grafana URL). So
+the file is per-machine by design, and dotfiles can own the container's copy
+without touching the homelab repo or dirtying its working tree.
+
+The write lives in the `core/common/agent` bundle, not in `agent-interactive`,
+and is gated on `pkgs.stdenv.isLinux`. Without that gate, selecting
+`agent-autonomous` on the personal machine would overwrite the laptop's own
+`.mcp.json`.
 
 **Files:**
-- Create: `~/projects/homelab/.mcp.json`
-- Modify: `~/projects/homelab/images/dev-base/lib/bootstrap.sh` (the `dev_bootstrap::register_mcp_servers` function, around line 225-236)
-- Modify: `~/projects/dotfiles/environments/agent-interactive/home.nix`
+- Modify: `core/common/agent/claude.nix` (add the derivation + activation)
+- Modify: `core/common/agent/cli-tools.nix` (add `mcp-grafana`, Linux only)
+- Modify: `environments/agent-interactive/home.nix` (remove `grafanaMcp`, remove `mcp-grafana` from `home.packages`, order the clone before the write)
 
 **Interfaces:**
-- Consumes: `environments/agent-interactive/home.nix` from Task 6.
-- Produces: nothing.
+- Consumes: `environments/agent-interactive/home.nix` and `core/common/agent/*` from Task 6.
+- Produces: an activation entry named `writeHomelabMcp` in the bundle. `agent-interactive`'s `cloneAgentProjects` orders itself before it.
 
-- [ ] **Step 1: Add `.mcp.json` to the homelab repo, on a branch**
+- [ ] **Step 1: Add the project-scoped server to the bundle**
 
-```bash
-cd ~/projects/homelab
-git switch -c feat/grafana-mcp-project-scoped
-```
-
-Create `~/projects/homelab/.mcp.json`:
-
-```json
-{
-  "mcpServers": {
-    "grafana": {
-      "command": "mcp-grafana",
-      "args": ["-t", "stdio"],
-      "env": {
-        "GRAFANA_URL": "http://kube-prometheus-stack-grafana.observability.svc.cluster.local",
-        "GRAFANA_SERVICE_ACCOUNT_TOKEN": "${GRAFANA_SERVICE_ACCOUNT_TOKEN}"
-      }
-    }
-  }
-}
-```
-
-Claude Code reads `.mcp.json` from a project root and expands `${VAR}` from the
-environment, so the token is never written to disk.
-
-- [ ] **Step 2: Stop merging the nix-generated homelab MCP file**
-
-In `~/projects/homelab/images/dev-base/lib/bootstrap.sh`, the function reads:
-
-```bash
-dev_bootstrap::register_mcp_servers() {
-    # ---- Register MCP servers from declarative config ----
-    # The server list is assembled from the agent profile (Linear, Buildkite) plus
-    # any host-specific servers the dev-container flake adds (Grafana). Both are
-    # nix-managed files under ~/.config/agent/; merge their `servers` arrays.
-    MCP_MERGED=""
-    mcp_files=()
-    [ -f "$AGENT_CONF_DIR/mcp-servers.json" ] && mcp_files+=("$AGENT_CONF_DIR/mcp-servers.json")
-    [ -f "$AGENT_CONF_DIR/mcp-servers-homelab.json" ] && mcp_files+=("$AGENT_CONF_DIR/mcp-servers-homelab.json")
-```
-
-Replace those lines with:
-
-```bash
-dev_bootstrap::register_mcp_servers() {
-    # ---- Register MCP servers from declarative config ----
-    # The globally-registered servers (Linear, Buildkite) come from the agent
-    # profile as a nix-managed file under ~/.config/agent/. A server useful only
-    # inside one project belongs in that project's own `.mcp.json` instead.
-    MCP_MERGED=""
-    mcp_files=()
-    [ -f "$AGENT_CONF_DIR/mcp-servers.json" ] && mcp_files+=("$AGENT_CONF_DIR/mcp-servers.json")
-```
-
-Leave the `AI_DEV_MCP_EXTRA` lines and everything below unchanged. This file is
-not under the Bash 3.2 constraint — it runs in the container — so its `+=` array
-append stays.
-
-- [ ] **Step 3: Verify the homelab JSON parses**
-
-```bash
-cd ~/projects/homelab
-jq . .mcp.json
-bash -n images/dev-base/lib/bootstrap.sh && echo "bootstrap.sh OK"
-grep -c 'mcp-servers-homelab' images/dev-base/lib/bootstrap.sh; echo "exit=$?"
-```
-
-Expected: the JSON pretty-prints, `bootstrap.sh OK`, and the final grep prints
-`0` with `exit=1`.
-
-- [ ] **Step 4: Commit and open the homelab PR**
-
-```bash
-cd ~/projects/homelab
-git add .mcp.json images/dev-base/lib/bootstrap.sh
-git commit -m "feat: scope the grafana MCP server to this project
-
-The grafana server was registered for every session in the dev container via a
-nix-generated ~/.config/agent/mcp-servers-homelab.json. It is only useful when
-working on this repo, so it moves to a project-root .mcp.json, where Claude Code
-expands \${GRAFANA_SERVICE_ACCOUNT_TOKEN} from the environment.
-
-Pairs with a dotfiles change that drops the generated file."
-git push -u origin HEAD
-gh pr create --base main --head feat/grafana-mcp-project-scoped \
-  --title "feat: scope the grafana MCP server to this project" \
-  --body "The grafana MCP server was registered globally in every dev-container session. It only matters when working on homelab, so it moves to a project-root \`.mcp.json\`.
-
-Pairs with ianwremmel/dotfiles, which drops the nix-generated \`~/.config/agent/mcp-servers-homelab.json\`. **Merge this first** — otherwise the container loses grafana between the two merges.
-
-\`mcp-grafana\` stays on PATH: it is still installed by the dotfiles \`agent-interactive\` environment."
-```
-
-Check the push output says `feat/grafana-mcp-project-scoped -> feat/grafana-mcp-project-scoped`. Do not merge without asking.
-
-- [ ] **Step 5: Drop the generated file from dotfiles**
-
-In `environments/agent-interactive/home.nix`, delete the `grafanaMcp` binding
-from the `let` block:
+In `core/common/agent/claude.nix`, add to the `let` block, after `mcpServers`:
 
 ```nix
-  # Grafana MCP server — homelab-specific (points at this cluster's Grafana), so
-  # it lives here rather than in the shared agent profile. The agent profile's
-  # claude.nix exports the base MCP list to ~/.config/agent/mcp-servers.json;
-  # this file sits alongside it for the host to merge at boot.
-  grafanaMcp = jsonFormat.generate "mcp-servers-homelab.json" {
-    servers = [
-      {
-        name = "grafana";
-        transport = "stdio";
-        command = "mcp-grafana";
-        args = [ "-t" "stdio" ];
-        env = {
-          GRAFANA_URL = "http://kube-prometheus-stack-grafana.observability.svc.cluster.local";
-          GRAFANA_SERVICE_ACCOUNT_TOKEN = "$GRAFANA_SERVICE_ACCOUNT_TOKEN";
-        };
-      }
-    ];
+  # Grafana lives inside the cluster, so this server is only reachable from an
+  # agent host and only useful in the homelab repo. Claude Code reads .mcp.json
+  # from a project root and expands ${VAR} at load time, so the token is never
+  # written to disk.
+  homelabMcp = jsonFormat.generate "homelab-mcp.json" {
+    mcpServers.grafana = {
+      command = "mcp-grafana";
+      args = [ "-t" "stdio" ];
+      env = {
+        GRAFANA_URL = "http://kube-prometheus-stack-grafana.observability.svc.cluster.local";
+        GRAFANA_SERVICE_ACCOUNT_TOKEN = "\${GRAFANA_SERVICE_ACCOUNT_TOKEN}";
+      };
+    };
   };
 ```
 
-and delete this line from the module body:
+Note the `\${...}` escape: in a nix string, `\${` produces a literal `${`.
+
+Then add this activation entry to the module body:
 
 ```nix
-  home.file.".config/agent/mcp-servers-homelab.json".source = grafanaMcp;
+  # Drop the project's MCP config in when the repo is present. The file is
+  # gitignored in homelab, so overwriting it leaves no working-tree change.
+  # Linux only: on a personal macOS machine ~/projects/homelab is a human's
+  # checkout with its own .mcp.json pointed at the public Grafana endpoint.
+  home.activation.writeHomelabMcp = lib.mkIf pkgs.stdenv.isLinux (
+    lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+      if [ -d "$HOME/projects/homelab" ]; then
+        run install -m 0644 ${homelabMcp} "$HOME/projects/homelab/.mcp.json"
+      fi
+    ''
+  );
 ```
 
-`jsonFormat` is then unused — delete `jsonFormat = pkgs.formats.json { };` from
-the `let` block too, and drop `pkgs` from the module arguments if nothing else
-uses it. **Check first**: `home.packages = with pkgs; [...]` uses `pkgs`, so keep it.
+- [ ] **Step 2: Move the binary into the bundle**
 
-Keep `mcp-grafana` in `home.packages`. The project `.mcp.json` invokes that
-binary by name and needs it on `PATH`.
+The `.mcp.json` invokes `mcp-grafana` by name, so it must be on `PATH` wherever
+the file is written. Replace `core/common/agent/cli-tools.nix` with:
 
-- [ ] **Step 6: Verify**
+```nix
+{ pkgs, lib, ... }: {
+  # Agent-environment CLI tools, on top of the shared core/all set. `gh`,
+  # `awscli2`, `chamber`, and `terraform` already come from core/all, so they
+  # are not repeated here.
+  home.packages = with pkgs; [
+    buildkite-cli # the `bk` CLI
+  ] ++ lib.optionals pkgs.stdenv.isLinux [
+    mcp-grafana # invoked by the homelab .mcp.json the bundle installs
+  ];
+}
+```
+
+- [ ] **Step 3: Remove the globally-registered server**
+
+In `environments/agent-interactive/home.nix`:
+
+1. Delete the whole `grafanaMcp` binding from the `let` block, including its
+   four-line comment above it.
+2. Delete the line `home.file.".config/agent/mcp-servers-homelab.json".source = grafanaMcp;`.
+3. Delete `mcp-grafana` from `home.packages` — the bundle supplies it now.
+4. `jsonFormat = pkgs.formats.json { };` in the `let` block is now unused. Delete
+   it. Keep `pkgs` in the module arguments: `home.packages = with pkgs; [...]`
+   still uses it.
+
+- [ ] **Step 4: Order the clone before the write**
+
+`cloneAgentProjects` creates `~/projects/homelab`; `writeHomelabMcp` needs it to
+exist. Both currently sit at `entryAfter [ "writeBoundary" ]`, whose relative
+order is unspecified. In `environments/agent-interactive/home.nix`, change:
+
+```nix
+  home.activation.cloneAgentProjects =
+    lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+```
+
+to:
+
+```nix
+  home.activation.cloneAgentProjects =
+    lib.hm.dag.entryBetween [ "writeHomelabMcp" ] [ "writeBoundary" ] ''
+```
+
+`entryBetween before after` — so this runs after `writeBoundary` and before
+`writeHomelabMcp`. The dependency is safe: `agent-interactive` always includes
+the bundle that defines `writeHomelabMcp`. Do **not** invert this by having the
+bundle depend on `cloneAgentProjects`; that entry does not exist in
+`agent-autonomous`, and home-manager errors on a DAG reference to a missing
+entry.
+
+- [ ] **Step 5: Verify**
 
 ```bash
 cd ~/projects/dotfiles
 root="$PWD"
-grep -c 'grafana' environments/agent-interactive/home.nix
+
+# The globally-registered file is gone; mcp-grafana moved to the bundle.
+grep -c 'mcp-servers-homelab' environments/agent-interactive/home.nix; echo "exit=$?"
+grep -c 'mcp-grafana' environments/agent-interactive/home.nix; echo "exit=$?"
+grep -n 'mcp-grafana' core/common/agent/cli-tools.nix
+
+# Both agent environments still evaluate.
 nix eval --raw "path:$root/environments/agent-interactive#homeConfigurations.\"x86_64-linux\".activationPackage.drvPath" \
   --override-input public "path:$root/core" >/dev/null && echo "agent-interactive OK"
+nix eval --raw "path:$root/environments/agent-autonomous#homeConfigurations.\"x86_64-linux\".activationPackage.drvPath" \
+  --override-input public "path:$root/core" >/dev/null && echo "agent-autonomous OK"
+
+# The darwin half of agent-autonomous must NOT carry the activation entry.
+nix eval "path:$root/environments/agent-autonomous#homeConfigurations.\"aarch64-darwin\".config.home.activation.writeHomelabMcp" \
+  --override-input public "path:$root/core" 2>&1 | head -1
 ```
 
-Expected: the grep prints `1` (the surviving `mcp-grafana` package), then
-`agent-interactive OK`.
+Expected: the first two greps print `0` with `exit=1`; the third finds
+`mcp-grafana` in the bundle; both environments print `OK`; the last command
+errors with `attribute 'writeHomelabMcp' missing` (the Linux gate holds).
+
+- [ ] **Step 6: Confirm the generated JSON is what Claude Code expects**
+
+```bash
+cd ~/projects/dotfiles
+nix eval --impure --raw --expr '
+  let pkgs = import <nixpkgs> {}; in
+  builtins.readFile ((pkgs.formats.json {}).generate "homelab-mcp.json" {
+    mcpServers.grafana = {
+      command = "mcp-grafana";
+      args = [ "-t" "stdio" ];
+      env = {
+        GRAFANA_URL = "http://kube-prometheus-stack-grafana.observability.svc.cluster.local";
+        GRAFANA_SERVICE_ACCOUNT_TOKEN = "\${GRAFANA_SERVICE_ACCOUNT_TOKEN}";
+      };
+    };
+  })' 2>/dev/null | jq .
+```
+
+Expected: valid JSON with a top-level `mcpServers` object, and the token value
+as the six-character-prefixed literal string `${GRAFANA_SERVICE_ACCOUNT_TOKEN}`
+— **not** an empty string and **not** an already-expanded value. If this command
+fails because `<nixpkgs>` is not on `NIX_PATH`, skip it and instead confirm by
+reading the store path from a successful `agent-interactive` build during Task 9.
 
 - [ ] **Step 7: Commit**
 
 ```bash
 cd ~/projects/dotfiles
-git add environments/agent-interactive/home.nix
-git commit -m "refactor(agent): drop the globally-registered grafana MCP server
+git add core/common/agent/claude.nix core/common/agent/cli-tools.nix environments/agent-interactive/home.nix
+git commit -m "refactor(agent): scope the grafana MCP server to the homelab project
 
-The server is only useful when working on homelab, which now carries it in its
-own project-root .mcp.json. mcp-grafana stays in home.packages so that file can
-invoke it."
+The server was registered globally for every session in the container, via a
+generated ~/.config/agent/mcp-servers-homelab.json that bootstrap.sh merged into
+the MCP list. Grafana is only reachable from inside the cluster and only useful
+in one repo.
+
+The bundle now installs a project-scoped .mcp.json into ~/projects/homelab when
+that checkout exists. The file is gitignored there, so it leaves no working-tree
+change. Linux only: a personal macOS checkout has its own .mcp.json pointed at
+the public Grafana endpoint."
 ```
 
----
+Note: homelab's `images/dev-base/lib/bootstrap.sh` still has a line that merges
+`$AGENT_CONF_DIR/mcp-servers-homelab.json` when present. It is guarded by `[ -f
+... ]`, so it becomes a no-op rather than an error. Removing it is a homelab-side
+cleanup, out of scope here.
 
 ### Task 9: Apply and verify end to end
 
