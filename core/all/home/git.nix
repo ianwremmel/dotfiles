@@ -70,7 +70,14 @@
         tool = "opendiff";
       };
 
-      push.default = "upstream";
+      # `current` resolves the push destination from the branch's own name and
+      # ignores its upstream, so a branch cut from `master` cannot push to
+      # `master`. `autoSetupRemote` creates the same-named remote branch on
+      # first push, so a bare `git push` still works on a new branch.
+      push = {
+        default         = "current";
+        autoSetupRemote = true;
+      };
 
       rebase = {
         autoStash  = true;
