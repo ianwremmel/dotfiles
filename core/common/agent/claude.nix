@@ -70,7 +70,7 @@ in
     ".config/agent/mcp-servers.json".source = mcpServers;
   };
 
-  dotfiles.claude.settings = lib.mkIf pkgs.stdenv.isLinux dispatchCredentialMode;
+  dotfiles.claude.settings = dispatchCredentialMode;
 
   # On a privileged agent host (the dev container activates as root), install the
   # managed-settings as the system policy, so the host doesn't have to place it.
