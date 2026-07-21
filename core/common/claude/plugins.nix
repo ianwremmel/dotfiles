@@ -32,4 +32,18 @@
     "codex@openai-codex" = true;
     "dispatch@agentic" = true;
   };
+
+  # dispatch reads these as `user_config` — `operator_login` is required, and an
+  # unattended agent has no one to answer a prompt for it. `credential_mode` is
+  # `shared` here (a personal machine drives Claude as the human) and overridden
+  # to `dedicated` for agent hosts in `../agent/claude.nix`, where the agent has
+  # its own GitHub account.
+  pluginConfigs."dispatch@agentic".options = {
+    operator_login = "ianwremmel";
+    operator_mode = "solo";
+    credential_mode = "shared";
+    copilot_available = true;
+    tracker = "linear";
+    worktree_base = "$HOME/projects/worktrees";
+  };
 }
