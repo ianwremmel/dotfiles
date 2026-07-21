@@ -2,17 +2,25 @@
 let
   jsonFormat = pkgs.formats.json { };
 
+  # An agent host drives GitHub and Linear as its own bot account, not as the
+  # operator, which is what dispatch's `dedicated` credential mode describes:
+  # posts go unwrapped and review requests can target the operator. Applied to
+  # both settings files below, since either may be the one dispatch reads.
+  dispatchCredentialMode = {
+    pluginConfigs."dispatch@agentic".options.credential_mode = "dedicated";
+  };
+
   # System-level Claude Code policy. The consuming host installs this at
   # /etc/claude-code/managed-settings.json. It pre-approves the shared plugin
   # set (see `../claude/plugins.nix`) and wires the remote-agent sound hooks (the
   # play-sound shim plays the sound on the connecting client).
   managedSettings = jsonFormat.generate "claude-managed-settings.json" (
-    (import ../claude/plugins.nix) // {
+    lib.recursiveUpdate (import ../claude/plugins.nix) (dispatchCredentialMode // {
       hooks = {
         Stop = [{ hooks = [{ type = "command"; command = "play-sound Morse 0.4"; }]; }];
         Notification = [{ hooks = [{ type = "command"; command = "play-sound Ping 0.35"; }]; }];
       };
-    }
+    })
   );
 
   # MCP servers the agent kit registers globally. The host substitutes the $VAR
@@ -61,6 +69,8 @@ in
     ".config/agent/claude-managed-settings.json".source = managedSettings;
     ".config/agent/mcp-servers.json".source = mcpServers;
   };
+
+  dotfiles.claude.settings = dispatchCredentialMode;
 
   # On a privileged agent host (the dev container activates as root), install the
   # managed-settings as the system policy, so the host doesn't have to place it.
