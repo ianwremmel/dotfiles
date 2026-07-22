@@ -47,6 +47,20 @@ DOTFILES_DEBUG=1 ./apply  # Verbose logging
 - New configuration belongs in `core/` (shared) or `environments/<env>/`
   (per-environment), not in new shell plugins — the plugin framework was retired.
 
+## Keep the public repo public
+
+This repository is public. `custom_environments/` is a git-ignored, separate
+private repo that consumes this one. While working in `custom_environments/`
+you will discover things — bugs, missing hooks, ergonomic gaps — that call for
+a change here in the main repo. Make that change, but **never carry the private
+context across the boundary**: nothing that may be proprietary or private to
+`custom_environments/` (hostnames, machine names, employer/client names,
+internal URLs, service names, credentials, private paths, or the specifics of
+why the change was needed) may appear in a main-repo commit message, PR title
+or body, code comment, or the code itself. Describe the change on its own
+public terms — the generic capability it adds or the generic problem it fixes —
+as if it had been found without ever seeing the private config.
+
 ## Testing
 
 No automated tests. Manual testing via `./apply` (and `/bin/bash -n` parse-checks
