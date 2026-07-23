@@ -1,7 +1,8 @@
 { pkgs, lib, ... }: {
   # Agent-environment CLI tools, on top of the shared core/all set. `gh`,
-  # `awscli2`, `chamber`, and `terraform` already come from core/all, so they
-  # are not repeated here.
+  # `awscli2`, and `chamber` already come from core/all, so they are not
+  # repeated here. `terraform` does not: core/all installs it on macOS only,
+  # and Linux agent hosts use the `opentofu` below.
   home.packages = with pkgs; [
     buildkite-cli # the `bk` CLI
   ] ++ lib.optionals pkgs.stdenv.isLinux [
