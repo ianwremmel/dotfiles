@@ -1,4 +1,4 @@
-{ pkgs, ... }: {
+{ lib, pkgs, ... }: {
   # CLI tools that every machine gets. Migrated from
   # `environments/all/Brewfile` plus the non-bash aggregator entries in
   # `plugins/homebrew/Brewfile.erb` (coreutils, gh). The corresponding
@@ -36,7 +36,6 @@
     httpie
 
     # Infrastructure
-    terraform  # unfree; requires nixpkgs.config.allowUnfree = true
     tflint
 
     # Language runtimes
@@ -47,5 +46,14 @@
     bash             # general-purpose Bash 5 on PATH (~/.nix-profile/bin/bash)
     bash-completion  # nixpkgs `bash-completion` is the v2 series (brew name: bash-completion@2)
     zsh-completions
+  ] ++ lib.optionals pkgs.stdenv.isDarwin [
+    # macOS only. terraform is unfree (BSL), so cache.nixos.org carries no
+    # build and every host compiles it locally. Linux container hosts can't
+    # give nix the kernel namespaces its build sandbox needs, so that compile
+    # runs unsandboxed, and the Go toolchain writes telemetry into nix's HOME
+    # stand-in `/homeless-shelter` — whose existence makes nix abort every
+    # later unsandboxed build, breaking the whole activation. Linux hosts use
+    # `opentofu` instead. Requires nixpkgs.config.allowUnfree = true.
+    terraform
   ];
 }
