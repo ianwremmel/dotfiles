@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+
+# claude-remote <project> — open a Claude session with Remote Control enabled in
+# one of the repos the agent bundle clones into ~/projects, so the session can be
+# driven from claude.ai or the mobile app. The session is named `remote-<project>`
+# there.
+#
+# Runs in the foreground; to leave one running past the current shell, start it
+# under tmux (which is what the /claude-remote skill does).
+
+set -euo pipefail
+
+projects_dir="$HOME/projects"
+
+list_projects() {
+  find "$projects_dir" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' 2>/dev/null |
+    sort | tr '\n' ' '
+}
+
+usage() {
+  echo "usage: claude-remote <project>" >&2
+  echo "projects: $(list_projects)" >&2
+}
+
+project="${1-}"
+if [ -z "$project" ]; then
+  usage
+  exit 2
+fi
+
+dir="$projects_dir/$project"
+if [ ! -d "$dir" ]; then
+  echo "claude-remote: no such project: $dir" >&2
+  usage
+  exit 1
+fi
+
+cd "$dir"
+exec claude --dangerously-skip-permissions --remote-control "remote-${project}"

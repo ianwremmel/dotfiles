@@ -3,7 +3,8 @@
 
   # Linux-only: an interactive agent host is a container you SSH into. The agent
   # bundle carries everything (cluster tooling, credential restore, cloning,
-  # tmux, the claude bundle); this environment only names the repos to clone.
+  # tmux, the claude bundle); this environment names the repos to clone and adds
+  # the operator-facing bits (./claude-remote.nix).
   inputs = {
     public.url = "github:ianwremmel/dotfiles?dir=core";
     nixpkgs.follows      = "public/nixpkgs";
@@ -27,6 +28,7 @@
               { dotfiles.agent.reposFile = ./repos.txt; }
               public.homeModules.pairing
               { dotfiles.pairing.mode = "server"; }
+              ./claude-remote.nix
             ];
           };
         })
