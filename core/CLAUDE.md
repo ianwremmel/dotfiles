@@ -64,10 +64,12 @@ are content-free aliases re-exporting `agent-autonomous` and
   config, personal CLI tools, terminal fonts, git identity + signing) and
   `default/darwin.nix` (personal casks/mas/brews).
 - **`agent-interactive`** — an SSH-in agent host. Home half only, Linux only:
-  the `agent` bundle, with `dotfiles.agent.reposFile` set to its `repos.txt`.
+  the `agent` bundle, with `dotfiles.agent.reposFile` set to its `repos.txt`,
+  plus `claude-remote.nix` (the `claude-remote` shim and its `/claude-remote`
+  skill — operator-facing, so they stay out of the shared bundle).
 - **`agent-autonomous`** — an unattended agent host. The `agent` bundle with no
-  `reposFile` (a private environment supplies one). Identical to
-  `agent-interactive` but for that; Linux only, so no darwin half.
+  `reposFile` (a private environment supplies one) and none of the
+  operator-facing extras; Linux only, so no darwin half.
 
 The active environment is selected by which env flake `lib/nix` builds (from
 `DOTFILES_ENVIRONMENT`), not by a value inside `host.nix`. The untracked
