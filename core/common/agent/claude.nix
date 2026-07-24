@@ -42,6 +42,17 @@ let
         args = [ "stdio" ];
         env.BUILDKITE_API_TOKEN = "$BUILDKITE_API_TOKEN";
       }
+      {
+        # Self-hosted Outline's MCP endpoint. Streamable HTTP is the only
+        # transport it supports; a static Outline API key (Bearer) is the
+        # headless-friendly auth. The key is projected per pod as OUTLINE_API_KEY
+        # (homelab ESO); a pod without it just 401s here and other servers are
+        # unaffected.
+        name = "outline";
+        transport = "http";
+        url = "https://wiki.000793.xyz/mcp";
+        headers.Authorization = "Bearer $OUTLINE_API_KEY";
+      }
     ];
   };
 
