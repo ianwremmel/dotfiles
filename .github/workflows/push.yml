@@ -1,13 +1,19 @@
-on: push
+on:
+  push:
+  pull_request:
 name: Validate
 jobs:
   fixup:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@master
+        with:
+          fetch-depth: 0
       - uses: ianwremmel/prevent-fixup-commits@v1.0.1
   nopush:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@master
+        with:
+          fetch-depth: 0
       - uses: ianwremmel/prevent-nopush-commits@v1.0.2
