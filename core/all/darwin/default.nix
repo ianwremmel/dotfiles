@@ -47,6 +47,10 @@
       "aws-vault-binary"  # renamed from aws-vault in homebrew-cask
       "1password"
       "1password-cli"
+      # DisplayLink Manager — proprietary macOS driver for DisplayLink docks
+      # and adapters. On macOS this is a cask app, not the nixpkgs
+      # `displaylink` package (that's the Linux kernel-driver blob).
+      "displaylink"
       "docker-desktop"  # renamed from docker in homebrew-cask
       "elgato-control-center"
       "elgato-stream-deck"
