@@ -12,7 +12,7 @@
       # Archives
       "*.dmg" "*.gz" "*.iso" "*.rar" "*.tar" "*.zip"
       # Logs and databases
-      "*.log" "*.sql" "*.sqlite"
+      "*.log" "*.sqlite"
       # OS generated files
       ".DS_Store" ".DS_Store?" ".Spotlight-V100" ".Trashes" "._*" "Icon?" "Thumbs.db" "Desktop.ini"
       # Eclipse/Aptana
