@@ -32,7 +32,11 @@
   homebrew = {
     enable = true;
     onActivation = {
-      autoUpdate = false;       # don't auto-update brew on every apply
+      # Refresh Homebrew's package cache on every apply. Without this, a stale
+      # cached cask/formula definition can crash `brew bundle` (e.g. a
+      # `depends_on` shape an older Homebrew can't parse), failing the whole
+      # bundle. Costs a slower apply in exchange for a self-healing cache.
+      autoUpdate = true;
       # WARNING: `uninstall` removes ANY brew package (cask, formula, mas)
       # not declared in homebrew.{casks,brews,masApps} on this machine —
       # including things you may have installed manually. If you want a
@@ -47,6 +51,10 @@
       "aws-vault-binary"  # renamed from aws-vault in homebrew-cask
       "1password"
       "1password-cli"
+      # DisplayLink Manager — proprietary macOS driver for DisplayLink docks
+      # and adapters. On macOS this is a cask app, not the nixpkgs
+      # `displaylink` package (that's the Linux kernel-driver blob).
+      "displaylink"
       "docker-desktop"  # renamed from docker in homebrew-cask
       "elgato-control-center"
       "elgato-stream-deck"
