@@ -5,8 +5,9 @@
   # tmux from inside an already-running session. Interactive hosts only — an
   # unattended host has no operator to pick the remote session up.
 
-  # claude-remote edits ~/.claude.json to pre-accept the workspace trust prompt;
-  # nothing else in the bundle puts jq on PATH.
+  # claude-remote edits Claude's own config (`$CLAUDE_CONFIG_DIR/.claude.json`,
+  # `~/.claude.json` unset) to pre-accept the workspace trust prompt; nothing
+  # else in the bundle puts jq on PATH.
   home.packages = [ pkgs.jq ];
 
   home.file.".local/bin/claude-remote" = {
