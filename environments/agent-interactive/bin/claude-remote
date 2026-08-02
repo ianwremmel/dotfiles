@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 
-# claude-remote <project> — open a Claude session with Remote Control enabled in
-# one of the repos the agent bundle clones into ~/projects, so the session can be
-# driven from claude.ai or the mobile app. The session is named `remote-<project>`
-# there.
+# claude-remote <project> <session> — open a Claude session with Remote Control
+# enabled in one of the repos the agent bundle clones into ~/projects, so the
+# session can be driven from claude.ai or the mobile app. It appears there as
+# `remote-<project>-<session>`; the session identifier is what tells concurrent
+# sessions on the same repo apart.
 #
 # Runs in the foreground; to leave one running past the current shell, start it
-# under tmux (which is what the /claude-remote skill does).
+# under tmux (which is what the /dotfiles-claude-remote skill does).
 
 set -euo pipefail
 
@@ -18,15 +19,25 @@ list_projects() {
 }
 
 usage() {
-  echo "usage: claude-remote <project>" >&2
+  echo "usage: claude-remote <project> <session>" >&2
   echo "projects: $(list_projects)" >&2
 }
 
 project="${1-}"
-if [ -z "$project" ]; then
+session="${2-}"
+if [ -z "$project" ] || [ -z "$session" ]; then
   usage
   exit 2
 fi
+
+# tmux reads `.` and `:` in a session name as window/pane addressing, so keep the
+# identifier to characters that survive both tmux and the Remote Control name.
+case "$session" in
+*[!A-Za-z0-9_-]*)
+  echo "claude-remote: session may only contain letters, digits, '_' and '-': $session" >&2
+  exit 2
+  ;;
+esac
 
 dir="$projects_dir/$project"
 if [ ! -d "$dir" ]; then
@@ -36,4 +47,29 @@ if [ ! -d "$dir" ]; then
 fi
 
 cd "$dir"
-exec claude --dangerously-skip-permissions --remote-control "remote-${project}"
+dir="$PWD"
+
+# A directory Claude has never run in gets a workspace trust prompt at startup.
+# Detached under tmux there is nobody to answer it, so accept it up front — but
+# only when the directory has no entry at all, so a previously declined project
+# stays declined.
+accept_trust_prompt() {
+  local config="${CLAUDE_CONFIG_DIR:-$HOME}/.claude.json"
+  local tmp
+
+  command -v jq >/dev/null 2>&1 || return 0
+  [ -f "$config" ] || return 0
+  jq -e --arg dir "$dir" '.projects // {} | has($dir)' "$config" >/dev/null && return 0
+
+  tmp="$(mktemp "$config.XXXXXX")"
+  if jq --arg dir "$dir" '.projects[$dir].hasTrustDialogAccepted = true' "$config" >"$tmp"; then
+    chmod --reference="$config" "$tmp" 2>/dev/null || true
+    mv "$tmp" "$config"
+  else
+    rm -f "$tmp"
+  fi
+}
+
+accept_trust_prompt
+
+exec claude --dangerously-skip-permissions --remote-control "remote-${project}-${session}"
