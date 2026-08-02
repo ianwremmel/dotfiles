@@ -33,7 +33,11 @@ session="$2"
 
 # Both halves are interpolated into `remote-<project>-<session>`, and tmux reads
 # `.` and `:` in a session name as window/pane addressing. Restricting each to a
-# name tmux can express also keeps `<project>` from walking out of ~/projects.
+# name tmux can express also keeps `<project>` free of path separators.
+# globasciiranges keeps the ranges below byte-based whatever the caller's locale
+# collates (it predates the Bash 5 this runs under; the guard is for the odd
+# older shell).
+shopt -s globasciiranges 2>/dev/null || true
 for arg in "$project" "$session"; do
   case "$arg" in
   '' | *[!A-Za-z0-9_-]*)
@@ -51,51 +55,4 @@ if [ ! -d "$dir" ]; then
 fi
 
 cd "$dir"
-# Claude keys its per-project state on the physical cwd it inherits, so resolve
-# symlinks the same way rather than keeping the logical path.
-dir="$(pwd -P)"
-
-# A directory Claude has never run in gets a workspace trust prompt at startup,
-# separate from --dangerously-skip-permissions and with no flag to bypass it.
-# Detached under tmux there is nobody to answer it, so accept it up front — but
-# only when the directory has no entry at all, so a previously declined project
-# stays declined. Every failure path here warns and launches anyway; a session
-# that stops at the prompt is recoverable by attaching to it.
-accept_trust_prompt() {
-  local config="${CLAUDE_CONFIG_DIR:-$HOME}/.claude.json"
-  local tmp
-
-  if ! command -v jq >/dev/null 2>&1; then
-    echo "claude-remote: jq not on PATH; leaving the workspace trust prompt to the session" >&2
-    return 0
-  fi
-
-  # Follow a symlinked config so the rename below replaces the file jq read
-  # rather than the link pointing at it.
-  config="$(readlink -f "$config")"
-
-  if [ ! -e "$config" ]; then
-    (
-      umask 077
-      printf '{}\n' >"$config"
-    )
-  elif ! jq -e . "$config" >/dev/null 2>&1; then
-    echo "claude-remote: $config is not valid JSON; leaving the workspace trust prompt to the session" >&2
-    return 0
-  elif jq -e --arg dir "$dir" '(.projects // {}) | has($dir)' "$config" >/dev/null 2>&1; then
-    return 0
-  fi
-
-  tmp="$(mktemp "$config.XXXXXX")"
-  if jq --arg dir "$dir" '.projects[$dir].hasTrustDialogAccepted = true' "$config" >"$tmp" &&
-    mv "$tmp" "$config"; then
-    return 0
-  fi
-
-  rm -f "$tmp"
-  echo "claude-remote: could not record workspace trust in $config; the session may stop at the trust prompt" >&2
-}
-
-accept_trust_prompt
-
 exec claude --dangerously-skip-permissions --remote-control "remote-${project}-${session}"
