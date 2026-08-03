@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 
-# claude-remote <project> — open a Claude session with Remote Control enabled in
-# one of the repos the agent bundle clones into ~/projects, so the session can be
-# driven from claude.ai or the mobile app. The session is named `remote-<project>`
-# there.
+# claude-remote <project> <session> — open a Claude session with Remote Control
+# enabled in one of the repos the agent bundle clones into ~/projects, so the
+# session can be driven from claude.ai or the mobile app. It appears there as
+# `remote-<project>-<session>`; the session identifier is what tells concurrent
+# sessions on the same repo apart.
 #
 # Runs in the foreground; to leave one running past the current shell, start it
-# under tmux (which is what the /claude-remote skill does).
+# under tmux (which is what the /dotfiles-claude-remote skill does).
 
 set -euo pipefail
 
@@ -18,15 +19,33 @@ list_projects() {
 }
 
 usage() {
-  echo "usage: claude-remote <project>" >&2
+  echo "usage: claude-remote <project> <session>" >&2
   echo "projects: $(list_projects)" >&2
 }
 
-project="${1-}"
-if [ -z "$project" ]; then
+if [ "$#" -ne 2 ]; then
   usage
   exit 2
 fi
+
+project="$1"
+session="$2"
+
+# Both halves are interpolated into `remote-<project>-<session>`, and tmux reads
+# `.` and `:` in a session name as window/pane addressing. Restricting each to a
+# name tmux can express also keeps `<project>` free of path separators.
+# globasciiranges keeps the ranges below byte-based whatever the caller's locale
+# collates (it predates the Bash 5 this runs under; the guard is for the odd
+# older shell).
+shopt -s globasciiranges 2>/dev/null || true
+for arg in "$project" "$session"; do
+  case "$arg" in
+  '' | *[!A-Za-z0-9_-]*)
+    echo "claude-remote: project and session may only contain letters, digits, '_' and '-': $arg" >&2
+    exit 2
+    ;;
+  esac
+done
 
 dir="$projects_dir/$project"
 if [ ! -d "$dir" ]; then
@@ -36,4 +55,4 @@ if [ ! -d "$dir" ]; then
 fi
 
 cd "$dir"
-exec claude --dangerously-skip-permissions --remote-control "remote-${project}"
+exec claude --dangerously-skip-permissions --remote-control "remote-${project}-${session}"
