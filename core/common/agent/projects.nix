@@ -41,13 +41,16 @@ in
     # from env vars at activation time (never baked into the store), and soft-fails
     # so a missing secret or down endpoint warns rather than aborting the apply. ---
 
-    # Credentials: restore the Claude OAuth blob (newer-wins by expiry), configure
-    # the bk CLI org, and set the git identity from the GitHub token.
+    # Credentials: configure the bk CLI org and set the git identity from the
+    # GitHub token.
     #
-    # Codex is deliberately absent: its refresh token rotates on every use and the
-    # server rejects a reused one, so a credential copied between hosts logs every
-    # other holder out. Each host logs in as itself instead — in the coven pods via
-    # dev-codex-login, which runs a device-code login and pages with the code.
+    # Neither agent CLI is restored here, because neither credential can be
+    # shared. Both rotate their refresh token on use and reject a reused one, so
+    # a copy handed to a second host logs the first out. Each host logs in as
+    # itself: Codex through dev-codex-login, which runs a device-code login and
+    # pages with the code, and Claude through `claude auth login` — except on the
+    # coven ai-dev workers, which use a static CLAUDE_CODE_OAUTH_TOKEN that has
+    # nothing to refresh and so can be held by every pod at once.
     home.activation.restoreAgentCredentials =
       lib.hm.dag.entryAfter [ "writeBoundary" ] ''
         # Wrap (don't `exit`) the dry-run guard: activation entries are sourced
@@ -55,20 +58,6 @@ in
         if [ -z "$DRY_RUN_CMD" ]; then
         (
           set +e
-          if [ -n "''${CLAUDE_CREDENTIALS:-}" ] && echo "$CLAUDE_CREDENTIALS" | ${jq} empty 2>/dev/null; then
-            mkdir -p "$HOME/.claude"
-            if [ ! -f "$HOME/.claude/.credentials.json" ]; then
-              echo "$CLAUDE_CREDENTIALS" > "$HOME/.claude/.credentials.json"
-              chmod 600 "$HOME/.claude/.credentials.json"
-            else
-              disk_expires=$(${jq} -r '.claudeAiOauth.expiresAt // 0' "$HOME/.claude/.credentials.json" 2>/dev/null || echo 0)
-              env_expires=$(echo "$CLAUDE_CREDENTIALS" | ${jq} -r '.claudeAiOauth.expiresAt // 0')
-              if [ "$env_expires" -gt "$disk_expires" ] 2>/dev/null; then
-                echo "$CLAUDE_CREDENTIALS" > "$HOME/.claude/.credentials.json"
-                chmod 600 "$HOME/.claude/.credentials.json"
-              fi
-            fi
-          fi
           if [ -n "''${BUILDKITE_API_TOKEN:-}" ] && command -v bk >/dev/null 2>&1 \
               && ! grep -q 'selected_org' "$HOME/.config/bk.yaml" 2>/dev/null; then
             mkdir -p "$HOME/.config"
