@@ -41,8 +41,13 @@ in
     # from env vars at activation time (never baked into the store), and soft-fails
     # so a missing secret or down endpoint warns rather than aborting the apply. ---
 
-    # Credentials: restore Claude/Codex tokens (newer-wins by expiry), configure
+    # Credentials: restore the Claude OAuth blob (newer-wins by expiry), configure
     # the bk CLI org, and set the git identity from the GitHub token.
+    #
+    # Codex is deliberately absent: its refresh token rotates on every use and the
+    # server rejects a reused one, so a credential copied between hosts logs every
+    # other holder out. Each host logs in as itself instead — in the coven pods via
+    # dev-codex-login, which runs a device-code login and pages with the code.
     home.activation.restoreAgentCredentials =
       lib.hm.dag.entryAfter [ "writeBoundary" ] ''
         # Wrap (don't `exit`) the dry-run guard: activation entries are sourced
@@ -61,20 +66,6 @@ in
               if [ "$env_expires" -gt "$disk_expires" ] 2>/dev/null; then
                 echo "$CLAUDE_CREDENTIALS" > "$HOME/.claude/.credentials.json"
                 chmod 600 "$HOME/.claude/.credentials.json"
-              fi
-            fi
-          fi
-          if [ -n "''${CODEX_CREDENTIALS:-}" ] && echo "$CODEX_CREDENTIALS" | ${jq} empty 2>/dev/null; then
-            mkdir -p "$HOME/.codex"
-            if [ ! -f "$HOME/.codex/auth.json" ]; then
-              echo "$CODEX_CREDENTIALS" > "$HOME/.codex/auth.json"
-              chmod 600 "$HOME/.codex/auth.json"
-            else
-              disk_expires=$(${jq} -r '.expires_at // 0' "$HOME/.codex/auth.json" 2>/dev/null || echo 0)
-              env_expires=$(echo "$CODEX_CREDENTIALS" | ${jq} -r '.expires_at // 0')
-              if [ "$env_expires" -gt "$disk_expires" ] 2>/dev/null; then
-                echo "$CODEX_CREDENTIALS" > "$HOME/.codex/auth.json"
-                chmod 600 "$HOME/.codex/auth.json"
               fi
             fi
           fi
