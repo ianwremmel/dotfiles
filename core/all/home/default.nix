@@ -11,6 +11,7 @@
     ./home-files.nix
     ./shells.nix
     ./ssh.nix
+    ./terminal-fonts.nix
     ./vim.nix
   ];
 }

@@ -63,13 +63,14 @@
       "gitup-app"  # renamed from gitup in homebrew-cask
       "gpg-suite"
       "grandperspective"
+      "iterm2"
       "ngrok"
       "obsidian"
       "visual-studio-code"
       "vlc"
       "xquartz"
-      # Nerd Font for starship's git-branch glyph. After install, set this as
-      # iTerm's font in Settings → Profiles → Text → Font.
+      # Nerd Font for starship's git-branch glyph. `all/home/terminal-fonts.nix`
+      # patches it onto the iTerm and Terminal.app profiles.
       "font-meslo-lg-nerd-font"
     ];
 
