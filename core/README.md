@@ -81,7 +81,7 @@ systems). Output keys are the bare system, not `"<profile>@<system>"`. The two
 shipped environments:
 
 - **`default`** — personal machines. Home half adds Claude Code config, personal
-  CLI tools (cloud, kubernetes, IaC), terminal fonts, and git identity +
+  CLI tools (cloud, kubernetes, IaC), and git identity +
   signing; darwin half (`default/darwin.nix`) adds personal casks/mas/brews.
 - **`agent`** — headless/agent boxes. Home half only, lean (no extras beyond the
   shared base). No `darwin.nix`.
@@ -226,7 +226,7 @@ Operational notes that still apply steady-state:
 
 - **Terminal fonts:** quit iTerm2 and Terminal.app **before** `./apply` — both
   rewrite prefs on quit and would revert the in-place font patch (idempotent).
-  Change the font in `environments/default/terminal-fonts.nix`.
+  Change the font in `core/all/home/terminal-fonts.nix`.
 - **fnm / Node:** the first apply installs the current LTS once
   (`~/.fnm-default-node.hm-migrated` marker). To move to a newer LTS later:
   `rm ~/.fnm-default-node.hm-migrated && ./apply`, or `fnm install <v>; fnm

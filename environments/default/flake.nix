@@ -15,7 +15,7 @@
       darwinSystems    = [ "aarch64-darwin" "x86_64-darwin" ];
     in {
       # Personal-machine home configs (Claude config, personal CLI tools,
-      # terminal fonts, git identity + signing) layered over the shared base.
+      # git identity + signing) layered over the shared base.
       homeConfigurations = builtins.listToAttrs (map
         (system: {
           name = system;

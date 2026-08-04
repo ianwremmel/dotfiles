@@ -61,7 +61,7 @@ are content-free aliases re-exporting `agent-autonomous` and
 `agent-interactive`; see the root `CLAUDE.md`):
 
 - **`default`** — personal machine. Both halves: `default/home.nix` (Claude
-  config, personal CLI tools, terminal fonts, git identity + signing) and
+  config, personal CLI tools, git identity + signing) and
   `default/darwin.nix` (personal casks/mas/brews).
 - **`agent-interactive`** — an SSH-in agent host. Home half only, Linux only:
   the `agent` bundle, with `dotfiles.agent.reposFile` set to its `repos.txt`,
