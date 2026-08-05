@@ -15,6 +15,22 @@ let
 in
 {
   options.dotfiles.claude.dispatch = {
+    enable = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = ''
+        Whether to render dispatch's userConfig at all. True by default because
+        ./plugins.nix enables dispatch@agentic for every profile. A profile that
+        turns the plugin off sets this false as well, which also drops the
+        `operatorLogin` requirement — an unused login should not be mandatory.
+
+        This is a separate flag rather than a read of
+        `dotfiles.claude.settings.enabledPlugins` because this module *defines*
+        `dotfiles.claude.settings`, and reading the option it contributes to
+        risks a module-system cycle.
+      '';
+    };
+
     operatorLogin = lib.mkOption {
       type = lib.types.nullOr lib.types.str;
       default = null;
@@ -80,13 +96,15 @@ in
     };
   };
 
-  config = {
+  config = lib.mkIf cfg.enable {
     assertions = [{
       assertion = cfg.operatorLogin != null;
       message = ''
         dotfiles.claude.dispatch.operatorLogin is unset, but the Claude bundle
         enables dispatch@agentic, whose `operator_login` is required and has no
-        default. Set it on this profile.
+        default. Set it on this profile, or set
+        dotfiles.claude.dispatch.enable = false if this profile does not use
+        dispatch.
       '';
     }];
 
