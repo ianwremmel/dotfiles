@@ -1,4 +1,4 @@
-{ config, pkgs, lib, ... }:
+{ config, pkgs, lib, host ? { }, ... }:
 let
   jsonFormat = pkgs.formats.json { };
 
@@ -90,8 +90,20 @@ in
   # An agent host drives the forge and tracker as its own bot account, which is
   # what `dedicated` describes: posts go unwrapped and review requests can target
   # the operator. `operatorLogin` is the human directing the agent, not the bot.
+  #
+  # The literal is a fallback, not the source of truth: host.nix wins when the
+  # host sets DOTFILES_OPERATOR_LOGIN. It has to exist because an agent host is
+  # unattended — there is no TTY for the apply-time prompt, so the value would
+  # otherwise be null and the dispatch assertion would fail the build on every
+  # existing agent host.
+  #
+  # Tested against null explicitly rather than with `or`: lib/nix always writes
+  # the attribute, using `null` when unset, so `host.operatorLogin or "…"` never
+  # fires — `or` only covers a *missing* attribute, not a null one.
   dotfiles.claude.dispatch = {
-    operatorLogin = "ianwremmel";
+    operatorLogin =
+      if (host.operatorLogin or null) != null then host.operatorLogin
+      else "ianwremmel";
     credentialMode = "dedicated";
   };
 

@@ -35,10 +35,21 @@
 
       # Build a home-manager configuration from the shared layers plus any
       # environment-supplied modules.
+      #
+      # `host` is passed as a module arg alongside `username` so a shared module
+      # can read host-specific values lib/nix generates (currently
+      # `operatorLogin`). Read here rather than added to this function's
+      # signature so no environment flake — including the private ones, which
+      # this repo cannot change — has to be updated to forward it. `or { }`
+      # keeps the library importable when host.nix is absent, e.g. a fresh
+      # clone inspected before the first ./apply.
       lib.mkHome = { system, username, modules ? [] }:
         home-manager.lib.homeManagerConfiguration {
           pkgs = nixpkgs.legacyPackages.${system};
-          extraSpecialArgs = { inherit username; };
+          extraSpecialArgs = {
+            inherit username;
+            host = if builtins.pathExists ./host.nix then import ./host.nix else { };
+          };
           modules = [ self.homeModules.base self.homeModules.all ] ++ modules;
         };
 

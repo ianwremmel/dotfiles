@@ -24,8 +24,8 @@
     };
   };
 
-  # dispatch on the personal machine: public github.com, so every other typed
-  # default in core/common/claude/dispatch.nix (solo, shared, Copilot available,
-  # Linear) already matches and only the login needs stating.
-  dotfiles.claude.dispatch.operatorLogin = "ianwremmel";
+  # dispatch needs nothing here: the personal machine is public github.com, so
+  # every typed default in core/common/claude/dispatch.nix already matches
+  # (solo, shared, Copilot available, Linear), and operatorLogin comes from the
+  # generated host.nix via DOTFILES_OPERATOR_LOGIN.
 }

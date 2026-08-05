@@ -49,6 +49,54 @@ config_read () {
   echo -n "$val"
 }
 
+#
+# Outputs the forge login of this machine's operator — dispatch's
+# `operator_login`, baked into core/host.nix and consumed by
+# core/common/claude/dispatch.nix.
+#
+# Deliberately not derived from `whoami`: the unix username, the github.com
+# login, and the git.musta.ch login are three different strings on the same
+# machine, so a guess would be plausibly wrong and then get re-asserted over
+# ~/.claude/settings.json on every apply. Empty output is a fine outcome —
+# lib/nix writes `operatorLogin = null` and the Nix assertion fails naming this
+# variable, which is louder than a wrong value.
+#
+config_get_operator_login () {
+  local login
+  login="${DOTFILES_OPERATOR_LOGIN:-}"
+  [ "$login" != '' ] || login="$(config_read DOTFILES_OPERATOR_LOGIN)"
+
+  if [ "$login" != '' ]; then
+    debug 'operator login has already been set'
+    echo "$login"
+    return 0
+  fi
+
+  # Nothing persisted and no tty to prompt on (an unattended agent host): leave
+  # it unset rather than guessing. Such a host sets the value in its own
+  # ~/.dotfilesrc, or its environment pins one in Nix.
+  if [ ! -t 0 ]; then
+    debug 'no operator login set and stdin is not a TTY; leaving it unset'
+    return 0
+  fi
+
+  echo 'Which forge login should agents treat as this machine'"'"'s operator?' >&2
+  echo 'This is your github.com or git.musta.ch login (not your unix username),' >&2
+  echo 'used to target you with PR review requests. Blank to skip.' >&2
+  printf 'Operator login: ' >&2
+  read -r login
+
+  # config_write rejects an empty value, so skip rather than call it.
+  if [ "$login" = '' ]; then
+    debug 'operator login prompt skipped'
+    return 0
+  fi
+
+  debug 'storing operator login'
+  config_write DOTFILES_OPERATOR_LOGIN "$login"
+  echo "$login"
+}
+
 config_write () {
   _config_ensure_file
 

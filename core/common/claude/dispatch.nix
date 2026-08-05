@@ -1,4 +1,4 @@
-{ config, lib, ... }:
+{ config, lib, host ? { }, ... }:
 # Typed `userConfig` for the dispatch@agentic plugin, rendered into
 # `dotfiles.claude.settings` as the `pluginConfigs` block the plugin reads.
 #
@@ -33,13 +33,22 @@ in
 
     operatorLogin = lib.mkOption {
       type = lib.types.nullOr lib.types.str;
-      default = null;
+      default = host.operatorLogin or null;
+      defaultText = lib.literalExpression "host.operatorLogin (from DOTFILES_OPERATOR_LOGIN)";
       example = "ianwremmel";
       description = ''
         Forge login of the operator directing this agent. The plugin marks this
-        required and ships no default, so it must be set on every profile — and
+        required and ships no default, so it must resolve on every profile — and
         it is forge-specific: a github.com login is wrong on a GitHub Enterprise
         host.
+
+        Defaults to `operatorLogin` in the generated core/host.nix, which lib/nix
+        writes from `DOTFILES_OPERATOR_LOGIN` in ~/.dotfilesrc, so a machine
+        states its own login once instead of every profile hardcoding one. Never
+        falls back to `username`: the unix account, the github.com login, and the
+        git.musta.ch login are three different strings on the same machine, so a
+        guess would be plausibly wrong rather than obviously wrong. A profile can
+        still override this explicitly.
       '';
     };
 
