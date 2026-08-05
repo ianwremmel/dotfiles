@@ -12,12 +12,26 @@ cd "$(dirname "$0")"
 # fan-out summary rather than silently merging.
 git pull --ff-only
 
-if [ -d custom_environments ]; then
-  for d in custom_environments/*/; do
-    if [ -d "$d.git" ]; then
-      ( cd "$d" && git pull --ff-only ) || echo "warning: git pull --ff-only failed in $d" >&2
-    fi
-  done
+# custom_environments is itself one private repo (its .git is at the top of that
+# directory, not inside each env), so pull it directly. The per-env loop below
+# only ever matched a nested checkout, which meant the private config was never
+# refreshed and an apply could build new public core against stale private
+# modules — the settings merge cannot delete, so a key the new core stopped
+# declaring kept its old value silently. Fail hard instead of warning: applying
+# a half-updated config is worse than not applying.
+#
+# `-e`, not `-d`: .git is a directory in a normal clone but a *file* in a git
+# worktree or submodule, and testing only for a directory is how the original
+# check came to silently match nothing.
+if [ -e custom_environments/.git ]; then
+  ( cd custom_environments && git pull --ff-only )
 fi
+
+# A private env may itself nest a further checkout; pull those too.
+for d in custom_environments/*/; do
+  if [ -e "$d.git" ]; then
+    ( cd "$d" && git pull --ff-only )
+  fi
+done
 
 exec env DOTFILES_REMOTE_TRIGGER=1 ./apply

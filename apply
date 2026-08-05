@@ -31,6 +31,14 @@ source ./lib/nix
 environment_get_current
 config_load
 
+# Resolve (and, on a TTY, prompt for + persist) the operator's forge login, which
+# lib/nix bakes into core/host.nix. Exported explicitly rather than relying on
+# config_load above: that already ran, so a value the prompt just persisted would
+# not otherwise reach this process. The helper writes its prompt to stderr, so the
+# substitution captures only the login (empty when skipped).
+DOTFILES_OPERATOR_LOGIN="$(config_get_operator_login)"
+export DOTFILES_OPERATOR_LOGIN
+
 if [ "$(uname -s)" = Darwin ]; then
   # nix-darwin's homebrew module runs `brew bundle` on activate but does NOT
   # install brew itself — ensure it is present first.

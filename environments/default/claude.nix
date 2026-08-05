@@ -23,4 +23,9 @@
       excludedCommands = [ "git" ];
     };
   };
+
+  # dispatch needs nothing here: the personal machine is public github.com, so
+  # every typed default in core/common/claude/dispatch.nix already matches
+  # (solo, shared, Copilot available, Linear), and operatorLogin comes from the
+  # generated host.nix via DOTFILES_OPERATOR_LOGIN.
 }

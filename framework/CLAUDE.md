@@ -22,8 +22,11 @@ with `/bin/bash -n <file>`.
 4. `environment_get_current` (echoes the active environment; persists the
    selection only when the prompt runs — see the helper below) → `config_load`
    (exports every `~/.dotfilesrc` key as an env var).
-5. macOS only: source `compat`; `compat_ensure_homebrew`.
-6. `dotfiles_nix_apply` — the handoff to Nix.
+5. `config_get_operator_login` → exported as `DOTFILES_OPERATOR_LOGIN`. Exported
+   explicitly because `config_load` has already run, so a value the prompt just
+   persisted would not otherwise reach this process.
+6. macOS only: source `compat`; `compat_ensure_homebrew`.
+7. `dotfiles_nix_apply` — the handoff to Nix.
 
 `apply` itself never elevates; the `sudo` calls live downstream
 (`compat_ensure_homebrew`'s `installer`, the Nix installer, and `lib/nix`'s
@@ -34,7 +37,8 @@ with `/bin/bash -n <file>`.
 - **`logging`** — `log` (stdout), `error` (stderr), `debug` (stderr, only when
   `DOTFILES_DEBUG` is non-empty).
 - **`config`** — read/write `~/.dotfilesrc` (`config_read`, `config_write`,
-  `config_load`); path overridable via `DOTFILES_CONFIG_FILE`. `config_load`
+  `config_load`, `config_get_operator_login`); path overridable via
+  `DOTFILES_CONFIG_FILE`. `config_load`
   exports every non-comment `KEY=value` line.
 - **`environment`** — `environment_get_current` returns the persisted
   `DOTFILES_ENVIRONMENT` if set. Otherwise it lists candidate environments by
@@ -57,9 +61,14 @@ with `/bin/bash -n <file>`.
 2. Install Nix if absent — Determinate installer on macOS (daemon; SIP
    requires it), official single-user installer on Linux — then source its
    profile script onto PATH.
-3. Write **`core/host.nix`** (untracked): `{ username; }`. Every env
-   flake imports it for the username; the env is selected by which flake gets
-   built (step 5), not by a value inside host.nix.
+3. Write **`core/host.nix`** (untracked):
+   `{ username; operatorLogin; remoteAgents; }`. Every env flake imports it for
+   the username, and `lib.mkHome` passes the whole set to modules as a `host`
+   module arg; the env is selected by which flake gets built (step 5), not by a
+   value inside host.nix. `operatorLogin` is the forge login
+   (`DOTFILES_OPERATOR_LOGIN`, `null` when unset) that
+   `core/common/claude/dispatch.nix` defaults to — never derived from `username`,
+   which is the unix account and matches neither forge login.
 4. `nix eval … builtins.currentSystem` → `$system`.
 5. Pick the env's flake by the **directory rule**: if
    `custom_environments/<env>/flake.nix` exists, build that private flake;
@@ -83,6 +92,9 @@ with `/bin/bash -n <file>`.
 logging), `DOTFILES_NIX_SKIP=1` (skip Nix entirely), `DOTFILES_DARWIN_FORCE=1`
 (force a nix-darwin switch even when the built system matches the running one),
 `DOTFILES_ROOT_DIR` (set by `apply`).
+`DOTFILES_OPERATOR_LOGIN` (the operator's forge login — github.com or
+git.musta.ch, not the unix username; baked into `host.nix`, prompted for and
+persisted on a TTY, left unset without one),
 `DOTFILES_REMOTE_AGENTS` (space-separated SSH host aliases of paired remote
 agents; baked into `host.nix` and used by the post-apply fan-out),
 `DOTFILES_REMOTE_PATH` (path to the dotfiles repo on a remote; default

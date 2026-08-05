@@ -1,21 +1,27 @@
-{ pkgs, lib, ... }:
+{ config, pkgs, lib, host ? { }, ... }:
 let
   jsonFormat = pkgs.formats.json { };
 
-  # An agent host drives GitHub and Linear as its own bot account, not as the
-  # operator, which is what dispatch's `dedicated` credential mode describes:
-  # posts go unwrapped and review requests can target the operator. Applied to
-  # both settings files below, since either may be the one dispatch reads.
-  dispatchCredentialMode = {
-    pluginConfigs."dispatch@agentic".options.credential_mode = "dedicated";
-  };
+  # The dispatch block ../claude/dispatch.nix rendered from the typed options set
+  # below. Reused verbatim for the system-wide policy so the two files can't
+  # disagree. Reading it here is not circular: this module only sets
+  # `dotfiles.claude.dispatch.*`, never `dotfiles.claude.settings`.
+  #
+  # Guarded rather than a bare `inherit`: with
+  # `dotfiles.claude.dispatch.enable = false` nothing renders the attribute, and
+  # an unguarded read fails the whole evaluation. The policy is perfectly valid
+  # without it — it still carries the plugin set and the hooks.
+  dispatchOptions =
+    lib.optionalAttrs (config.dotfiles.claude.settings ? pluginConfigs) {
+      inherit (config.dotfiles.claude.settings) pluginConfigs;
+    };
 
   # System-level Claude Code policy. The consuming host installs this at
   # /etc/claude-code/managed-settings.json. It pre-approves the shared plugin
   # set (see `../claude/plugins.nix`) and wires the remote-agent sound hooks (the
   # play-sound shim plays the sound on the connecting client).
   managedSettings = jsonFormat.generate "claude-managed-settings.json" (
-    lib.recursiveUpdate (import ../claude/plugins.nix) (dispatchCredentialMode // {
+    lib.recursiveUpdate (import ../claude/plugins.nix) (dispatchOptions // {
       hooks = {
         Stop = [{ hooks = [{ type = "command"; command = "play-sound Morse 0.4"; }]; }];
         Notification = [{ hooks = [{ type = "command"; command = "play-sound Ping 0.35"; }]; }];
@@ -81,7 +87,25 @@ in
     ".config/agent/mcp-servers.json".source = mcpServers;
   };
 
-  dotfiles.claude.settings = dispatchCredentialMode;
+  # An agent host drives the forge and tracker as its own bot account, which is
+  # what `dedicated` describes: posts go unwrapped and review requests can target
+  # the operator. `operatorLogin` is the human directing the agent, not the bot.
+  #
+  # The literal is a fallback, not the source of truth: host.nix wins when the
+  # host sets DOTFILES_OPERATOR_LOGIN. It has to exist because an agent host is
+  # unattended — there is no TTY for the apply-time prompt, so the value would
+  # otherwise be null and the dispatch assertion would fail the build on every
+  # existing agent host.
+  #
+  # Tested against null explicitly rather than with `or`: lib/nix always writes
+  # the attribute, using `null` when unset, so `host.operatorLogin or "…"` never
+  # fires — `or` only covers a *missing* attribute, not a null one.
+  dotfiles.claude.dispatch = {
+    operatorLogin =
+      if (host.operatorLogin or null) != null then host.operatorLogin
+      else "ianwremmel";
+    credentialMode = "dedicated";
+  };
 
   # On a privileged agent host (the dev container activates as root), install the
   # managed-settings as the system policy, so the host doesn't have to place it.
