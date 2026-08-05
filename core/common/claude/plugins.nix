@@ -33,18 +33,10 @@
     "dispatch@agentic" = true;
   };
 
-  # dispatch's own `userConfig` is deliberately NOT set here. Its values differ
-  # per profile — the forge (github.com vs git.musta.ch), whether Copilot review
-  # exists, which tracker is authoritative, and which account the agent posts as
-  # — so each profile declares its own `pluginConfigs."dispatch@agentic".options`
-  # block. Anything set here would be re-asserted over all four on every apply.
-  #
-  #   personal laptop  environments/default/claude.nix
-  #   work laptop      custom_environments/work/home.nix
-  #   airdev           custom_environments/airdev/home.nix
-  #   agent hosts      ../agent/claude.nix
-  #
-  # `operator_login` is required by the plugin and has no default, so a profile
-  # that imports the Claude bundle without declaring a block leaves dispatch
-  # unconfigured.
+  # dispatch's own `userConfig` is deliberately NOT set here: its values are
+  # per-profile (the forge, the tracker, which account the agent posts as), and
+  # anything set here would be re-asserted over every profile on each apply.
+  # It is declared through the typed `dotfiles.claude.dispatch` options in
+  # ./dispatch.nix, which render the `pluginConfigs` block and fail the build if
+  # the required `operator_login` is missing.
 }

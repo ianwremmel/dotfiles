@@ -22,18 +22,10 @@
       enabled = true;
       excludedCommands = [ "git" ];
     };
-
-    # dispatch's userConfig for the personal machine: public github.com, Copilot
-    # review available, Linear as the tracker, and Claude driving the forge as
-    # the human (`shared`), so its posts are sparkle-wrapped. Declared per
-    # profile — see core/common/claude/plugins.nix for the other three.
-    pluginConfigs."dispatch@agentic".options = {
-      operator_login = "ianwremmel";
-      operator_mode = "solo";
-      credential_mode = "shared";
-      copilot_available = true;
-      tracker = "linear";
-      worktree_base = "~/projects/worktrees";
-    };
   };
+
+  # dispatch on the personal machine: public github.com, so every other typed
+  # default in core/common/claude/dispatch.nix (solo, shared, Copilot available,
+  # Linear) already matches and only the login needs stating.
+  dotfiles.claude.dispatch.operatorLogin = "ianwremmel";
 }

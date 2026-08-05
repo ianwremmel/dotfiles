@@ -1,28 +1,13 @@
-{ pkgs, lib, ... }:
+{ config, pkgs, lib, ... }:
 let
   jsonFormat = pkgs.formats.json { };
 
-  # dispatch's userConfig for an agent host. Declared here rather than in
-  # ../claude/plugins.nix because it differs per profile (see that file for the
-  # other three); this is the only profile where the agent has its own account.
-  # Applied to both settings files below, since either may be the one dispatch
-  # reads — which is also why `worktree_base` stays `~`-relative: the managed
-  # settings is a system-wide policy at /etc/claude-code, read by whichever user
-  # runs Claude, not necessarily the one that activated home-manager (the dev
-  # container activates as root). Full userConfig surface as of dispatch 0.21.4.
+  # The dispatch block ../claude/dispatch.nix rendered from the typed options set
+  # below. Reused verbatim for the system-wide policy so the two files can't
+  # disagree. Reading it here is not circular: this module only sets
+  # `dotfiles.claude.dispatch.*`, never `dotfiles.claude.settings`.
   dispatchOptions = {
-    pluginConfigs."dispatch@agentic".options = {
-      # The human directing this agent — dispatch targets them with review
-      # requests and classifies them in pr-status output. Not the bot account.
-      operator_login = "ianwremmel";
-      operator_mode = "solo";
-      # The agent drives GitHub and Linear as its own bot account, so posts go
-      # unwrapped and review requests can target the operator.
-      credential_mode = "dedicated";
-      copilot_available = true;
-      tracker = "linear";
-      worktree_base = "~/projects/worktrees";
-    };
+    inherit (config.dotfiles.claude.settings) pluginConfigs;
   };
 
   # System-level Claude Code policy. The consuming host installs this at
@@ -96,7 +81,13 @@ in
     ".config/agent/mcp-servers.json".source = mcpServers;
   };
 
-  dotfiles.claude.settings = dispatchOptions;
+  # An agent host drives the forge and tracker as its own bot account, which is
+  # what `dedicated` describes: posts go unwrapped and review requests can target
+  # the operator. `operatorLogin` is the human directing the agent, not the bot.
+  dotfiles.claude.dispatch = {
+    operatorLogin = "ianwremmel";
+    credentialMode = "dedicated";
+  };
 
   # On a privileged agent host (the dev container activates as root), install the
   # managed-settings as the system policy, so the host doesn't have to place it.

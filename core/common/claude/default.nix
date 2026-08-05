@@ -40,6 +40,10 @@ let
     jsonFormat.generate "claude-settings.json" (lib.recursiveUpdate baseSettings cfg.settings);
 in
 {
+  # The typed dispatch@agentic userConfig, which renders itself into
+  # `dotfiles.claude.settings` below.
+  imports = [ ./dispatch.nix ];
+
   options.dotfiles.claude = {
     settings = lib.mkOption {
       type = lib.types.anything;
