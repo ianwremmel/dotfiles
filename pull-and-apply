@@ -19,13 +19,17 @@ git pull --ff-only
 # modules — the settings merge cannot delete, so a key the new core stopped
 # declaring kept its old value silently. Fail hard instead of warning: applying
 # a half-updated config is worse than not applying.
-if [ -d custom_environments/.git ]; then
+#
+# `-e`, not `-d`: .git is a directory in a normal clone but a *file* in a git
+# worktree or submodule, and testing only for a directory is how the original
+# check came to silently match nothing.
+if [ -e custom_environments/.git ]; then
   ( cd custom_environments && git pull --ff-only )
 fi
 
 # A private env may itself nest a further checkout; pull those too.
 for d in custom_environments/*/; do
-  if [ -d "$d.git" ]; then
+  if [ -e "$d.git" ]; then
     ( cd "$d" && git pull --ff-only )
   fi
 done

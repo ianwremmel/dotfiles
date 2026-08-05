@@ -6,9 +6,15 @@ let
   # below. Reused verbatim for the system-wide policy so the two files can't
   # disagree. Reading it here is not circular: this module only sets
   # `dotfiles.claude.dispatch.*`, never `dotfiles.claude.settings`.
-  dispatchOptions = {
-    inherit (config.dotfiles.claude.settings) pluginConfigs;
-  };
+  #
+  # Guarded rather than a bare `inherit`: with
+  # `dotfiles.claude.dispatch.enable = false` nothing renders the attribute, and
+  # an unguarded read fails the whole evaluation. The policy is perfectly valid
+  # without it — it still carries the plugin set and the hooks.
+  dispatchOptions =
+    lib.optionalAttrs (config.dotfiles.claude.settings ? pluginConfigs) {
+      inherit (config.dotfiles.claude.settings) pluginConfigs;
+    };
 
   # System-level Claude Code policy. The consuming host installs this at
   # /etc/claude-code/managed-settings.json. It pre-approves the shared plugin
