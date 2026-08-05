@@ -2,12 +2,27 @@
 let
   jsonFormat = pkgs.formats.json { };
 
-  # An agent host drives GitHub and Linear as its own bot account, not as the
-  # operator, which is what dispatch's `dedicated` credential mode describes:
-  # posts go unwrapped and review requests can target the operator. Applied to
-  # both settings files below, since either may be the one dispatch reads.
-  dispatchCredentialMode = {
-    pluginConfigs."dispatch@agentic".options.credential_mode = "dedicated";
+  # dispatch's userConfig for an agent host. Declared here rather than in
+  # ../claude/plugins.nix because it differs per profile (see that file for the
+  # other three); this is the only profile where the agent has its own account.
+  # Applied to both settings files below, since either may be the one dispatch
+  # reads — which is also why `worktree_base` stays `~`-relative: the managed
+  # settings is a system-wide policy at /etc/claude-code, read by whichever user
+  # runs Claude, not necessarily the one that activated home-manager (the dev
+  # container activates as root). Full userConfig surface as of dispatch 0.21.4.
+  dispatchOptions = {
+    pluginConfigs."dispatch@agentic".options = {
+      # The human directing this agent — dispatch targets them with review
+      # requests and classifies them in pr-status output. Not the bot account.
+      operator_login = "ianwremmel";
+      operator_mode = "solo";
+      # The agent drives GitHub and Linear as its own bot account, so posts go
+      # unwrapped and review requests can target the operator.
+      credential_mode = "dedicated";
+      copilot_available = true;
+      tracker = "linear";
+      worktree_base = "~/projects/worktrees";
+    };
   };
 
   # System-level Claude Code policy. The consuming host installs this at
@@ -15,7 +30,7 @@ let
   # set (see `../claude/plugins.nix`) and wires the remote-agent sound hooks (the
   # play-sound shim plays the sound on the connecting client).
   managedSettings = jsonFormat.generate "claude-managed-settings.json" (
-    lib.recursiveUpdate (import ../claude/plugins.nix) (dispatchCredentialMode // {
+    lib.recursiveUpdate (import ../claude/plugins.nix) (dispatchOptions // {
       hooks = {
         Stop = [{ hooks = [{ type = "command"; command = "play-sound Morse 0.4"; }]; }];
         Notification = [{ hooks = [{ type = "command"; command = "play-sound Ping 0.35"; }]; }];
@@ -81,7 +96,7 @@ in
     ".config/agent/mcp-servers.json".source = mcpServers;
   };
 
-  dotfiles.claude.settings = dispatchCredentialMode;
+  dotfiles.claude.settings = dispatchOptions;
 
   # On a privileged agent host (the dev container activates as root), install the
   # managed-settings as the system policy, so the host doesn't have to place it.

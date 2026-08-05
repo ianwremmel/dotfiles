@@ -33,17 +33,18 @@
     "dispatch@agentic" = true;
   };
 
-  # dispatch reads these as `user_config` — `operator_login` is required, and an
-  # unattended agent has no one to answer a prompt for it. `credential_mode` is
-  # `shared` here (a personal machine drives Claude as the human) and overridden
-  # to `dedicated` for agent hosts in `../agent/claude.nix`, where the agent has
-  # its own GitHub account.
-  pluginConfigs."dispatch@agentic".options = {
-    operator_login = "ianwremmel";
-    operator_mode = "solo";
-    credential_mode = "shared";
-    copilot_available = true;
-    tracker = "linear";
-    worktree_base = "$HOME/projects/worktrees";
-  };
+  # dispatch's own `userConfig` is deliberately NOT set here. Its values differ
+  # per profile — the forge (github.com vs git.musta.ch), whether Copilot review
+  # exists, which tracker is authoritative, and which account the agent posts as
+  # — so each profile declares its own `pluginConfigs."dispatch@agentic".options`
+  # block. Anything set here would be re-asserted over all four on every apply.
+  #
+  #   personal laptop  environments/default/claude.nix
+  #   work laptop      custom_environments/work/home.nix
+  #   airdev           custom_environments/airdev/home.nix
+  #   agent hosts      ../agent/claude.nix
+  #
+  # `operator_login` is required by the plugin and has no default, so a profile
+  # that imports the Claude bundle without declaring a block leaves dispatch
+  # unconfigured.
 }
