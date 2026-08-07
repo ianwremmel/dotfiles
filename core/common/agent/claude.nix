@@ -22,6 +22,12 @@ let
   # play-sound shim plays the sound on the connecting client).
   managedSettings = jsonFormat.generate "claude-managed-settings.json" (
     lib.recursiveUpdate (import ../claude/plugins.nix) (dispatchOptions // {
+      # Channels are blocked wherever managed settings are deployed until this
+      # key is set, and the block is silent: the MCP server connects, its tools
+      # work, and every event it pushes is dropped with no error back to it.
+      # dispatch's orchestration is push-driven, so without this its scheduler
+      # emits work orders into nothing and sessions sit idle forever.
+      channelsEnabled = true;
       hooks = {
         Stop = [{ hooks = [{ type = "command"; command = "play-sound Morse 0.4"; }]; }];
         Notification = [{ hooks = [{ type = "command"; command = "play-sound Ping 0.35"; }]; }];
