@@ -64,13 +64,16 @@ are content-free aliases re-exporting `agent-autonomous` and
   config, personal CLI tools, terminal fonts, git identity + signing) and
   `default/darwin.nix` (personal casks/mas/brews).
 - **`agent-interactive`** — an SSH-in agent host. Home half only, Linux only:
-  the `agent` bundle, with `dotfiles.agent.reposFile` set to its `repos.txt`,
-  plus `claude-remote.nix` (the `claude-remote` shim and its
+  the `agent` bundle plus `claude-remote.nix` (the `claude-remote` shim and its
   `/dotfiles-claude-remote` skill — operator-facing, so they stay out of the
   shared bundle).
-- **`agent-autonomous`** — an unattended agent host. The `agent` bundle with no
-  `reposFile` (a private environment supplies one) and none of the
-  operator-facing extras; Linux only, so no darwin half.
+- **`agent-autonomous`** — an unattended agent host. The `agent` bundle without
+  the operator-facing extras; Linux only, so no darwin half.
+
+Neither carries any host bootstrap. Which repos a host checks out, its git
+identity, and the github.com bot-key ssh block belong to whatever runs the host
+— for the homelab pods, `images/dev-base/lib/bootstrap.sh`. A host changes its
+checkouts without a dotfiles release.
 
 The active environment is selected by which env flake `lib/nix` builds (from
 `DOTFILES_ENVIRONMENT`), not by a value inside `host.nix`. The untracked
@@ -135,14 +138,12 @@ the environment never sees it. Two flavors:
   transitively, through `common/agent`'s import of this bundle.
 
 - **`common/agent`** — the base every agent host shares: cluster CLIs, `bk`,
-  credential restore, project cloning, tmux auto-attach, the Claude
-  managed-settings policy, and the MCP server list exported to
-  `~/.config/agent/`. It `imports` `../claude`, so an environment adding
-  `public.homeModules.agent` also gets the shared `~/.claude` content. One
-  configurable option, `dotfiles.agent.reposFile` (a path, default null), names
-  the repos to clone — the only per-host difference between `agent-interactive`
-  and `agent-autonomous`. Linux-gated: a macOS build gets none of the host
-  bootstrap.
+  tmux auto-attach, the Claude managed-settings policy, and the MCP server list
+  exported to `~/.config/agent/`. It `imports` `../claude`, so an environment
+  adding `public.homeModules.agent` also gets the shared `~/.claude` content. It
+  takes no options and does no host bootstrap: cloning, git identity, and the
+  bot-key ssh block are the host's own (see above). Linux-gated, since an agent
+  host is a Linux box.
 - **`common/pairing`** — the laptop↔agent SSH wiring, one configurable bundle
   with `dotfiles.pairing.mode` (`off`/`client`/`server`) and
   `dotfiles.pairing.remotes`. `client` (set by `default`) installs the
