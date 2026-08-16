@@ -8,15 +8,15 @@
   # seed/merge) without listing that bundle separately. The module system
   # dedupes, so an environment may still list `public.homeModules.claude`.
   #
-  # Every agent host gets the same content — cluster tooling, credential
-  # restore, project cloning, tmux, the managed-settings policy. The one
-  # per-host difference is which repos to clone, set through
-  # `dotfiles.agent.reposFile` (see ./projects.nix).
+  # Every agent host gets the same content — cluster tooling, tmux, the Claude
+  # config and its managed-settings policy. What differs per host is the host's
+  # own business and lives with whatever runs it: the homelab pods clone their
+  # repos, set the git identity, and write the github.com bot-key ssh block from
+  # `images/dev-base/lib/bootstrap.sh`, not from this bundle.
   imports = [
     ../claude
     ./cli-tools.nix
     ./claude.nix
-    ./projects.nix
     ./shell-extras.nix
   ];
 }

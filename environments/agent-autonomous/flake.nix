@@ -1,9 +1,9 @@
 {
   description = "ianwremmel dotfiles — agent-autonomous environment (agent bundle, unattended)";
 
-  # An unattended agent host. Identical to agent-interactive except it names no
-  # repos to clone — a private environment supplies its own `reposFile`. Linux
-  # only, so it emits no darwin configuration.
+  # An unattended agent host. Identical to agent-interactive except for the
+  # operator-facing extras it leaves out. Linux only, so it emits no darwin
+  # configuration.
   inputs = {
     public.url = "github:ianwremmel/dotfiles?dir=core";
     nixpkgs.follows      = "public/nixpkgs";
