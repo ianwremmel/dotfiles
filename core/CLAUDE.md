@@ -149,7 +149,11 @@ the environment never sees it. Two flavors:
   `remote-agent` launchd socket handler and a `RemoteForward` per paired
   remote; `server` (set by `agent-interactive` and `agent-autonomous`) installs
   the sshd drop-in and the `remote-agent/` shims. The remote list comes from
-  `host.remoteAgents`, which `lib/nix` generates from `DOTFILES_REMOTE_AGENTS`.
+  `host.remoteAgents`, which `lib/nix` generates from `DOTFILES_REMOTE_AGENTS`;
+  an entry may be a glob (`claude-rc-*`) covering a fleet, in which case it
+  yields an ssh `Host` block but is skipped by the fan-out. The OAuth
+  callback-forwarding verbs take the requesting host's name from the remote and
+  accept it only if it matches one of those patterns.
 
 `common/{claude,pairing,agent}` are the repo's only `options`/`mkOption`
 declarations — reserved for the configurable-bundle case, where a profile

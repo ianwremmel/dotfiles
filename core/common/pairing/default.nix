@@ -12,11 +12,6 @@ let
   # --- client (macOS) ---
   sock = "${config.home.homeDirectory}/.remote-agent.sock";
   agentBin = "${config.home.homeDirectory}/.local/bin/remote-agent";
-  # OAuth callback port-forwarding (the FORWARD verb) targets a single host;
-  # use the first paired remote. Multi-remote callback forwarding is out of
-  # scope — the socket-based open-link/clipboard/sound verbs work for all
-  # remotes since they don't need to know which remote a request came from.
-  primaryRemote = if cfg.remotes == [ ] then "" else builtins.head cfg.remotes;
   # One ssh Host block per paired remote: forward the agent's
   # /run/remote-agent.sock back to this machine's local socket. Pairing servers
   # are agent hosts, which log in as root (server mode's sshd drop-in sets
@@ -78,7 +73,11 @@ in
     remotes = lib.mkOption {
       type = lib.types.listOf lib.types.str;
       default = [ ];
-      description = "SSH host aliases of paired remotes; drives the client RemoteForward blocks.";
+      description = ''
+        ssh Host patterns of paired remotes; drives the client RemoteForward
+        blocks. An entry may be a glob (`claude-rc-*`) to cover a fleet whose
+        member names aren't known ahead of time.
+      '';
     };
   };
 
@@ -93,9 +92,11 @@ in
         enable = true;
         config = {
           ProgramArguments = [ agentBin ];
-          # The handler reads SSH_HOST for the FORWARD verb; point it at the
-          # primary paired remote (empty when none are configured).
-          EnvironmentVariables.SSH_HOST = primaryRemote;
+          # The handler matches the host named in a FORWARD/UNFORWARD request
+          # against these patterns before handing it to ssh, and falls back to
+          # the first concrete one when a request names no host.
+          EnvironmentVariables.REMOTE_AGENT_HOSTS =
+            lib.concatStringsSep " " cfg.remotes;
           # Per-connection socket activation: launchd wires the accepted
           # connection to the handler's stdin/stdout (Wait=false).
           inetdCompatibility.Wait = false;

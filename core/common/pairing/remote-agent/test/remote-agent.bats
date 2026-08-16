@@ -197,17 +197,23 @@ teardown() {
     [ -z "$output" ]
 }
 
+@test "ra_host_id falls back to the hostname" {
+    run bash -c ". '$SHIMS/_remote-agent.sh'; ra_host_id"
+    [ "$output" = "$(hostname)" ]
+}
+
 @test "watcher sends UNFORWARD after the port stops listening" {
     python3 -m http.server 40521 --bind 127.0.0.1 >/dev/null 2>&1 &
     srv=$!
     start_listener "$BATS_TEST_TMPDIR/cap"
-    REMOTE_AGENT_SOCK="$SOCK" REMOTE_AGENT_WATCH_TIMEOUT=30 "$SHIMS/remote-agent-watch-port" 40521 &
+    REMOTE_AGENT_SOCK="$SOCK" REMOTE_AGENT_WATCH_TIMEOUT=30 REMOTE_AGENT_HOST_ID=pod-7 \
+        "$SHIMS/remote-agent-watch-port" 40521 &
     wpid=$!
     sleep 2                       # let the watcher observe the port LISTENing
     kill "$srv" 2>/dev/null        # login "finished" — port stops listening
     wait "$wpid" 2>/dev/null || true
     stop_listener
-    grep -q "UNFORWARD 40521" "$BATS_TEST_TMPDIR/cap"
+    grep -q "UNFORWARD 40521 pod-7" "$BATS_TEST_TMPDIR/cap"
 }
 
 @test "open-link forwards a loopback callback port then opens" {
@@ -216,11 +222,12 @@ teardown() {
     lpid=$!
     for _ in $(seq 1 50); do [ -S "$SOCK" ] && break; sleep 0.05; done
     url='https://p.test/auth?redirect_uri=http%3A%2F%2Flocalhost%3A40479%2Fcallback&client_id=x'
-    run env REMOTE_AGENT_SOCK="$SOCK" RA_WATCHER=/usr/bin/true "$SHIMS/open-link" "$url"
+    run env REMOTE_AGENT_SOCK="$SOCK" RA_WATCHER=/usr/bin/true REMOTE_AGENT_HOST_ID=pod-7 \
+        "$SHIMS/open-link" "$url"
     [ "$status" -eq 0 ]
     sleep 0.3
     kill "$lpid" 2>/dev/null; wait "$lpid" 2>/dev/null || true
-    grep -q "FORWARD 40479" "$BATS_TEST_TMPDIR/cap"
+    grep -q "FORWARD 40479 pod-7" "$BATS_TEST_TMPDIR/cap"
     grep -q "OPEN https://p.test/auth" "$BATS_TEST_TMPDIR/cap"
 }
 

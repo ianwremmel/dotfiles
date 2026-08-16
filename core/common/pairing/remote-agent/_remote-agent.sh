@@ -9,6 +9,14 @@ ra_channel_available() {
     [ -S "$RA_SOCK" ]
 }
 
+# This host's name, as the Mac knows it. Every remote's forwarded socket lands
+# in the same Mac-side socket, so a request that needs a specific ssh
+# ControlMaster (FORWARD/UNFORWARD) has to say which host it came from. The
+# hostname is the ssh alias the operator connected with.
+ra_host_id() {
+    printf '%s' "${REMOTE_AGENT_HOST_ID:-$(hostname)}"
+}
+
 # Pipe stdin to the agent socket and stream the response to stdout.
 # Returns nc's exit status.
 ra_send() {
