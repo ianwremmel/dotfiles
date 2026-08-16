@@ -29,4 +29,4 @@ while [ "$elapsed" -lt "$timeout" ]; do
     sleep 1; elapsed=$((elapsed + 1))
 done
 
-printf 'UNFORWARD %s\n' "$port" | ra_send >/dev/null 2>&1 || true
+printf 'UNFORWARD %s %s\n' "$port" "$(ra_host_id)" | ra_send >/dev/null 2>&1 || true

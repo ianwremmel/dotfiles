@@ -95,8 +95,9 @@ logging), `DOTFILES_NIX_SKIP=1` (skip Nix entirely), `DOTFILES_DARWIN_FORCE=1`
 `DOTFILES_OPERATOR_LOGIN` (the operator's forge login — github.com or
 git.musta.ch, not the unix username; baked into `host.nix`, prompted for and
 persisted on a TTY, left unset without one),
-`DOTFILES_REMOTE_AGENTS` (space-separated SSH host aliases of paired remote
-agents; baked into `host.nix` and used by the post-apply fan-out),
+`DOTFILES_REMOTE_AGENTS` (space-separated SSH host patterns of paired remote
+agents; baked into `host.nix` and used by the post-apply fan-out, which skips
+any entry that is a glob rather than a literal host),
 `DOTFILES_REMOTE_PATH` (path to the dotfiles repo on a remote; default
 `$HOME/projects/dotfiles`), `DOTFILES_REMOTE_TRIGGER=1` (set by `pull-and-apply`
 so a remote apply does not fan out again).

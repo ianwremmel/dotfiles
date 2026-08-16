@@ -172,6 +172,14 @@ _dotfiles_nix_fanout () {
   _summary=''
   # shellcheck disable=SC2086
   for _host in ${DOTFILES_REMOTE_AGENTS}; do
+    # An entry may be an ssh Host pattern covering a fleet (`claude-rc-*`), which
+    # gives the client its RemoteForward block but names no machine to push to.
+    case "$_host" in
+      *[*?[]*)
+        log "Skipping fan-out to pattern: $_host"
+        continue
+        ;;
+    esac
     log "Fanning out to remote agent: $_host"
     if _dotfiles_remote_apply "$_host" "$_remote_path"; then
       _summary="$_summary
