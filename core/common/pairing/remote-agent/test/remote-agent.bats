@@ -202,6 +202,40 @@ teardown() {
     [ "$output" = "$(hostname)" ]
 }
 
+# Stub `hostname` so the pod-shaped cases don't depend on where the suite runs.
+# $1 is what plain `hostname` prints, $2 what `hostname -f` prints.
+stub_hostname() {
+    mkdir -p "$BATS_TEST_TMPDIR/bin"
+    cat > "$BATS_TEST_TMPDIR/bin/hostname" <<EOF
+#!/usr/bin/env bash
+case "\$1" in -f) printf '%s\n' '$2' ;; *) printf '%s\n' '$1' ;; esac
+EOF
+    chmod +x "$BATS_TEST_TMPDIR/bin/hostname"
+}
+
+@test "ra_host_id uses the governing service name inside a StatefulSet pod" {
+    stub_hostname claude-rc-agentic-0 \
+        claude-rc-agentic-0.claude-rc-agentic.claude-rc.svc.cluster.local
+    run env PATH="$BATS_TEST_TMPDIR/bin:$PATH" \
+        bash -c ". '$SHIMS/_remote-agent.sh'; ra_host_id"
+    [ "$output" = "claude-rc-agentic" ]
+}
+
+@test "ra_host_id keeps the hostname outside the cluster" {
+    stub_hostname mybox mybox.local
+    run env PATH="$BATS_TEST_TMPDIR/bin:$PATH" \
+        bash -c ". '$SHIMS/_remote-agent.sh'; ra_host_id"
+    [ "$output" = "mybox" ]
+}
+
+@test "ra_host_id prefers an explicit REMOTE_AGENT_HOST_ID" {
+    stub_hostname claude-rc-agentic-0 \
+        claude-rc-agentic-0.claude-rc-agentic.claude-rc.svc.cluster.local
+    run env PATH="$BATS_TEST_TMPDIR/bin:$PATH" REMOTE_AGENT_HOST_ID=pinned \
+        bash -c ". '$SHIMS/_remote-agent.sh'; ra_host_id"
+    [ "$output" = "pinned" ]
+}
+
 @test "watcher sends UNFORWARD after the port stops listening" {
     python3 -m http.server 40521 --bind 127.0.0.1 >/dev/null 2>&1 &
     srv=$!

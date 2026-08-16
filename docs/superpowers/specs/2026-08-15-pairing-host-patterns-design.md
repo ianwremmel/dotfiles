@@ -37,15 +37,19 @@ optional so a pod running an older shim keeps working.
 
 The Mac handler is fed by one socket that every remote's `RemoteForward` lands
 in, and launchd hands it only stdin/stdout — there is no peer credential naming
-the sender. The remote therefore self-identifies:
-`_remote-agent.sh` gains `ra_host_id()` → `${REMOTE_AGENT_HOST_ID:-$(hostname)}`
-(the env var exists for tests), which `open-link` and `remote-agent-watch-port`
-append to their requests.
+the sender. The remote therefore self-identifies, via `ra_host_id()` in
+`_remote-agent.sh`, which `open-link` and `remote-agent-watch-port` append to
+their requests.
 
 This resolves to a working ssh target because `ssh -O forward` recomputes
-`ControlPath %C` from the name it is given, so `claude-rc-abc` finds the master
-opened by `ssh claude-rc-abc` — as long as the pod's hostname matches the alias
-the operator connected with.
+`ControlPath %C` from the name it is given, so naming `claude-rc-agentic` finds
+the master opened by `ssh claude-rc-agentic`. The name must therefore be the
+alias the operator typed, which is *not* the pod's hostname: in a StatefulSet
+the pod is `claude-rc-agentic-0` while the operator connects to the governing
+service, `claude-rc-agentic`. `ra_host_id` takes the second label of the pod
+FQDN (`<pod>.<service>.<namespace>.svc.cluster.local`) for that reason, falls
+back to the hostname anywhere else, and yields to `REMOTE_AGENT_HOST_ID` when a
+host needs to pin the value outright.
 
 ## Mac-side target resolution
 
