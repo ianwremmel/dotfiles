@@ -12,9 +12,11 @@ configurations.
 - `framework/` - Small sourced helpers: `logging`, `config` (`~/.dotfilesrc`), `environment` (resolve/persist the active environment), `compat` (ensure Homebrew on macOS)
 - `core/` - The shared library flake plus the always-included `all/` layer; consumed by every environment. See `core/CLAUDE.md`.
 - `environments/` - One flake per selectable environment, each consuming
-  `core/`. `default` (personal machine) and `agent-interactive` (SSH-in agent
-  host) carry content; `agent-autonomous` is the unattended host, empty beyond
-  the shared bundle. `agent` and `dev-container` are thin aliases that
+  `core/`. `default` (personal machine) carries its own content;
+  `agent-interactive` (SSH-in agent host) and `agent-autonomous` (unattended
+  host) are identical — the shared `agent` and `pairing` bundles with pairing
+  in server mode — and stay separate so operator-facing config can land on the
+  interactive one. `agent` and `dev-container` are thin aliases that
   re-export `agent-autonomous` and `agent-interactive` respectively — homelab's
   `bootstrap.sh` hardcodes `DOTFILES_ENVIRONMENT=dev-container`.
 - `.claude/rules/` - Rules that apply only to work in this repo. Claude Code
