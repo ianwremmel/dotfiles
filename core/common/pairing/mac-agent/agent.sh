@@ -9,10 +9,40 @@ SOUNDS_DIR="${SOUNDS_DIR:-/System/Library/Sounds}"
 DEFAULT_VOLUME="${DEFAULT_VOLUME:-0.5}"
 AFPLAY="${AFPLAY:-afplay}"
 
-# Which ssh Host (ControlMaster) to inject OAuth callback port forwards into.
-# Set by the launchd job (EnvironmentVariables.SSH_HOST = the primary paired
-# remote). Empty when no remotes are configured; FORWARD/UNFORWARD then no-op.
-SSH_HOST="${SSH_HOST:-}"
+# Space-separated ssh Host patterns of the paired remotes, set by the launchd
+# job from dotfiles.pairing.remotes. Empty when none are configured;
+# FORWARD/UNFORWARD then no-op.
+REMOTE_AGENT_HOSTS="${REMOTE_AGENT_HOSTS:-}"
+
+# ssh_target [claimed-host] — print the ssh Host to inject the forward into, or
+# nothing. Every remote's RemoteForward lands in this one socket and launchd
+# hands us only stdin/stdout, so a request that needs a specific remote carries
+# its own name; without one we fall back to the first configured pattern that is
+# itself a concrete name.
+#
+# A claim is honored only if it matches a configured pattern. That check is the
+# security boundary: the name comes from the remote and goes into ssh's argv, so
+# an unchecked value could smuggle an option like -oProxyCommand=…. The
+# leading-dash reject covers the case of a deliberately wide pattern.
+ssh_target() {
+    local claim="${1:-}" pat
+    local -a pats
+    case "$claim" in -*) return 0 ;; esac
+    # Also guards the "${pats[@]}" expansion below: bash 3.2 (stock macOS) treats
+    # an empty array as unbound under `set -u`.
+    [ -n "$REMOTE_AGENT_HOSTS" ] || return 0
+    # read -ra, not `for pat in $REMOTE_AGENT_HOSTS`: word-splitting an unquoted
+    # expansion would also pathname-expand the patterns against the cwd.
+    IFS=' ' read -ra pats <<< "$REMOTE_AGENT_HOSTS"
+    for pat in "${pats[@]}"; do
+        if [ -n "$claim" ]; then
+            # shellcheck disable=SC2254  # $pat is a glob on purpose
+            case "$claim" in $pat) printf '%s' "$claim"; return 0 ;; esac
+        else
+            case "$pat" in *[*?[]*) ;; ?*) printf '%s' "$pat"; return 0 ;; esac
+        fi
+    done
+}
 
 IFS= read -r line || exit 0
 verb="${line%% *}"
@@ -38,17 +68,15 @@ case "$verb" in
         fi
         printf 'OK\n'
         ;;
-    FORWARD)
-        case "$arg" in ""|*[!0-9]*) printf 'ERR bad port\n' >&2; exit 1 ;; esac
-        if [ -n "$SSH_HOST" ]; then
-            ssh -O forward -L "$arg:127.0.0.1:$arg" -- "$SSH_HOST" >/dev/null 2>&1 || true
-        fi
-        printf 'OK\n'
-        ;;
-    UNFORWARD)
-        case "$arg" in ""|*[!0-9]*) printf 'ERR bad port\n' >&2; exit 1 ;; esac
-        if [ -n "$SSH_HOST" ]; then
-            ssh -O cancel -L "$arg:127.0.0.1:$arg" -- "$SSH_HOST" >/dev/null 2>&1 || true
+    FORWARD|UNFORWARD)
+        # `FORWARD <port> [host]`; the host is optional so a remote running an
+        # older shim still gets the fallback target.
+        read -r port claim <<< "$arg"
+        case "$port" in ""|*[!0-9]*) printf 'ERR bad port\n' >&2; exit 1 ;; esac
+        target="$(ssh_target "${claim:-}")"
+        if [ -n "$target" ]; then
+            if [ "$verb" = FORWARD ]; then op=forward; else op=cancel; fi
+            ssh -O "$op" -L "$port:127.0.0.1:$port" -- "$target" >/dev/null 2>&1 || true
         fi
         printf 'OK\n'
         ;;

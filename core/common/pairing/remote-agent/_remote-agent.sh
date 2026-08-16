@@ -9,6 +9,29 @@ ra_channel_available() {
     [ -S "$RA_SOCK" ]
 }
 
+# This host's name, as the Mac knows it. Every remote's forwarded socket lands
+# in the same Mac-side socket, so a request that needs a specific ssh
+# ControlMaster (FORWARD/UNFORWARD) has to say which host it came from, and the
+# Mac keys the ControlPath on the name the operator typed.
+#
+# In a StatefulSet the pod's own hostname is not that name — it carries an
+# ordinal (`claude-rc-agentic-0`) while the operator connects to the governing
+# service (`claude-rc-agentic`). The pod FQDN is
+# `<pod>.<service>.<namespace>.svc.cluster.local`, so its second label is the
+# name we want. Anywhere else the hostname is already the alias.
+ra_host_id() {
+    local fqdn
+    if [ -n "${REMOTE_AGENT_HOST_ID:-}" ]; then
+        printf '%s' "$REMOTE_AGENT_HOST_ID"
+        return 0
+    fi
+    fqdn="$(hostname -f 2>/dev/null || true)"
+    case "$fqdn" in
+        *.*.*.svc.cluster.local) printf '%s' "${fqdn#*.}" | cut -d. -f1 ;;
+        *) hostname | tr -d '\n' ;;
+    esac
+}
+
 # Pipe stdin to the agent socket and stream the response to stdout.
 # Returns nc's exit status.
 ra_send() {

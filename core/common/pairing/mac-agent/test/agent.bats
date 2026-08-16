@@ -94,7 +94,7 @@ EOF
 }
 
 @test "FORWARD injects a LocalForward via ssh -O forward" {
-    run env PATH="$BIN:$PATH" SSH_HOST=myhost AGENT_CONF=/dev/null \
+    run env PATH="$BIN:$PATH" REMOTE_AGENT_HOSTS=myhost \
         bash -c "printf 'FORWARD 40479\n' | '$AGENT'"
     [ "$status" -eq 0 ]
     [[ "$output" == *"OK"* ]]
@@ -102,22 +102,49 @@ EOF
 }
 
 @test "UNFORWARD cancels the LocalForward via ssh -O cancel" {
-    run env PATH="$BIN:$PATH" SSH_HOST=myhost AGENT_CONF=/dev/null \
+    run env PATH="$BIN:$PATH" REMOTE_AGENT_HOSTS=myhost \
         bash -c "printf 'UNFORWARD 40479\n' | '$AGENT'"
     [ "$status" -eq 0 ]
     [ "$(cat "$BATS_TEST_TMPDIR/ssh.log")" = "-O cancel -L 40479:127.0.0.1:40479 -- myhost" ]
 }
 
-@test "FORWARD reads SSH_HOST from the conf file" {
-    echo 'SSH_HOST=confhost' > "$BATS_TEST_TMPDIR/conf"
-    run env PATH="$BIN:$PATH" AGENT_CONF="$BATS_TEST_TMPDIR/conf" \
+@test "FORWARD targets the host named in the request when it matches a pattern" {
+    run env PATH="$BIN:$PATH" REMOTE_AGENT_HOSTS="myhost claude-rc-*" \
+        bash -c "printf 'FORWARD 40479 claude-rc-abc\n' | '$AGENT'"
+    [ "$status" -eq 0 ]
+    [ "$(cat "$BATS_TEST_TMPDIR/ssh.log")" = "-O forward -L 40479:127.0.0.1:40479 -- claude-rc-abc" ]
+}
+
+@test "FORWARD ignores a host matching no configured pattern" {
+    run env PATH="$BIN:$PATH" REMOTE_AGENT_HOSTS="myhost claude-rc-*" \
+        bash -c "printf 'FORWARD 40479 evil.example\n' | '$AGENT'"
+    [ "$status" -eq 0 ]
+    [ ! -e "$BATS_TEST_TMPDIR/ssh.log" ]
+}
+
+@test "FORWARD ignores an option-shaped host even under a catch-all pattern" {
+    run env PATH="$BIN:$PATH" REMOTE_AGENT_HOSTS="*" \
+        bash -c "printf 'FORWARD 40479 -oProxyCommand=touch\n' | '$AGENT'"
+    [ "$status" -eq 0 ]
+    [ ! -e "$BATS_TEST_TMPDIR/ssh.log" ]
+}
+
+@test "FORWARD without a host falls back to the first concrete pattern" {
+    run env PATH="$BIN:$PATH" REMOTE_AGENT_HOSTS="claude-rc-* myhost" \
         bash -c "printf 'FORWARD 40479\n' | '$AGENT'"
     [ "$status" -eq 0 ]
-    [ "$(cat "$BATS_TEST_TMPDIR/ssh.log")" = "-O forward -L 40479:127.0.0.1:40479 -- confhost" ]
+    [ "$(cat "$BATS_TEST_TMPDIR/ssh.log")" = "-O forward -L 40479:127.0.0.1:40479 -- myhost" ]
+}
+
+@test "FORWARD no-ops when no remotes are configured" {
+    run env PATH="$BIN:$PATH" REMOTE_AGENT_HOSTS= \
+        bash -c "printf 'FORWARD 40479 claude-rc-abc\n' | '$AGENT'"
+    [ "$status" -eq 0 ]
+    [ ! -e "$BATS_TEST_TMPDIR/ssh.log" ]
 }
 
 @test "FORWARD rejects a non-numeric port" {
-    run env PATH="$BIN:$PATH" SSH_HOST=myhost AGENT_CONF=/dev/null \
+    run env PATH="$BIN:$PATH" REMOTE_AGENT_HOSTS=myhost \
         bash -c "printf 'FORWARD notaport\n' | '$AGENT'"
     [ "$status" -ne 0 ]
 }

@@ -197,17 +197,57 @@ teardown() {
     [ -z "$output" ]
 }
 
+@test "ra_host_id falls back to the hostname" {
+    run bash -c ". '$SHIMS/_remote-agent.sh'; ra_host_id"
+    [ "$output" = "$(hostname)" ]
+}
+
+# Stub `hostname` so the pod-shaped cases don't depend on where the suite runs.
+# $1 is what plain `hostname` prints, $2 what `hostname -f` prints.
+stub_hostname() {
+    mkdir -p "$BATS_TEST_TMPDIR/bin"
+    cat > "$BATS_TEST_TMPDIR/bin/hostname" <<EOF
+#!/usr/bin/env bash
+case "\$1" in -f) printf '%s\n' '$2' ;; *) printf '%s\n' '$1' ;; esac
+EOF
+    chmod +x "$BATS_TEST_TMPDIR/bin/hostname"
+}
+
+@test "ra_host_id uses the governing service name inside a StatefulSet pod" {
+    stub_hostname claude-rc-agentic-0 \
+        claude-rc-agentic-0.claude-rc-agentic.claude-rc.svc.cluster.local
+    run env PATH="$BATS_TEST_TMPDIR/bin:$PATH" \
+        bash -c ". '$SHIMS/_remote-agent.sh'; ra_host_id"
+    [ "$output" = "claude-rc-agentic" ]
+}
+
+@test "ra_host_id keeps the hostname outside the cluster" {
+    stub_hostname mybox mybox.local
+    run env PATH="$BATS_TEST_TMPDIR/bin:$PATH" \
+        bash -c ". '$SHIMS/_remote-agent.sh'; ra_host_id"
+    [ "$output" = "mybox" ]
+}
+
+@test "ra_host_id prefers an explicit REMOTE_AGENT_HOST_ID" {
+    stub_hostname claude-rc-agentic-0 \
+        claude-rc-agentic-0.claude-rc-agentic.claude-rc.svc.cluster.local
+    run env PATH="$BATS_TEST_TMPDIR/bin:$PATH" REMOTE_AGENT_HOST_ID=pinned \
+        bash -c ". '$SHIMS/_remote-agent.sh'; ra_host_id"
+    [ "$output" = "pinned" ]
+}
+
 @test "watcher sends UNFORWARD after the port stops listening" {
     python3 -m http.server 40521 --bind 127.0.0.1 >/dev/null 2>&1 &
     srv=$!
     start_listener "$BATS_TEST_TMPDIR/cap"
-    REMOTE_AGENT_SOCK="$SOCK" REMOTE_AGENT_WATCH_TIMEOUT=30 "$SHIMS/remote-agent-watch-port" 40521 &
+    REMOTE_AGENT_SOCK="$SOCK" REMOTE_AGENT_WATCH_TIMEOUT=30 REMOTE_AGENT_HOST_ID=pod-7 \
+        "$SHIMS/remote-agent-watch-port" 40521 &
     wpid=$!
     sleep 2                       # let the watcher observe the port LISTENing
     kill "$srv" 2>/dev/null        # login "finished" — port stops listening
     wait "$wpid" 2>/dev/null || true
     stop_listener
-    grep -q "UNFORWARD 40521" "$BATS_TEST_TMPDIR/cap"
+    grep -q "UNFORWARD 40521 pod-7" "$BATS_TEST_TMPDIR/cap"
 }
 
 @test "open-link forwards a loopback callback port then opens" {
@@ -216,11 +256,12 @@ teardown() {
     lpid=$!
     for _ in $(seq 1 50); do [ -S "$SOCK" ] && break; sleep 0.05; done
     url='https://p.test/auth?redirect_uri=http%3A%2F%2Flocalhost%3A40479%2Fcallback&client_id=x'
-    run env REMOTE_AGENT_SOCK="$SOCK" RA_WATCHER=/usr/bin/true "$SHIMS/open-link" "$url"
+    run env REMOTE_AGENT_SOCK="$SOCK" RA_WATCHER=/usr/bin/true REMOTE_AGENT_HOST_ID=pod-7 \
+        "$SHIMS/open-link" "$url"
     [ "$status" -eq 0 ]
     sleep 0.3
     kill "$lpid" 2>/dev/null; wait "$lpid" 2>/dev/null || true
-    grep -q "FORWARD 40479" "$BATS_TEST_TMPDIR/cap"
+    grep -q "FORWARD 40479 pod-7" "$BATS_TEST_TMPDIR/cap"
     grep -q "OPEN https://p.test/auth" "$BATS_TEST_TMPDIR/cap"
 }
 
