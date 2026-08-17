@@ -1,9 +1,10 @@
 {
   description = "ianwremmel dotfiles — agent-autonomous environment (agent bundle, unattended)";
 
-  # An unattended agent host. Identical to agent-interactive except for the
-  # operator-facing extras it leaves out. Linux only, so it emits no darwin
-  # configuration.
+  # An unattended agent host. Currently the same module set as
+  # agent-interactive; the two stay separate so operator-facing config can land
+  # on the SSH-in host without reaching this one. Linux only, so it emits no
+  # darwin configuration.
   inputs = {
     public.url = "github:ianwremmel/dotfiles?dir=core";
     nixpkgs.follows      = "public/nixpkgs";

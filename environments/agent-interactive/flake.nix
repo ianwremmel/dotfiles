@@ -1,10 +1,9 @@
 {
-  description = "ianwremmel dotfiles — agent-interactive environment (agent bundle, operator-facing)";
+  description = "ianwremmel dotfiles — agent-interactive environment (agent bundle, SSH-in host)";
 
   # Linux-only: an interactive agent host is a container you SSH into. The agent
-  # bundle carries the tooling, tmux, and the claude bundle; this environment
-  # adds the operator-facing bits (./claude-remote.nix). Cloning, git identity,
-  # and the bot-key ssh block belong to whatever runs the host.
+  # bundle carries the tooling, tmux, and the claude bundle. Cloning, git
+  # identity, and the bot-key ssh block belong to whatever runs the host.
   inputs = {
     public.url = "github:ianwremmel/dotfiles?dir=core";
     nixpkgs.follows      = "public/nixpkgs";
@@ -27,7 +26,6 @@
               public.homeModules.agent
               public.homeModules.pairing
               { dotfiles.pairing.mode = "server"; }
-              ./claude-remote.nix
             ];
           };
         })
