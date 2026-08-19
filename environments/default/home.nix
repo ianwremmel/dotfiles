@@ -5,7 +5,6 @@
   imports = [
     ./claude.nix
     ./cli-tools.nix
-    ./terminal-fonts.nix
   ];
 
   # `settings.user.{name,email,signingkey}` is the current home-manager

@@ -5,7 +5,6 @@
     casks = [
       "adobe-creative-cloud"
       "discord"
-      "iterm2"
       "proton-mail"
       "proton-mail-bridge"
       "quicken"
