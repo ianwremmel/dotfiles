@@ -14,7 +14,10 @@
     argocd
     argo-workflows # the `argo` CLI
     talosctl
+    cilium-cli
+    k9s
     opentofu
+    dig # homelab's verify-coven-workloads resolves exposed hostnames on public DNS
     yq-go
     aws-sam-cli
     flyctl
