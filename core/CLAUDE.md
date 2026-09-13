@@ -18,29 +18,11 @@ The core `flake.nix` exposes shared layers and two builder functions; it emits
 no `homeConfigurations`/`darwinConfigurations`. Each environment flake folds the
 shared layers in via `lib.mkHome` / `lib.mkDarwin` and adds its own modules.
 
-Core library (`flake.nix`):
-
-- **`homeModules.base`** (`home.nix`) — base home infrastructure: username,
-  homeDirectory, stateVersion, `allowUnfree`. Rarely edited.
-- **`homeModules.all`** (`all/home/default.nix`) — composed into *every* home
-  config: anything every machine should get. Split per-feature: `cli-tools`
-  `git` `gpg` `shells` `vim` `home-files` `dotfilesrc-cleanup`.
-- **`darwinModules.base`** (`darwin.nix`) — base system infrastructure:
-  `system.stateVersion`, `primaryUser`, login user, Touch ID, `nix.enable =
-  false`.
-- **`darwinModules.all`** (`all/darwin/default.nix`) — the universal system
-  layer composed into *every* darwin config: system PATH, login shell, Xcode
-  license, and the base homebrew block (universal casks/mas/brews). macOS
-  `defaults` come from `all/darwin/defaults.nix`.
-- **`homeModules.<bundle>`** (`common/<bundle>/`) — shared-but-optional bundles.
-  Unlike `all`, these are *not* folded in automatically; an environment opts in
-  by adding `public.homeModules.<bundle>` to its own `modules` list. See the
-  bundle conventions below; `homeModules.{agent,claude,pairing}` are the
-  shipped bundles.
-- **`lib.mkHome { system, username, modules ? [] }`** — builds a home-manager
-  config from `homeModules.base` + `homeModules.all` + the env's `modules`.
-- **`lib.mkDarwin { system, username, modules ? [] }`** — builds a nix-darwin
-  config from `darwinModules.base` + `darwinModules.all` + the env's `modules`.
+`flake.nix` itself documents each exported layer and builder. The distinction
+that matters when editing: `base` and `all` are folded in automatically by
+`mkHome`/`mkDarwin`, while `homeModules.<bundle>` (`common/<bundle>/`) is
+shared-but-*optional* — an environment opts in by adding
+`public.homeModules.<bundle>` to its own `modules` list.
 
 Per-environment flakes (`<env>/flake.nix`):
 
