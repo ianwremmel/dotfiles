@@ -64,10 +64,12 @@ are content-free aliases re-exporting `agent-autonomous` and
   config, personal CLI tools, terminal fonts, git identity + signing) and
   `default/darwin.nix` (personal casks/mas/brews).
 - **`agent-interactive`** — an SSH-in agent host. Home half only, Linux only:
-  the `agent` bundle plus pairing in server mode.
+  the `agent` bundle, pairing in server mode, and the Concise Claude output
+  style.
 - **`agent-autonomous`** — an unattended agent host. Same content as
-  `agent-interactive`; the two are kept apart so operator-facing config has a
-  place to land without reaching the unattended host. Linux only, so no darwin
+  `agent-interactive` bar the latter's `outputStyle`; the two are kept apart so
+  operator-facing config has a place to land without reaching the unattended
+  host. Linux only, so no darwin
   half.
 
 Neither carries any host bootstrap. Which repos a host checks out, its git

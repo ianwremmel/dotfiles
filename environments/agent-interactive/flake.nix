@@ -26,6 +26,10 @@
               public.homeModules.agent
               public.homeModules.pairing
               { dotfiles.pairing.mode = "server"; }
+              # The dev-container is the only fleet pod that takes its Claude
+              # config from dotfiles; the other nine read homelab's
+              # config/claude/settings-seed.json, which sets this same key.
+              { dotfiles.claude.settings.outputStyle = "Concise"; }
             ];
           };
         })
