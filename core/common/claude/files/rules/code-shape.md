@@ -8,4 +8,7 @@
   whole and turns every change into a large diff. Split by responsibility.
 - Keep pull requests under 800 changed lines, and smaller when you can, not
   counting lockfiles and generated code. A change that can't fit is several
-  changes; stack them.
+  changes; stack them. On github.com, use `gh stack`.
+- Keep refactors out of behavior changes. A small refactor gets its own commit;
+  a large one gets its own PR at the bottom of the stack. The reviewer should
+  be able to check "nothing changed" and "this changed" separately.
