@@ -16,7 +16,7 @@ configurations.
   `agent-interactive` (SSH-in agent host) and `agent-autonomous` (unattended
   host) both take the shared `agent` and `pairing` bundles with pairing in
   server mode, and stay separate so operator-facing config can land on the
-  interactive one — today, the Claude `outputStyle`. `agent` and `dev-container` are thin aliases that
+  interactive one — today, the Claude `outputStyle` and `model`. `agent` and `dev-container` are thin aliases that
   re-export `agent-autonomous` and `agent-interactive` respectively — homelab's
   `bootstrap.sh` hardcodes `DOTFILES_ENVIRONMENT=dev-container`.
 - `.claude/rules/` - Rules that apply only to work in this repo. Claude Code

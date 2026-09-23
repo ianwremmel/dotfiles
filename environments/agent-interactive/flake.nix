@@ -30,6 +30,8 @@
               # config from dotfiles; the other nine read homelab's
               # config/claude/settings-seed.json, which sets this same key.
               { dotfiles.claude.settings.outputStyle = "Concise"; }
+              # Mirrors settings-seed.json's `model` for the same reason.
+              { dotfiles.claude.settings.model = "claude-opus-5-5"; }
             ];
           };
         })

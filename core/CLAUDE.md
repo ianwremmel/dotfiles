@@ -64,10 +64,10 @@ are content-free aliases re-exporting `agent-autonomous` and
   config, personal CLI tools, terminal fonts, git identity + signing) and
   `default/darwin.nix` (personal casks/mas/brews).
 - **`agent-interactive`** — an SSH-in agent host. Home half only, Linux only:
-  the `agent` bundle, pairing in server mode, and the Concise Claude output
-  style.
+  the `agent` bundle, pairing in server mode, the Concise Claude output
+  style, and Opus 5.5 (`claude-opus-5-5`) as the Claude model default.
 - **`agent-autonomous`** — an unattended agent host. Same content as
-  `agent-interactive` bar the latter's `outputStyle`; the two are kept apart so
+  `agent-interactive` bar the latter's `outputStyle` and `model`; the two are kept apart so
   operator-facing config has a place to land without reaching the unattended
   host. Linux only, so no darwin
   half.
