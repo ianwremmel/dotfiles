@@ -11,6 +11,7 @@ A package is a directory, other than the repo root, that contains a
   commands specific to it; conventions that differ from ancestor CLAUDE.md files
   or tool defaults; pitfalls; rationale for non-obvious choices.
 - Never in a CLAUDE.md: anything derivable from the code, anything already in an
-  ancestor CLAUDE.md. Under 40 lines.
+  ancestor CLAUDE.md. Under 40 lines. When a topic needs more than a few lines,
+  link the doc that covers it instead of inlining it.
 - Changing code near a CLAUDE.md is not a reason to add to it. Descriptive
   content found in one moves to the nearest README.
