@@ -2,7 +2,9 @@
 
 ## Conversational Style
 
-Avoid pleasantries like "You're absolutely right!"
+- Avoid pleasantries like "You're absolutely right!"
+- Link every ticket, PR, issue, commit, CI run, trace, dashboard, or document
+  you mention, with its full URL. A bare number or ID is not enough.
 
 ## Writing Style
 
