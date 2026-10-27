@@ -65,6 +65,20 @@ let
         url = "https://wiki.000793.xyz/mcp";
         headers.Authorization = "Bearer $OUTLINE_API_KEY";
       }
+      {
+        name = "honeycomb";
+        transport = "http";
+        url = "https://mcp.honeycomb.io/mcp";
+        headers.Authorization = "Bearer $HONEYCOMB_API_KEY";
+        requires = [ "HONEYCOMB_API_KEY" ];
+      }
+      {
+        name = "foreman";
+        transport = "http";
+        url = "https://foreman.coven.000793.xyz/mcp";
+        headers.Authorization = "Basic $FOREMAN_MCP_BASIC";
+        requires = [ "FOREMAN_MCP_BASIC" ];
+      }
     ];
   };
 
