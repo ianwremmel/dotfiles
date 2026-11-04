@@ -16,4 +16,4 @@ jobs:
       - uses: actions/checkout@master
         with:
           fetch-depth: 0
-      - uses: ianwremmel/prevent-nopush-commits@v1.0.2
+      - uses: ianwremmel/prevent-nopush-commits@v2.0.0
